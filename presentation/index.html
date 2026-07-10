@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Внедрение Битрикс24 для B2B — Русский Бит</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --cyan: #2FC7F7;
+      --blue: #409EEF;
+      --navy: #0066A1;
+      --lime: #BDF300;
+      --dark: #0B1F33;
+      --text: #1C2B3A;
+      --muted: #5B6B7C;
+      --light: #F3F9FD;
+      --border: #D7E8F5;
+      --grad: linear-gradient(135deg, #0066A1 0%, #409EEF 55%, #2FC7F7 100%);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Open Sans", sans-serif;
+      background: #0E1A28;
+      color: var(--text);
+    }
+    h1,h2,h3,.brand { font-family: Montserrat, sans-serif; }
+
+    .topbar {
+      position: sticky; top: 0; z-index: 20;
+      display: flex; justify-content: space-between; align-items: center;
+      gap: 16px; padding: 12px 24px;
+      background: rgba(11,31,51,.92); backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(47,199,247,.25); color: #fff;
+    }
+    .brand { display: flex; gap: 10px; align-items: center; font-weight: 700; font-size: 14px; }
+    .mark {
+      width: 34px; height: 34px; border-radius: 10px; background: var(--grad);
+      display: grid; place-items: center; font-size: 12px; font-weight: 800;
+    }
+    .brand small { display: block; font-family: "Open Sans", sans-serif; font-size: 11px; color: #9EC9E8; font-weight: 500; }
+    .nav { display: flex; flex-wrap: wrap; gap: 6px; }
+    .nav a {
+      color: #D7ECFA; text-decoration: none; font-size: 12px; font-weight: 700;
+      padding: 6px 10px; border-radius: 999px;
+    }
+    .nav a:hover { background: rgba(47,199,247,.15); color: #fff; }
+
+    .deck { max-width: 1480px; margin: 0 auto; padding: 20px 16px 60px; }
+    .slide {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      background: #fff;
+      border-radius: 24px;
+      overflow: hidden;
+      margin-bottom: 24px;
+      box-shadow: 0 20px 50px rgba(0,0,0,.28);
+      position: relative;
+    }
+    .inner {
+      height: 100%;
+      padding: 36px 44px 28px;
+      display: flex;
+      flex-direction: column;
+    }
+    .eyebrow {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 7px 12px; border-radius: 999px; font-size: 12px; font-weight: 700;
+      background: rgba(0,102,161,.08); color: var(--navy); width: fit-content; margin-bottom: 12px;
+    }
+    .eyebrow .dot {
+      width: 8px; height: 8px; border-radius: 50%; background: var(--lime);
+      box-shadow: 0 0 0 4px rgba(189,243,0,.25);
+    }
+    .eyebrow.light {
+      background: rgba(255,255,255,.16); color: #fff; border: 1px solid rgba(255,255,255,.25);
+    }
+    h1 { font-size: clamp(28px, 3.2vw, 46px); line-height: 1.1; font-weight: 800; letter-spacing: -.03em; }
+    h2 { font-size: clamp(24px, 2.4vw, 34px); line-height: 1.15; font-weight: 800; letter-spacing: -.02em; color: var(--dark); margin-bottom: 8px; }
+    h3 { font-size: 15px; font-weight: 700; color: var(--dark); margin-bottom: 4px; }
+    .lead, .sub { font-size: 15px; color: var(--muted); margin-bottom: 16px; max-width: 900px; }
+    .footer {
+      margin-top: auto; padding-top: 12px; border-top: 1px solid var(--border);
+      display: flex; justify-content: space-between; color: var(--muted); font-size: 11px;
+    }
+
+    /* Hero */
+    #s1 { background: var(--grad); color: #fff; }
+    #s1 .inner { display: grid; grid-template-columns: 1.05fr .95fr; gap: 28px; }
+    #s1 .content { display: flex; flex-direction: column; }
+    #s1 .lead { color: rgba(255,255,255,.92); font-size: 16px; }
+    #s1 .footer { border-top-color: rgba(255,255,255,.22); color: rgba(255,255,255,.8); grid-column: 1 / -1; }
+    .stats { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-top: 18px; }
+    .stat {
+      background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.22);
+      border-radius: 16px; padding: 14px;
+    }
+    .stat strong { display: block; font-family: Montserrat, sans-serif; font-size: 26px; font-weight: 800; }
+    .stat span { font-size: 11px; opacity: .92; }
+    .visual { position: relative; align-self: center; }
+    .visual img { width: 100%; border-radius: 18px; display: block; box-shadow: 0 16px 40px rgba(0,40,80,.25); }
+    .badge {
+      position: absolute; left: 14px; bottom: 14px; background: #fff; color: var(--navy);
+      border-radius: 14px; padding: 10px 12px; font-size: 11px; font-weight: 700;
+      display: flex; gap: 8px; align-items: center; box-shadow: 0 10px 24px rgba(0,0,0,.18);
+    }
+    .badge b { background: var(--lime); color: #16324A; border-radius: 8px; padding: 5px 7px; font-family: Montserrat, sans-serif; }
+
+    .grid2 { display: grid; grid-template-columns: 1.1fr .9fr; gap: 22px; flex: 1; min-height: 0; }
+    .grid2b { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; flex: 1; min-height: 0; }
+    .stack { display: grid; gap: 12px; }
+    .card {
+      background: var(--light); border: 1px solid var(--border); border-radius: 18px; padding: 16px;
+    }
+    .card.accent { background: var(--grad); color: #fff; border: none; }
+    .card.accent h3, .card.accent p { color: #fff; }
+    .risk { font-family: Montserrat, sans-serif; font-size: 56px; font-weight: 800; color: #E45757; line-height: 1; }
+    .pill {
+      display: inline-block; background: rgba(189,243,0,.22); color: #fff; border-radius: 999px;
+      padding: 5px 10px; font-size: 11px; font-weight: 700; margin-bottom: 8px;
+    }
+
+    .pains {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 10px;
+    }
+    .pain {
+      background: #fff; border: 1px solid var(--border); border-radius: 16px; padding: 14px;
+      border-left: 4px solid var(--blue); min-height: 88px;
+    }
+    .pain .ico { font-size: 18px; margin-bottom: 8px; }
+    .pain h3 { font-size: 13px; margin: 0; }
+    .pain.wide { grid-column: span 2; }
+
+    .svc {
+      display: grid; grid-template-columns: 42px 1fr; gap: 10px; align-items: start;
+      background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 12px;
+    }
+    .num {
+      width: 42px; height: 42px; border-radius: 12px; background: var(--grad); color: #fff;
+      display: grid; place-items: center; font-family: Montserrat, sans-serif; font-weight: 800; font-size: 13px;
+    }
+    .svc p { font-size: 12px; color: var(--muted); }
+
+    .step {
+      display: grid; grid-template-columns: 72px 1fr; gap: 10px;
+      background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 10px 12px;
+    }
+    .time {
+      background: rgba(47,199,247,.12); color: var(--navy); border-radius: 10px;
+      text-align: center; padding: 8px 4px; font-family: Montserrat, sans-serif;
+      font-size: 11px; font-weight: 800; line-height: 1.2;
+    }
+    .step h3 { font-size: 13px; }
+    .step p { font-size: 11px; color: var(--muted); }
+
+    .case {
+      background: #fff; border: 1px solid var(--border); border-radius: 18px; padding: 16px;
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .tag {
+      align-self: flex-start; background: var(--grad); color: #fff; border-radius: 999px;
+      padding: 5px 10px; font-size: 11px; font-weight: 700;
+    }
+    .metrics { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; }
+    .metrics.two { grid-template-columns: 1fr 1fr; }
+    .metric {
+      background: rgba(189,243,0,.16); border-radius: 12px; padding: 10px;
+    }
+    .metric strong { display: block; font-family: Montserrat, sans-serif; font-size: 20px; color: #3F5600; }
+    .metric span { font-size: 11px; color: var(--muted); }
+
+    .g4 { display: grid; grid-template-columns: repeat(2,1fr); gap: 12px; flex: 1; }
+    .gitem {
+      background: var(--light); border: 1px solid var(--border); border-radius: 18px; padding: 18px;
+    }
+    .gitem .ico {
+      width: 42px; height: 42px; border-radius: 12px; background: var(--grad); color: #fff;
+      display: grid; place-items: center; margin-bottom: 10px; font-size: 18px;
+    }
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+    .chip {
+      background: rgba(0,102,161,.08); color: var(--navy); border-radius: 999px;
+      padding: 6px 10px; font-size: 11px; font-weight: 700;
+    }
+
+    #s8 { background: var(--grad); color: #fff; }
+    #s8 h2, #s8 .sub, #s8 h3, #s8 p { color: #fff; }
+    #s8 .sub { opacity: .92; }
+    #s8 .footer { border-top-color: rgba(255,255,255,.22); color: rgba(255,255,255,.85); }
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px; background: var(--lime); color: #16324A;
+      font-family: Montserrat, sans-serif; font-weight: 800; font-size: 14px; text-decoration: none;
+      border-radius: 12px; padding: 12px 16px; margin: 8px 0 14px; width: fit-content;
+      box-shadow: 0 10px 24px rgba(189,243,0,.35);
+    }
+    .channels { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; }
+    .ch {
+      background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.25);
+      border-radius: 14px; padding: 14px 10px; text-align: center;
+    }
+    .ch .e { font-size: 20px; margin-bottom: 6px; }
+    .ch strong { display: block; font-family: Montserrat, sans-serif; font-size: 12px; margin-bottom: 2px; }
+    .ch span { font-size: 11px; opacity: .9; }
+
+    .media-sm img { width: 100%; height: 140px; object-fit: cover; border-radius: 14px; }
+    .media-md img { width: 100%; max-height: 220px; object-fit: cover; border-radius: 16px; }
+    .media-fill img { width: 100%; height: 100%; object-fit: cover; border-radius: 16px; }
+
+    @media (max-width: 980px) {
+      .slide { aspect-ratio: auto; min-height: 640px; }
+      #s1 .inner, .grid2, .grid2b, .pains, .channels, .g4, .stats { grid-template-columns: 1fr; }
+      .pain.wide { grid-column: auto; }
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="brand">
+      <div class="mark">RB</div>
+      <div>Русский Бит · Bitrix24<small>crmnow.ru · внедрение «под ключ»</small></div>
+    </div>
+    <nav class="nav">
+      <a href="#s1">Старт</a><a href="#s2">Риск</a><a href="#s3">Боли</a><a href="#s4">Решение</a>
+      <a href="#s5">Этапы</a><a href="#s6">Кейсы</a><a href="#s7">Гарантии</a><a href="#s8">Заявка</a>
+    </nav>
+  </div>
+
+  <div class="deck">
+    <!-- 1 -->
+    <section class="slide" id="s1">
+      <div class="inner">
+        <div class="content">
+          <div class="eyebrow light"><span class="dot"></span> B2B · Битрикс24 · под ключ</div>
+          <h1>Внедрение Битрикс24<br>для B2B «под ключ»</h1>
+          <p class="lead">Настройка + управление изменениями в компании: снижаем риск и ускоряем окупаемость внедрения.</p>
+          <div class="stats">
+            <div class="stat"><strong>70%</strong><span>внедрений проваливаются без работы с людьми</span></div>
+            <div class="stat"><strong>8</strong><span>этапов от аудита до сопровождения</span></div>
+            <div class="stat"><strong>1 час</strong><span>ответ поддержки в рабочее время</span></div>
+          </div>
+        </div>
+        <div class="visual">
+          <img src="assets/hero-bitrix.png" alt="Bitrix24 B2B" />
+          <div class="badge"><b>CRMNOW</b><span>Русский Бит · партнёр Битрикс24</span></div>
+        </div>
+        <div class="footer"><span>Деловая презентация · стиль Bitrix24 / Русский Бит</span><span>01 / 08</span></div>
+      </div>
+    </section>
+
+    <!-- 2 -->
+    <section class="slide" id="s2">
+      <div class="inner">
+        <div class="eyebrow"><span class="dot"></span> Ключевой риск и наше решение</div>
+        <h2>Работа с людьми — обязательная часть проекта</h2>
+        <p class="sub">До 70% внедрений проваливаются из‑за недопонимания и сопротивления персонала. У нас работа с людьми — обязательная часть проекта: подготовка к изменениям, обучение, сопровождение после запуска.</p>
+        <div class="grid2">
+          <div class="visual"><img src="assets/risk-solution.png" alt="Риск и решение" /></div>
+          <div class="stack">
+            <div class="card"><div class="risk">70%</div><h3>Типичный провал внедрений</h3><p style="font-size:13px;color:var(--muted)">Недопонимание и сопротивление персонала — главные причины провала CRM‑проектов.</p></div>
+            <div class="card accent"><div class="pill">Наш подход</div><h3>Люди + процессы + система</h3><p style="font-size:13px">Подготовка к изменениям, обучение по ролям, агенты изменений и сопровождение после запуска.</p></div>
+          </div>
+        </div>
+        <div class="footer"><span>Управление изменениями как часть внедрения</span><span>02 / 08</span></div>
+      </div>
+    </section>
+
+    <!-- 3 -->
+    <section class="slide" id="s3">
+      <div class="inner">
+        <div class="eyebrow"><span class="dot"></span> Боли наших клиентов</div>
+        <h2>Что мешает B2B‑компаниям расти</h2>
+        <p class="sub">Типовые потери до внедрения сквозной системы на Битрикс24.</p>
+        <div class="media-md"><img src="assets/pain-points.png" alt="Боли клиентов" /></div>
+        <div class="pains">
+          <div class="pain"><div class="ico">📥</div><h3>Необработанные заявки</h3></div>
+          <div class="pain"><div class="ico">🗂️</div><h3>Нет единой базы клиентов</h3></div>
+          <div class="pain"><div class="ico">💬</div><h3>Разрозненные коммуникации</h3></div>
+          <div class="pain"><div class="ico">📄</div><h3>Потеря информации внутри компании</h3></div>
+          <div class="pain"><div class="ico">👷</div><h3>Нет контроля загрузки подразделений</h3></div>
+          <div class="pain"><div class="ico">📊</div><h3>Нет единой картины по проектам</h3></div>
+          <div class="pain wide"><div class="ico">⏰</div><h3>Срывы сроков и потеря управляемости</h3></div>
+        </div>
+        <div class="footer"><span>Диагностика точек потерь</span><span>03 / 08</span></div>
+      </div>
+    </section>
+
+    <!-- 4 -->
+    <section class="slide" id="s4">
+      <div class="inner">
+        <div class="eyebrow"><span class="dot"></span> Что делаем</div>
+        <h2>Сквозная система управления B2B</h2>
+        <p class="sub">От тендера до актов — процессы, контроль, интеграции и адаптация персонала.</p>
+        <div class="grid2">
+          <div class="stack">
+            <div class="svc"><div class="num">01</div><div><h3>Сквозная B2B‑воронка</h3><p>От тендера до актов, контроль времени реакции, автоуведомления.</p></div></div>
+            <div class="svc"><div class="num">02</div><div><h3>Проекты и задачи</h3><p>Вехи, чек‑листы и прозрачный статус исполнения.</p></div></div>
+            <div class="svc"><div class="num">03</div><div><h3>Контроль загрузки</h3><p>Планирование смен и бригад, баланс ресурсов.</p></div></div>
+            <div class="svc"><div class="num">04</div><div><h3>Согласования и документы</h3><p>Маршруты, версии, хранение актов / КП / договоров.</p></div></div>
+            <div class="svc"><div class="num">05</div><div><h3>Интеграции</h3><p>Телефония, почта, мессенджеры, 1С, BI‑отчётность.</p></div></div>
+            <div class="svc"><div class="num">06</div><div><h3>Работа с персоналом</h3><p>Агенты изменений, обучение по ролям, сопровождение.</p></div></div>
+          </div>
+          <div class="visual"><img src="assets/what-we-do.png" alt="Что делаем" /></div>
+        </div>
+        <div class="footer"><span>Функциональный контур внедрения</span><span>04 / 08</span></div>
+      </div>
+    </section>
+
+    <!-- 5 -->
+    <section class="slide" id="s5">
+      <div class="inner">
+        <div class="eyebrow"><span class="dot"></span> Этапы проекта</div>
+        <h2>Прозрачный план от интервью до сопровождения</h2>
+        <p class="sub">Фиксируем KPI, снимаем точки потерь и параллельно готовим людей к изменениям.</p>
+        <div class="grid2b">
+          <div class="stack">
+            <div class="step"><div class="time">1–2<br>дня</div><div><h3>1. Интервью с собственниками и топ‑менеджментом</h3><p>KPI, недопустимые риски, приоритеты настройки.</p></div></div>
+            <div class="step"><div class="time">1–2<br>нед.</div><div><h3>2. Экспресс‑аудит и интервью с руководителями</h3><p>3–5 точек потерь: «как должно» vs «как реально».</p></div></div>
+            <div class="step"><div class="time">2<br>нед.</div><div><h3>3. ТЗ и согласование KPI</h3><p>Воронки, роли, маршруты, интеграции, план обучения.</p></div></div>
+            <div class="step"><div class="time">2–3<br>нед.</div><div><h3>4. Базовая настройка и интеграции</h3><p>CRM, телефония/почта, 1С, роботы, шаблоны, отчёты.</p></div></div>
+          </div>
+          <div class="stack">
+            <div class="step"><div class="time">1–2<br>нед.</div><div><h3>5. Автоматизации и доработки</h3><p>Пилотные воркшопы с агентами изменений.</p></div></div>
+            <div class="step"><div class="time">1–2<br>нед.</div><div><h3>6. Тестирование и правки</h3><p>Сценарии и корректировки по обратной связи.</p></div></div>
+            <div class="step"><div class="time">1–2<br>нед.</div><div><h3>7. Обучение и запуск</h3><p>Воркшопы по ролям, пилот, первые метрики.</p></div></div>
+            <div class="step"><div class="time">1–3<br>мес.</div><div><h3>8. Сопровождение</h3><p>Поддержка, донастройка, работа с сопротивлением.</p></div></div>
+            <div class="media-sm"><img src="assets/timeline.png" alt="Таймлайн" /></div>
+          </div>
+        </div>
+        <div class="footer"><span>Дорожная карта внедрения</span><span>05 / 08</span></div>
+      </div>
+    </section>
+
+    <!-- 6 -->
+    <section class="slide" id="s6">
+      <div class="inner">
+        <div class="eyebrow"><span class="dot"></span> Кейсы</div>
+        <h2>Результаты на производстве и в строительстве</h2>
+        <p class="sub">Система + адаптация персонала дают измеримый эффект.</p>
+        <div class="grid2b" style="margin-bottom:12px;">
+          <div class="case">
+            <div class="tag">Производство · 80 чел.</div>
+            <h3>Сквозная воронка + загрузка смен + маршруты согласований</h3>
+            <p style="font-size:12px;color:var(--muted)">Плюс адаптация персонала под новые процессы.</p>
+            <div class="metrics">
+              <div class="metric"><strong>28%→10%</strong><span>потери лидов</span></div>
+              <div class="metric"><strong>−45%</strong><span>время согласований</span></div>
+              <div class="metric"><strong>−60%</strong><span>обращения в поддержку</span></div>
+            </div>
+          </div>
+          <div class="case">
+            <div class="tag">Строительство · 65 чел.</div>
+            <h3>Карточки объектов + контроль этапов/подрядчиков</h3>
+            <p style="font-size:12px;color:var(--muted)">Автоуведомления и агенты изменений из прорабов и координаторов.</p>
+            <div class="metrics two">
+              <div class="metric"><strong>−42%</strong><span>просроченные этапы</span></div>
+              <div class="metric"><strong>×3↓</strong><span>ручные напоминания</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="media-md"><img src="assets/cases-success.png" alt="Метрики кейсов" /></div>
+        <div class="footer"><span>Измеримые результаты клиентов</span><span>06 / 08</span></div>
+      </div>
+    </section>
+
+    <!-- 7 -->
+    <section class="slide" id="s7">
+      <div class="inner">
+        <div class="eyebrow"><span class="dot"></span> Гарантии и риск‑менеджмент</div>
+        <h2>Снижаем неопределённость внедрения</h2>
+        <p class="sub">Фиксируем качество доработок, скорость поддержки и план действий при отклонениях.</p>
+        <div class="g4">
+          <div class="gitem"><div class="ico">🛡️</div><h3>Гарантия на доработки по ТЗ</h3><p style="font-size:13px;color:var(--muted)">30 дней без доплат.</p></div>
+          <div class="gitem"><div class="ico">⚡</div><h3>Оперативная поддержка</h3><p style="font-size:13px;color:var(--muted)">Ответ в течение 1 рабочего часа.</p></div>
+          <div class="gitem"><div class="ico">🚀</div><h3>План действий при задержках</h3><p style="font-size:13px;color:var(--muted)">Перераспределение ресурсов, ускоренный трек, компенсация дней сопровождения.</p></div>
+          <div class="gitem"><div class="ico">🧭</div><h3>Риск‑менеджмент адаптации</h3><p style="font-size:13px;color:var(--muted)">Замеры вовлечённости, корректировка коммуникации, работа с сопротивлением.</p></div>
+        </div>
+        <div class="chips">
+          <span class="chip">ТЗ → KPI → запуск</span>
+          <span class="chip">Обучение по ролям</span>
+          <span class="chip">Сопровождение 1–3 месяца</span>
+          <span class="chip">crmnow.ru</span>
+        </div>
+        <div class="footer"><span>Сервисный контур Русский Бит</span><span>07 / 08</span></div>
+      </div>
+    </section>
+
+    <!-- 8 -->
+    <section class="slide" id="s8">
+      <div class="inner">
+        <div class="eyebrow light"><span class="dot"></span> Следующий шаг</div>
+        <div class="grid2" style="align-items:center;">
+          <div>
+            <h2 style="color:#fff;">Бесплатный экспресс‑аудит</h2>
+            <p class="sub">За 1 встречу выявим 3–5 точек потерь и дадим предварительную оценку внедрения с планом адаптации персонала. Оставьте заявку удобным вам способом.</p>
+            <a class="btn" href="https://crmnow.ru" target="_blank" rel="noopener">Оставить заявку на crmnow.ru →</a>
+            <div class="channels">
+              <div class="ch"><div class="e">📞</div><strong>Звоните</strong><span>быстрый контакт</span></div>
+              <div class="ch"><div class="e">💬</div><strong>Пишите в MAX</strong><span>мессенджер</span></div>
+              <div class="ch"><div class="e">📝</div><strong>Форма на сайте</strong><span>crmnow.ru</span></div>
+              <div class="ch"><div class="e">✉️</div><strong>Напишите на почту</strong><span>удобный канал</span></div>
+            </div>
+          </div>
+          <div class="visual"><img src="assets/cta-audit.png" alt="Экспресс-аудит" /></div>
+        </div>
+        <div class="footer"><span>Русский Бит · сертифицированный партнёр Битрикс24</span><span>08 / 08</span></div>
+      </div>
+    </section>
+  </div>
+</body>
+</html>
