@@ -170,11 +170,11 @@ def add_arrow(slide, x1: float, y1: float, x2: float, y2: float, width=2.2):
     )
     set_shape_line(line, NAVY, width)
     line_el = line._element.spPr.ln
-    head = OxmlElement("a:headEnd")
-    head.set("type", "triangle")
-    head.set("w", "med")
-    head.set("len", "med")
-    line_el.append(head)
+    tail = OxmlElement("a:tailEnd")
+    tail.set("type", "triangle")
+    tail.set("w", "med")
+    tail.set("len", "med")
+    line_el.append(tail)
     return line
 
 
@@ -530,7 +530,7 @@ def slide_three(prs: Presentation, width: float, height: float, mobile: bool) ->
         cta = add_round_rect(slide, x, cta_y, card_w, cta_h, NAVY, NAVY)
         add_text(
             slide,
-            "Пишите мне в VK",
+            "Пишите мне в ВК",
             x + 0.32,
             cta_y + 0.32,
             card_w - 0.64,
@@ -586,7 +586,7 @@ def slide_three(prs: Presentation, width: float, height: float, mobile: bool) ->
         add_round_rect(slide, cta_x, cta_y, cta_w, cta_h, NAVY, NAVY)
         add_text(
             slide,
-            "Пишите мне в VK",
+            "Пишите мне в ВК",
             cta_x + 0.38,
             cta_y + 0.34,
             3.0,
