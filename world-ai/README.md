@@ -8,9 +8,9 @@
 |------|----------|
 | `index.html` / `slides.html` | Экранная версия (9 слайдов 16:9) |
 | `print.html` | Версия для печати / PDF |
-| `Obzor_mirovyh_II.pdf` | Готовый PDF |
+| `Obzor_mirovyh_II.pdf` | Готовый PDF (9 страниц 16:9) |
 | `OBZOR.md` | Текстовая версия обзора |
-| `screenshots/` | Превью слайдов |
+| `screenshots/` | Превью слайдов (генерируются `export.py`) |
 
 ## Просмотр
 
