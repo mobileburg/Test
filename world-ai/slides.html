@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Обзор мировых ИИ · слайды</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #070A14;
+      --panel: #101628;
+      --card: #161D33;
+      --line: rgba(148, 176, 255, .16);
+      --text: #E8EEF8;
+      --muted: #93A0BB;
+      --violet: #8B6CFF;
+      --cyan: #2EE6D6;
+      --amber: #F5C15C;
+      --rose: #FF6B9A;
+      --lime: #C8F542;
+      --grad: linear-gradient(135deg, #5B3CFF 0%, #2B6BFF 48%, #22D3C5 100%);
+      --grad-soft: linear-gradient(180deg, rgba(139,108,255,.18), rgba(46,230,214,.06));
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "IBM Plex Sans", sans-serif;
+      background: radial-gradient(1200px 700px at 10% -10%, #1a1440, transparent 50%),
+                  radial-gradient(900px 600px at 110% 10%, #0b2a3a, transparent 45%),
+                  var(--bg);
+      color: var(--text);
+    }
+    h1,h2,h3,.brand { font-family: Manrope, sans-serif; }
+    .topbar {
+      position: sticky; top: 0; z-index: 20;
+      display: flex; justify-content: space-between; align-items: center;
+      gap: 16px; padding: 12px 24px;
+      background: rgba(7,10,20,.86); backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--line);
+    }
+    .brand { display: flex; gap: 10px; align-items: center; font-weight: 800; font-size: 14px; }
+    .mark {
+      width: 34px; height: 34px; border-radius: 10px; background: var(--grad);
+      display: grid; place-items: center; font-size: 12px; font-weight: 800; color: #071018;
+    }
+    .brand small { display: block; font-family: "IBM Plex Sans", sans-serif; font-size: 11px; color: #9BB0D6; font-weight: 500; }
+    .nav { display: flex; flex-wrap: wrap; gap: 6px; }
+    .nav a {
+      color: #C9D6F0; text-decoration: none; font-size: 12px; font-weight: 700;
+      padding: 6px 10px; border-radius: 999px;
+    }
+    .nav a:hover { background: rgba(139,108,255,.18); color: #fff; }
+    .deck { max-width: 1480px; margin: 0 auto; padding: 20px 16px 60px; }
+    .slide {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      background: linear-gradient(180deg, #12182B 0%, #0C1222 100%);
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      overflow: hidden;
+      margin-bottom: 24px;
+      box-shadow: 0 24px 60px rgba(0,0,0,.38);
+      position: relative;
+    }
+    .slide::before {
+      content: "";
+      position: absolute; inset: 0;
+      background:
+        radial-gradient(700px 280px at 92% 0%, rgba(139,108,255,.16), transparent 60%),
+        radial-gradient(500px 240px at 0% 100%, rgba(46,230,214,.08), transparent 55%);
+      pointer-events: none;
+    }
+    .inner {
+      position: relative;
+      height: 100%;
+      padding: 32px 40px 24px;
+      display: flex;
+      flex-direction: column;
+    }
+    .eyebrow {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 6px 11px; border-radius: 999px; font-size: 11px; font-weight: 700;
+      background: rgba(139,108,255,.14); color: #D7CCFF; width: fit-content; margin-bottom: 10px;
+      letter-spacing: .04em; text-transform: uppercase;
+    }
+    .eyebrow .dot {
+      width: 8px; height: 8px; border-radius: 50%; background: var(--lime);
+      box-shadow: 0 0 0 4px rgba(200,245,66,.18);
+    }
+    h1 { font-size: clamp(30px, 3.4vw, 50px); line-height: 1.05; font-weight: 800; letter-spacing: -.04em; }
+    h2 { font-size: clamp(22px, 2.3vw, 32px); line-height: 1.15; font-weight: 800; letter-spacing: -.03em; margin-bottom: 6px; }
+    h3 { font-size: 14px; font-weight: 800; margin-bottom: 4px; }
+    .lead, .sub { font-size: 14px; color: var(--muted); margin-bottom: 14px; max-width: 980px; }
+    .footer {
+      margin-top: auto; padding-top: 10px; border-top: 1px solid var(--line);
+      display: flex; justify-content: space-between; color: #7E8BA8; font-size: 11px;
+    }
+    .stats { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-top: 18px; }
+    .stat {
+      background: rgba(255,255,255,.04); border: 1px solid var(--line);
+      border-radius: 16px; padding: 14px 14px 12px;
+    }
+    .stat strong { display: block; font-family: Manrope, sans-serif; font-size: 26px; font-weight: 800; color: #fff; }
+    .stat span { font-size: 11px; color: #A9B6D2; }
+    .grid2 { display: grid; grid-template-columns: 1.15fr .85fr; gap: 16px; flex: 1; min-height: 0; }
+    .grid2b { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; flex: 1; min-height: 0; }
+    .g3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; }
+    .g4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; flex: 1; }
+    .g5 { display: grid; grid-template-columns: repeat(5,1fr); gap: 8px; flex: 1; }
+    .card {
+      background: rgba(255,255,255,.035);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 14px;
+    }
+    .card.hot { background: var(--grad-soft); border-color: rgba(139,108,255,.35); }
+    .card p, .lab p { font-size: 12px; color: var(--muted); line-height: 1.4; }
+    .lab {
+      background: rgba(255,255,255,.035);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 13px;
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .lab .flag {
+      font-size: 10px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase;
+      color: var(--cyan);
+    }
+    .lab h3 { font-size: 15px; }
+    .tag {
+      display: inline-flex; align-self: flex-start;
+      background: rgba(46,230,214,.12); color: var(--cyan);
+      border-radius: 999px; padding: 3px 8px; font-size: 10px; font-weight: 700;
+    }
+    .tag.amber { background: rgba(245,193,92,.14); color: var(--amber); }
+    .tag.rose { background: rgba(255,107,154,.14); color: var(--rose); }
+    .tag.violet { background: rgba(139,108,255,.16); color: #C9B8FF; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    th { text-align: left; color: #9BB0D6; font-weight: 600; padding: 7px 8px; border-bottom: 1px solid var(--line); }
+    td { padding: 8px; border-bottom: 1px solid rgba(148,176,255,.08); vertical-align: top; }
+    td strong { font-family: Manrope, sans-serif; }
+    .barwrap { display: grid; gap: 8px; }
+    .barrow { display: grid; grid-template-columns: 92px 1fr 74px; gap: 8px; align-items: center; font-size: 12px; }
+    .track { height: 10px; background: rgba(255,255,255,.06); border-radius: 99px; overflow: hidden; }
+    .fill { height: 100%; border-radius: 99px; background: var(--grad); }
+    .chips { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 10px; }
+    .chip {
+      background: rgba(255,255,255,.05); border: 1px solid var(--line);
+      color: #D5DEF0; border-radius: 999px; padding: 5px 10px; font-size: 11px; font-weight: 700;
+    }
+    .hero-right {
+      display: grid; gap: 10px; align-content: center;
+    }
+    .orbit {
+      height: 100%;
+      border-radius: 20px;
+      background:
+        radial-gradient(circle at 50% 48%, rgba(139,108,255,.22), transparent 42%),
+        linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01));
+      border: 1px solid var(--line);
+      position: relative;
+      overflow: hidden;
+      min-height: 0;
+    }
+    .node {
+      position: absolute; border-radius: 14px; padding: 8px 10px;
+      background: rgba(10,14,28,.82); border: 1px solid var(--line);
+      font-size: 11px; font-weight: 800; backdrop-filter: blur(8px);
+    }
+    .node span { display: block; font-size: 10px; font-weight: 600; color: var(--muted); }
+    .core {
+      position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%);
+      width: 150px; height: 150px; border-radius: 50%;
+      background: var(--grad); color: #071018;
+      display: grid; place-items: center; text-align: center;
+      font-family: Manrope, sans-serif; font-weight: 800; font-size: 15px; line-height: 1.2;
+      box-shadow: 0 0 50px rgba(91,60,255,.45);
+    }
+    #s1 { background: linear-gradient(160deg, #1A1040 0%, #0B1228 55%, #07141C 100%); }
+    #s9 { background: linear-gradient(160deg, #0B1228 0%, #14103A 70%, #07201C 100%); }
+    .num {
+      width: 28px; height: 28px; border-radius: 8px; background: var(--grad); color: #071018;
+      display: grid; place-items: center; font-family: Manrope, sans-serif; font-weight: 800; font-size: 12px;
+      flex: 0 0 28px;
+    }
+    .row { display: flex; gap: 10px; align-items: flex-start; }
+    .kpi {
+      background: rgba(255,255,255,.04); border: 1px solid var(--line); border-radius: 14px; padding: 12px;
+    }
+    .kpi b { display: block; font-family: Manrope, sans-serif; font-size: 22px; color: var(--lime); }
+    .kpi span { font-size: 11px; color: var(--muted); }
+    .src { font-size: 10px; color: #6E7C99; margin-top: 8px; }
+    @media (max-width: 980px) {
+      .slide { aspect-ratio: auto; min-height: 720px; }
+      .grid2, .grid2b, .g3, .g4, .g5, .stats { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="brand">
+      <div class="mark">AI</div>
+      <div>Обзор мировых ИИ<small>снимок · август 2026</small></div>
+    </div>
+    <nav class="nav">
+      <a href="#s1">Старт</a><a href="#s2">Рынок</a><a href="#s3">Карта</a>
+      <a href="#s4">США</a><a href="#s5">Китай</a><a href="#s6">Выбор</a>
+      <a href="#s7">Тренды</a><a href="#s8">Россия</a><a href="#s9">Выводы</a>
+    </nav>
+  </div>
+
+  <div class="deck">
+    <section class="slide" id="s1">
+      <div class="inner">
+        <div class="grid2">
+          <div>
+            <div class="eyebrow"><span class="dot"></span> World AI brief · август 2026</div>
+            <h1>Обзор мировых ИИ:<br>фронтир сжался,<br>выбор усложнился</h1>
+            <p class="lead" style="color:#C9D6F0;font-size:16px;margin-top:12px;">Четыре американские лаборатории и китайский open-weight кластер живут в одной полосе качества. Выигрывает не логотип, а стек: задача × цена × инструменты × юрисдикция данных.</p>
+            <div class="stats">
+              <div class="stat"><strong>$582 млрд</strong><span>корпоративные инвестиции в ИИ за 2025 · +130%</span></div>
+              <div class="stat"><strong>2,7%</strong><span>разрыв США–Китай по Arena Elo · март 2026</span></div>
+              <div class="stat"><strong>88% / 1%</strong><span>организации «используют ИИ» vs агенты в проде</span></div>
+            </div>
+          </div>
+          <div class="orbit">
+            <div class="core">Нет одного<br>победителя</div>
+            <div class="node" style="left:8%;top:12%;">OpenAI<span>GPT-5.6 Sol</span></div>
+            <div class="node" style="right:8%;top:14%;">Anthropic<span>Claude Fable 5</span></div>
+            <div class="node" style="left:6%;bottom:16%;">Google<span>Gemini 3.7</span></div>
+            <div class="node" style="right:7%;bottom:18%;">xAI<span>Grok 4.6</span></div>
+            <div class="node" style="left:36%;bottom:8%;">DeepSeek · Qwen · Kimi</div>
+          </div>
+        </div>
+        <div class="footer"><span>Срез по Stanford AI Index 2026 и публичным линейкам августа 2026</span><span>01 / 09</span></div>
+      </div>
+    </section>
+
+    <section class="slide" id="s2">
+      <div class="inner">
+        <div class="eyebrow"><span class="dot"></span> Stanford HAI · AI Index 2026</div>
+        <h2>Деньги удвоились. Агенты ещё редкость</h2>
+        <p class="sub">Итоги 2025 года: generative AI забрал почти половину частных инвестиций. Внедрение чатов массовое, автономных агентов — нет.</p>
+        <div class="g4" style="margin-bottom:12px;">
+          <div class="kpi"><b>$581,7 млрд</b><span>корпоративные инвестиции · +130% к 2024</span></div>
+          <div class="kpi"><b>$344,7 млрд</b><span>частные деньги · genAI $170,9 млрд</span></div>
+          <div class="kpi"><b>70%</b><span>компаний используют generative AI хотя бы в одной функции</span></div>
+          <div class="kpi"><b>66% ← 12%</b><span>успех агентов на OSWorld за один год</span></div>
+        </div>
+        <div class="grid2">
+          <div class="card">
+            <h3>Частные инвестиции: США всё ещё печатают чеки</h3>
+            <div class="barwrap" style="margin-top:12px;">
+              <div class="barrow"><span>США</span><div class="track"><div class="fill" style="width:100%"></div></div><span>$285,9 млрд</span></div>
+              <div class="barrow"><span>Китай</span><div class="track"><div class="fill" style="width:8%;background:linear-gradient(90deg,#F5C15C,#FF6B9A)"></div></div><span>$12,4 млрд</span></div>
+            </div>
+            <p style="margin-top:10px;">Формально США в 23 раза больше. Сравнение врёт: Китай качает госфонды, которые в private-цифру почти не попадают.</p>
+          </div>
+          <div class="card hot">
+            <h3>Главный разрыв 2026 года</h3>
+            <p style="margin-top:8px;color:#D7E0F2;">88% организаций «уже с ИИ». Масштабное внедрение агентов — в единицах процентов функций. Бенчмарки агентов взлетели, бизнес-процессы — нет. Это и есть окно для тех, кто внедряет узко и по делу.</p>
+            <div class="chips">
+              <span class="chip">Terminal-Bench ~77%</span>
+              <span class="chip">Прозрачность моделей 40/100</span>
+              <span class="chip">GenAI: 53% населения за 3 года</span>
+            </div>
+          </div>
+        </div>
+        <div class="footer"><span>Источник: Stanford HAI, AI Index Report 2026 (апрель 2026)</span><span>02 / 09</span></div>
+      </div>
+    </section>
+
+    <section class="slide" id="s3">
+      <div class="inner">
+        <div class="eyebrow"><span class="dot"></span> География сил</div>
+        <h2>Три контура, не одна гонка</h2>
+        <p class="sub">Качество моделей почти сравнялось. Разъехались цена, открытость весов, экосистема и правила про данные.</p>
+        <div class="g3" style="flex:1;">
+          <div class="card">
+            <span class="tag violet">США · закрытый фронтир</span>
+            <h3 style="margin-top:8px;">OpenAI · Anthropic · Google · xAI</h3>
+            <p>Ядро качества. Дорогие токены, богатые инструменты, облачная привязка. Топ-4 в марте 2026 уложились в 25 пунктов Arena Elo.</p>
+            <div class="chips">
+              <span class="chip">1M контекст</span>
+              <span class="chip">Агенты / tools</span>
+              <span class="chip">Закрытые веса</span>
+            </div>
+          </div>
+          <div class="card">
+            <span class="tag amber">Китай · цена и веса</span>
+            <h3 style="margin-top:8px;">DeepSeek · Qwen · Kimi · GLM</h3>
+            <p>Тот же верхний эшелон на независимых индексах. Open-weight, MoE, контекст до 1M, цена часто на порядок ниже. Лидерство с США менялось несколько раз с 2025-го.</p>
+            <div class="chips">
+              <span class="chip">MIT / открытые веса</span>
+              <span class="chip">Дешёвый inference</span>
+              <span class="chip">Свой хостинг</span>
+            </div>
+          </div>
+          <div class="card">
+            <span class="tag rose">Остальные · своя игра</span>
+            <h3 style="margin-top:8px;">Европа · Meta · Россия</h3>
+            <p>Mistral и Meta не задают потолок лета 2026. Россия играет не в Elo, а в 152-ФЗ, рубли и данные внутри страны: YandexGPT и GigaChat.</p>
+            <div class="chips">
+              <span class="chip">Локальный контур</span>
+              <span class="chip">Комплаенс</span>
+              <span class="chip">Гибридный стек</span>
+            </div>
+          </div>
+        </div>
+        <div class="footer"><span>Март 2026, Arena: Anthropic 1503 · xAI 1495 · Google 1494 · OpenAI 1481 · Alibaba 1449 · DeepSeek 1424</span><span>03 / 09</span></div>
+      </div>
+    </section>
+
+    <section class="slide" id="s4">
+      <div class="inner">
+        <div class="eyebrow"><span class="dot"></span> Закрытый фронтир · август 2026</div>
+        <h2>Четыре США-лаборатории — четыре оси</h2>
+        <p class="sub">Флагман отвечает на вопрос «какой потолок». Рабочая лошадка — «чем кормить ежедневный трафик».</p>
+        <div class="g4">
+          <div class="lab">
+            <span class="flag">OpenAI</span>
+            <h3>GPT-5.6</h3>
+            <span class="tag">Sol → Terra → Luna</span>
+            <p>Единый Responses-контур и широкие tools. Sol силён в коде и агентах: часто меньше токенов и шагов, чем у Claude. Ловушка: после ~272K токенов дорожает весь запрос.</p>
+          </div>
+          <div class="lab">
+            <span class="flag">Anthropic</span>
+            <h3>Claude Fable 5</h3>
+            <span class="tag violet">потолок качества</span>
+            <p>Номинальный флагман. На практике многие команды берут Opus 5: дешевле, свежее cutoff, проще с retention. Fable — когда свой прогон доказал преимущество.</p>
+          </div>
+          <div class="lab">
+            <span class="flag">Google DeepMind</span>
+            <h3>Gemini 3.7 Flash</h3>
+            <span class="tag">мультимодальность</span>
+            <p>Текст, картинки, аудио, видео, PDF. Скорость декодирования в другом классе. Medium по умолчанию, High — точечно. Экосистема Workspace / Cloud / Search.</p>
+          </div>
+          <div class="lab">
+            <span class="flag">xAI</span>
+            <h3>Grok 4.6</h3>
+            <span class="tag amber">агентный индекс</span>
+            <p>Живой поиск, X, сильные агентные бенчмарки. Контекст 500K. Ценовой обрыв на 200K: 199K и 201K — уже разные счета.</p>
+          </div>
+        </div>
+        <div class="footer"><span>Публичные API / продукты на середину августа 2026. Пригласительные Mythos / Cyber / Daybreak не считаем общедоступными.</span><span>04 / 09</span></div>
+      </div>
+    </section>
+
+    <section class="slide" id="s5">
+      <div class="inner">
+        <div class="eyebrow"><span class="dot"></span> Китай · лето 2026</div>
+        <h2>Open-weight догнал «достаточно хороший» фронтир</h2>
+        <p class="sub">За несколько недель вышли Kimi K3, Qwen 3.8 Max и стабильный DeepSeek V4. Для объёма и своего контура это уже не эксперимент.</p>
+        <div class="card" style="margin-bottom:12px;">
+          <table>
+            <thead>
+              <tr><th>Модель</th><th>Лаборатория</th><th>Масштаб</th><th>Зачем брать</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><strong>DeepSeek V4 Pro / Flash</strong></td><td>DeepSeek</td><td>1,6T / 284B · MIT</td><td>Дешёвый reasoning и код, скачиваемые веса, ночные тарифы</td></tr>
+              <tr><td><strong>Qwen 3.8 Max</strong></td><td>Alibaba</td><td>2,4T / 95B акт.</td><td>Мультимодальность, агенты, облако Alibaba</td></tr>
+              <tr><td><strong>Kimi K3</strong></td><td>Moonshot</td><td>2,8T / 104B акт.</td><td>Крупные открытые веса, длинный контекст, код</td></tr>
+              <tr><td><strong>GLM-5.2</strong></td><td>Zhipu / Z.ai</td><td>~744B · MIT</td><td>Enterprise tool-use и агентные сценарии</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="g3">
+          <div class="card hot"><h3>Цена как оружие</h3><p>V4 Flash остаётся примерно на порядок дешевле Sol на выходных токенах. Для агентов, которые жгут токены пачками, это меняет юнит-экономику.</p></div>
+          <div class="card"><h3>Контроль, не ноутбук</h3><p>Чекпоинт на 800+ ГБ — страховка от API и юрисдикции, а не локальный чат. Нужен свой inference-контур.</p></div>
+          <div class="card"><h3>Разрыв снова чуть раскрылся</h3><p>К марту 2026 топ закрытой модели впереди открытой примерно на 3,3%. Для большинства прикладных задач это уже шум.</p></div>
+        </div>
+        <div class="footer"><span>Рядом: ByteDance Doubao, Baidu Ernie, MiniMax. Китай также лидирует в публикациях, патентах и промышленных роботах.</span><span>05 / 09</span></div>
+      </div>
+    </section>
+
+    <section class="slide" id="s6">
+      <div class="inner">
+        <div class="eyebrow"><span class="dot"></span> Практический выбор</div>
+        <h2>Пять победителей — на пять разных работ</h2>
+        <p class="sub">Таблица вендора показывает, что он оптимизировал. Ваш прогон на своих задачах — единственный честный рейтинг.</p>
+        <div class="g5">
+          <div class="lab"><span class="flag">Сложный код</span><h3>GPT-5.6 Sol · Opus 5</h3><p>Меньше шагов и выходных токенов в агентных обвязках. Берите флагман, когда цена ошибки высока.</p></div>
+          <div class="lab"><span class="flag">Трудный анализ</span><h3>Claude Fable / Opus</h3><p>Потолок знания и аккуратность. Сначала Opus: вдвое дешевле Fable и чаще удобнее по политике данных.</p></div>
+          <div class="lab"><span class="flag">Мультимодальность</span><h3>Gemini 3.7 Flash</h3><p>Видео, PDF, скорость, Search/Maps. Medium по умолчанию — High не даёт бесплатных очков агентности.</p></div>
+          <div class="lab"><span class="flag">Живой поиск</span><h3>Grok 4.6</h3><p>Сильный агентный индекс и нативный X. Лучше как фоновый исследователь, чем как «мгновенный чат».</p></div>
+          <div class="lab"><span class="flag">Объём и контроль</span><h3>DeepSeek · Qwen</h3><p>Скачиваемые веса, дешёвый поток, своя инфраструктура. Текстовый контур сильнее мультимодального.</p></div>
+        </div>
+        <div class="card" style="margin-top:12px;">
+          <h3>Лестница вместо моногамии</h3>
+          <p>Дешёвая модель разведывает и размножает задачи → средняя делает ежедневную работу → флагман планирует и принимает дорогие решения. Считайте стоимость <b style="color:#fff;">задачи</b>, не токена: reasoning, ретраи, длинный контекст и tools съедают «дешёвый» тариф.</p>
+        </div>
+        <div class="footer"><span>Ориентиры августа 2026: Fable ~$10/$50 · Sol ~$5/$30 · Grok ~$2/$6 · Gemini Flash промо ~$0,75/$3,75 · DeepSeek V4 ≪ $2 output</span><span>06 / 09</span></div>
+      </div>
+    </section>
+
+    <section class="slide" id="s7">
+      <div class="inner">
+        <div class="eyebrow"><span class="dot"></span> Что уже меняет работу</div>
+        <h2>Шесть трендов, которые важнее логотипа</h2>
+        <div class="g3" style="flex:1;">
+          <div class="card"><div class="row"><div class="num">1</div><div><h3>Конвергенция качества</h3><p>Топ в узкой полосе Elo. Конкуренция ушла в надёжность, стоимость задачи, инструменты и домен.</p></div></div></div>
+          <div class="card"><div class="row"><div class="num">2</div><div><h3>Агенты: бенчмарк ≠ прод</h3><p>OSWorld 12%→66%, Terminal-Bench ~77%. В компаниях агенты всё ещё в единицах процентов функций.</p></div></div></div>
+          <div class="card"><div class="row"><div class="num">3</div><div><h3>Open weights как страховка</h3><p>Скачать чекпоинт — контроль поставщика и юрисдикции, не замена облаку из коробки.</p></div></div></div>
+          <div class="card"><div class="row"><div class="num">4</div><div><h3>Неровный фронтир</h3><p>Золото IMO и провал на аналоговых часах (~50% vs 90% у людей). Способность не переносится сама.</p></div></div></div>
+          <div class="card"><div class="row"><div class="num">5</div><div><h3>Прозрачность падает</h3><p>Foundation Model Transparency Index: 58 → 40. Самые сильные модели раскрывают меньше всего.</p></div></div></div>
+          <div class="card"><div class="row"><div class="num">6</div><div><h3>Удар по входным ролям</h3><p>Занятость разработчиков 22–25 лет в США: почти −20% с 2024-го. Старшие коллеги пока растут.</p></div></div></div>
+        </div>
+        <div class="footer"><span>Ещё из Index: спрос на skill «Agentic AI» в вакансиях США +280% за год. Chatbot/ChatGPT в вакансиях, наоборот, просели.</span><span>07 / 09</span></div>
+      </div>
+    </section>
+
+    <section class="slide" id="s8">
+      <div class="inner">
+        <div class="eyebrow"><span class="dot"></span> Российский контур</div>
+        <h2>Не «кто умнее», а где лежат данные</h2>
+        <p class="sub">YandexGPT и GigaChat выигрывают доступ, рубли и 152-ФЗ. Потолок сложного кода и длинных агентов — у зарубежных флагманов.</p>
+        <div class="grid2b" style="margin-bottom:12px;">
+          <div class="lab">
+            <span class="flag">Яндекс</span>
+            <h3>YandexGPT 5.x · Алиса</h3>
+            <p>Облако Foundation Models, экосистема поиска и Алисы. YandexGPT 5.1 Pro вендор сравнивает со своим миксом уровня GPT-4.1. Есть открытая Lite. Данные и договор — внутри РФ.</p>
+          </div>
+          <div class="lab">
+            <span class="flag">Сбер</span>
+            <h3>GigaChat · on-prem</h3>
+            <p>Широкий ассистент и API для бизнеса. Длиннее контекст на рабочих тарифах, чем у типичного YandexGPT Pro. Есть варианты для размещения у себя — редкость на локальном рынке.</p>
+          </div>
+        </div>
+        <div class="g3">
+          <div class="card hot"><h3>Когда своё</h3><p>Персональные данные, типовой русский текст, чат-поддержка, документы, оплата в рублях без VPN.</p></div>
+          <div class="card"><h3>Когда импорт</h3><p>Сложный код, многошаговые агенты, контекст в сотни тысяч токенов. Легально — через российского агрегатора.</p></div>
+          <div class="card"><h3>Когда веса</h3><p>Чувствительный объём и контроль поставщика: китайский open-weight на своей инфраструктуре.</p></div>
+        </div>
+        <div class="footer"><span>Зрелая схема в РФ — гибрид трёх контуров, а не выбор одного бренда навсегда</span><span>08 / 09</span></div>
+      </div>
+    </section>
+
+    <section class="slide" id="s9">
+      <div class="inner">
+        <div class="eyebrow"><span class="dot"></span> Что делать с этим срезом</div>
+        <div class="grid2">
+          <div>
+            <h2>Пять правил стека на вторую половину 2026</h2>
+            <div class="stack" style="display:grid;gap:10px;margin-top:14px;">
+              <div class="card"><div class="row"><div class="num">1</div><div><h3>Не выбирать одного победителя на всё</h3><p>Лестница моделей дешевле и устойчивее моногамии.</p></div></div></div>
+              <div class="card"><div class="row"><div class="num">2</div><div><h3>Считать стоимость задачи</h3><p>Токен, reasoning, ретраи, длинный контекст и tools — одна экономика.</p></div></div></div>
+              <div class="card"><div class="row"><div class="num">3</div><div><h3>Прогонять финалистов на своих промптах</h3><p>Чужая таблица измеряет чужой бенчмарк, не ваш процесс.</p></div></div></div>
+              <div class="card"><div class="row"><div class="num">4</div><div><h3>Отдельно проектировать юрисдикцию</h3><p>152-ФЗ и персональные данные не решаются «самой умной» моделью.</p></div></div></div>
+              <div class="card"><div class="row"><div class="num">5</div><div><h3>Агентов запускать узко</h3><p>Один стабильный процесс важнее «агента вообще».</p></div></div></div>
+            </div>
+          </div>
+          <div class="card hot" style="display:flex;flex-direction:column;justify-content:center;">
+            <h3 style="font-size:22px;line-height:1.25;">Коротко</h3>
+            <p style="font-size:15px;color:#E4EAF6;margin:12px 0 16px;">Мировой ИИ в 2026-м — это уже не гонка одной лаборатории. Это рынок платформ, где качество сошлось, а выигрыш уехал в стоимость, контроль и внедрение.</p>
+            <div class="chips">
+              <span class="chip">США = потолок и tools</span>
+              <span class="chip">Китай = цена и веса</span>
+              <span class="chip">РФ = комплаенс + гибрид</span>
+            </div>
+            <p class="src" style="margin-top:18px;">Источники: Stanford HAI AI Index 2026; публичные линейки OpenAI, Anthropic, Google, xAI, DeepSeek, Alibaba, Moonshot, Zhipu; контур YandexGPT / GigaChat. Это срез, не инвестиционная рекомендация.</p>
+          </div>
+        </div>
+        <div class="footer"><span>Обзор мировых ИИ · август 2026</span><span>09 / 09</span></div>
+      </div>
+    </section>
+  </div>
+</body>
+</html>
