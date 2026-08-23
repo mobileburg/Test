@@ -20,6 +20,7 @@ ROOT = Path(__file__).resolve().parent
 ASSETS = ROOT / "assets"
 OUTPUT = ROOT / "output"
 LOGO = ASSETS / "bitrix24-logo-pack" / "bitrix24-logo" / "logo.png"
+RUSSKIY_BIT_LOGO = ASSETS / "russkiy-bit-logo.png"
 QR_PATH = ASSETS / "vk-anchebykin-qr.png"
 VK_URL = "https://vk.ru/anchebykin"
 
@@ -178,7 +179,7 @@ def add_arrow(slide, x1: float, y1: float, x2: float, y2: float, width=2.2):
     return line
 
 
-def add_base(slide, width: float, height: float, number: int) -> None:
+def add_base(slide, width: float, height: float, _number: int) -> None:
     bg = slide.background.fill
     bg.solid()
     bg.fore_color.rgb = rgb(WHITE)
@@ -191,10 +192,10 @@ def add_base(slide, width: float, height: float, number: int) -> None:
 
     circle = slide.shapes.add_shape(
         MSO_SHAPE.OVAL,
-        Inches(width - 2.15),
-        Inches(-0.95),
-        Inches(3.0),
-        Inches(3.0),
+        Inches(width - (1.45 if width < 7 else 1.8)),
+        Inches(height - (1.25 if width < 7 else 1.45)),
+        Inches(2.1 if width < 7 else 2.5),
+        Inches(2.1 if width < 7 else 2.5),
     )
     set_shape_fill(circle, CYAN, 88)
     circle.line.fill.background()
@@ -209,27 +210,12 @@ def add_base(slide, width: float, height: float, number: int) -> None:
     set_shape_fill(circle2, LIME, 82)
     circle2.line.fill.background()
 
-    add_text(
-        slide,
-        f"{number:02d} / 03",
-        width - 1.15,
-        height - 0.42,
-        0.75,
-        0.18,
-        size=8,
-        color=MUTED,
-        bold=True,
-        align=PP_ALIGN.RIGHT,
-    )
-    add_text(
-        slide,
-        "Битрикс24 • клиентские проекты",
-        0.42,
-        height - 0.42,
-        2.5,
-        0.18,
-        size=8,
-        color=MUTED,
+    logo_width = 1.35 if width < 7 else 1.75
+    slide.shapes.add_picture(
+        str(RUSSKIY_BIT_LOGO),
+        Inches(width - logo_width - (0.4 if width < 7 else 0.72)),
+        Inches(0.28 if width < 7 else 0.22),
+        width=Inches(logo_width),
     )
 
 
@@ -243,14 +229,15 @@ def add_heading(
 ) -> float:
     x = 0.52 if mobile else 0.72
     y = 0.55 if mobile else 0.48
-    title_size = 24 if mobile else 27
+    title_size = 21.5 if mobile else 27
     title_h = 1.15 if mobile else 0.65
+    title_w = width - x - (1.95 if mobile else 2.65)
     add_text(
         slide,
         title,
         x,
         y,
-        width - 2 * x,
+        title_w,
         title_h,
         size=title_size,
         color=INK,
@@ -382,21 +369,22 @@ def slide_two(prs: Presentation, width: float, height: float, mobile: bool) -> N
         x_positions = [0.46, 2.96]
         y0, card_w, card_h, gap_y = top + 0.05, 2.28, 0.86, 0.25
         centers = []
+        cards = []
         for i, item in enumerate(items):
             row, col = divmod(i, 2)
             x = x_positions[col]
             y = y0 + row * (card_h + gap_y)
-            add_label(
-                slide,
-                item,
-                x,
-                y,
-                card_w,
-                card_h,
-                fill=PALE if i % 2 == 0 else WHITE,
-                color=INK,
-                size=11.2,
-                line=CYAN if i % 2 == 0 else LINE,
+            cards.append(
+                (
+                    item,
+                    x,
+                    y,
+                    card_w,
+                    card_h,
+                    PALE if i % 2 == 0 else WHITE,
+                    11.2,
+                    CYAN if i % 2 == 0 else LINE,
+                )
             )
             centers.append((x + card_w / 2, y + card_h))
         rule_y = y0 + 3 * (card_h + gap_y) + 0.15
@@ -406,21 +394,22 @@ def slide_two(prs: Presentation, width: float, height: float, mobile: bool) -> N
         x_positions = [0.72, 4.67, 8.62]
         y0, card_w, card_h, gap_y = top + 0.13, 3.45, 0.77, 0.28
         centers = []
+        cards = []
         for i, item in enumerate(items):
             row, col = divmod(i, 3)
             x = x_positions[col]
             y = y0 + row * (card_h + gap_y)
-            add_label(
-                slide,
-                item,
-                x,
-                y,
-                card_w,
-                card_h,
-                fill=PALE if i % 2 == 0 else WHITE,
-                color=INK,
-                size=12.4,
-                line=CYAN if i % 2 == 0 else LINE,
+            cards.append(
+                (
+                    item,
+                    x,
+                    y,
+                    card_w,
+                    card_h,
+                    PALE if i % 2 == 0 else WHITE,
+                    12.4,
+                    CYAN if i % 2 == 0 else LINE,
+                )
             )
             centers.append((x + card_w / 2, y + card_h))
         rule_y = y0 + 2 * (card_h + gap_y) + 0.14
@@ -447,6 +436,19 @@ def slide_two(prs: Presentation, width: float, height: float, mobile: bool) -> N
 
     mid_x = width / 2
     add_arrow(slide, mid_x, rule_y, mid_x, result_y - 0.08, 2.4)
+    for item, x, y, card_w, card_h, fill, size, line in cards:
+        add_label(
+            slide,
+            item,
+            x,
+            y,
+            card_w,
+            card_h,
+            fill=fill,
+            color=INK,
+            size=size,
+            line=line,
+        )
     result = add_round_rect(
         slide, result_x, result_y, result_w, result_h, NAVY, NAVY
     )
