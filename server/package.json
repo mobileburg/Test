@@ -1,0 +1,26 @@
+{
+  "name": "korona-imperial-api",
+  "version": "1.0.0",
+  "description": "Backend фотореалистичной императорской примерки",
+  "type": "module",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "keywords": [
+    "openai",
+    "image-editing"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@fastify/multipart": "^10.1.1",
+    "@fastify/rate-limit": "^11.2.0",
+    "fastify": "^5.12.1",
+    "openai": "^7.5.0"
+  }
+}
