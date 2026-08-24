@@ -66,6 +66,7 @@ import androidx.lifecycle.LifecycleOwner
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.face.Face
 import com.google.mlkit.vision.face.FaceDetection
+import com.google.mlkit.vision.face.FaceDetector
 import com.google.mlkit.vision.face.FaceDetectorOptions
 import java.io.IOException
 import java.util.concurrent.Executors
@@ -160,6 +161,10 @@ private fun CameraContent() {
                     context = it,
                     lifecycleOwner = lifecycleOwner,
                     onFaceChanged = { found -> faceFound = found },
+                    onCameraError = {
+                        faceFound = false
+                        message = "Ошибка камеры: ${it.message ?: "неизвестная ошибка"}"
+                    },
                 ).also { view -> cameraView = view }
             },
         )
@@ -282,6 +287,7 @@ private class CameraHostView(
     context: Context,
     lifecycleOwner: LifecycleOwner,
     private val onFaceChanged: (Boolean) -> Unit,
+    private val onCameraError: (Throwable) -> Unit,
 ) : FrameLayout(context) {
     private val previewView = PreviewView(context).apply {
         layoutParams = LayoutParams(
@@ -293,14 +299,8 @@ private class CameraHostView(
     }
     private val overlay = RoyalOverlayView(context)
     private val executor = Executors.newSingleThreadExecutor()
-    private val detector = FaceDetection.getClient(
-        FaceDetectorOptions.Builder()
-            .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_FAST)
-            .setMinFaceSize(0.12f)
-            .enableTracking()
-            .build(),
-    )
-    private val controller = LifecycleCameraController(context)
+    private var detector: FaceDetector? = null
+    private var controller: LifecycleCameraController? = null
     private var frontCamera = false
     private var lastFaceState = false
 
@@ -313,12 +313,25 @@ private class CameraHostView(
                 ViewGroup.LayoutParams.MATCH_PARENT,
             ),
         )
-        controller.setEnabledUseCases(CameraController.IMAGE_ANALYSIS)
-        controller.imageAnalysisBackpressureStrategy = ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST
-        controller.setImageAnalysisAnalyzer(executor, ::analyze)
-        controller.cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
-        previewView.controller = controller
-        controller.bindToLifecycle(lifecycleOwner)
+        runCatching {
+            detector = FaceDetection.getClient(
+                FaceDetectorOptions.Builder()
+                    .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_FAST)
+                    .setMinFaceSize(0.12f)
+                    .enableTracking()
+                    .build(),
+            )
+            LifecycleCameraController(context).also { cameraController ->
+                cameraController.setEnabledUseCases(CameraController.IMAGE_ANALYSIS)
+                cameraController.imageAnalysisBackpressureStrategy =
+                    ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST
+                cameraController.setImageAnalysisAnalyzer(executor, ::analyze)
+                cameraController.cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
+                previewView.controller = cameraController
+                cameraController.bindToLifecycle(lifecycleOwner)
+                controller = cameraController
+            }
+        }.onFailure { error -> post { onCameraError(error) } }
     }
 
     @SuppressLint("UnsafeOptInUsageError")
@@ -330,7 +343,12 @@ private class CameraHostView(
         }
         val rotation = imageProxy.imageInfo.rotationDegrees
         val inputImage = InputImage.fromMediaImage(mediaImage, rotation)
-        detector.process(inputImage)
+        val faceDetector = detector
+        if (faceDetector == null) {
+            imageProxy.close()
+            return
+        }
+        faceDetector.process(inputImage)
             .addOnSuccessListener { faces ->
                 val face = faces.maxByOrNull { it.boundingBox.width() * it.boundingBox.height() }
                 val rotated = rotation == 90 || rotation == 270
@@ -358,8 +376,10 @@ private class CameraHostView(
         } else {
             CameraSelector.DEFAULT_BACK_CAMERA
         }
-        runCatching { controller.cameraSelector = selector }
+        val cameraController = controller ?: return
+        runCatching { cameraController.cameraSelector = selector }
             .onSuccess { frontCamera = requestedFrontCamera }
+            .onFailure(onCameraError)
     }
 
     fun captureSnapshot(): Bitmap? {
@@ -373,8 +393,8 @@ private class CameraHostView(
     }
 
     override fun onDetachedFromWindow() {
-        controller.clearImageAnalysisAnalyzer()
-        detector.close()
+        controller?.clearImageAnalysisAnalyzer()
+        detector?.close()
         executor.shutdown()
         super.onDetachedFromWindow()
     }
