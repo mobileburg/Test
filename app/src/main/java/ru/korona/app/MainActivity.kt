@@ -1,6 +1,7 @@
 package ru.korona.app
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.ContentValues
 import android.content.Context
 import android.content.pm.PackageManager
@@ -18,6 +19,7 @@ import android.view.ViewGroup
 import android.widget.FrameLayout
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
@@ -59,6 +61,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.createBitmap
 import androidx.lifecycle.LifecycleOwner
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.face.Face
@@ -274,6 +277,7 @@ private fun saveToGallery(context: Context, bitmap: Bitmap) {
     }
 }
 
+@SuppressLint("ViewConstructor")
 private class CameraHostView(
     context: Context,
     lifecycleOwner: LifecycleOwner,
@@ -317,6 +321,7 @@ private class CameraHostView(
         controller.bindToLifecycle(lifecycleOwner)
     }
 
+    @SuppressLint("UnsafeOptInUsageError")
     private fun analyze(imageProxy: ImageProxy) {
         val mediaImage = imageProxy.image
         if (mediaImage == null) {
@@ -347,18 +352,20 @@ private class CameraHostView(
     }
 
     fun switchCamera() {
-        frontCamera = !frontCamera
-        controller.cameraSelector = if (frontCamera) {
+        val requestedFrontCamera = !frontCamera
+        val selector = if (requestedFrontCamera) {
             CameraSelector.DEFAULT_FRONT_CAMERA
         } else {
             CameraSelector.DEFAULT_BACK_CAMERA
         }
+        runCatching { controller.cameraSelector = selector }
+            .onSuccess { frontCamera = requestedFrontCamera }
     }
 
     fun captureSnapshot(): Bitmap? {
         if (width == 0 || height == 0) return null
         val preview = previewView.bitmap ?: return null
-        return Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888).also { output ->
+        return createBitmap(width, height).also { output ->
             val canvas = Canvas(output)
             canvas.drawBitmap(preview, null, Rect(0, 0, width, height), null)
             overlay.render(canvas)
@@ -484,10 +491,10 @@ private class RoyalOverlayView(context: Context) : android.view.View(context) {
 
         val collar = Path().apply {
             moveTo(face.centerX() - w * 0.95f, shoulderY)
-            quadraticTo(face.centerX() - w * 0.35f, shoulderY - w * 0.2f, face.centerX(), shoulderY + w * 0.28f)
-            quadraticTo(face.centerX() + w * 0.35f, shoulderY - w * 0.2f, face.centerX() + w * 0.95f, shoulderY)
+            quadTo(face.centerX() - w * 0.35f, shoulderY - w * 0.2f, face.centerX(), shoulderY + w * 0.28f)
+            quadTo(face.centerX() + w * 0.35f, shoulderY - w * 0.2f, face.centerX() + w * 0.95f, shoulderY)
             lineTo(face.centerX() + w * 0.68f, shoulderY + w * 0.28f)
-            quadraticTo(face.centerX(), shoulderY + w * 0.62f, face.centerX() - w * 0.68f, shoulderY + w * 0.28f)
+            quadTo(face.centerX(), shoulderY + w * 0.62f, face.centerX() - w * 0.68f, shoulderY + w * 0.28f)
             close()
         }
         canvas.drawPath(collar, fur)
