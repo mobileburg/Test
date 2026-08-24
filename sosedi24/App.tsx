@@ -74,6 +74,17 @@ function AppContent() {
   const [activeInterest, setActiveInterest] = useState('Все');
   const [requests, setRequests] = useState<number[]>([]);
 
+  const filteredNeighbors = useMemo(() => {
+    const matchingIds: Record<string, number[]> = {
+      Прогулки: [1, 3],
+      Спорт: [2, 3],
+      Настолки: [2],
+      Животные: [1],
+    };
+    const ids = matchingIds[activeInterest];
+    return ids ? neighbors.filter((neighbor) => ids.includes(neighbor.id)) : neighbors;
+  }, [activeInterest]);
+
   const requestLocation = async () => {
     setLocating(true);
     try {
@@ -241,7 +252,7 @@ function AppContent() {
               })}
             </ScrollView>
 
-            {neighbors.map((neighbor) => (
+            {filteredNeighbors.map((neighbor) => (
               <NeighborCard
                 key={neighbor.id}
                 neighbor={neighbor}
@@ -346,7 +357,16 @@ function NeighborCard({
             <Text style={styles.distance}>{neighbor.distance} от вас</Text>
           </View>
         </View>
-        <Pressable style={styles.moreButton}>
+        <Pressable
+          style={styles.moreButton}
+          onPress={() =>
+            Alert.alert(neighbor.name, 'Что вы хотите сделать?', [
+              { text: 'Скрыть профиль' },
+              { text: 'Пожаловаться', style: 'destructive' },
+              { text: 'Отмена', style: 'cancel' },
+            ])
+          }
+        >
           <MaterialCommunityIcons name="dots-horizontal" size={23} color="#9AA39F" />
         </Pressable>
       </View>
