@@ -1,0 +1,79 @@
+{
+  "version": 1,
+  "sources": [
+    {
+      "id": "cbr",
+      "name": "Банк России",
+      "url": "https://www.cbr.ru/CoinsBaseWS/CoinsBaseWS.asmx",
+      "language": "ru",
+      "kind": "official_api",
+      "enabled": true,
+      "usage": "metadata",
+      "license_url": "https://www.cbr.ru/about/",
+      "attribution": "Источник: Банк России",
+      "notes": "Материалы разрешено воспроизводить при обязательной ссылке на первоисточник."
+    },
+    {
+      "id": "wikimedia_ru_coins",
+      "name": "Wikimedia Commons — монеты России",
+      "url": "https://commons.wikimedia.org/wiki/Category:Coins_of_the_Russian_Federation",
+      "language": "ru",
+      "kind": "mediawiki_api",
+      "enabled": true,
+      "usage": "images",
+      "license_url": "https://commons.wikimedia.org/wiki/Commons:Currency/ru",
+      "attribution": "Автор и лицензия сохраняются для каждого файла",
+      "notes": "Загружаются только файлы со свободной лицензией или Public Domain."
+    },
+    {
+      "id": "raritetus",
+      "name": "RARITETUS",
+      "url": "https://www.raritetus.ru/stoimost-monet/",
+      "language": "ru",
+      "kind": "catalog",
+      "enabled": false,
+      "usage": "discovery_only",
+      "notes": "Подробный каталог России 1700–2026. Требуется письменное разрешение на массовое обучение по изображениям."
+    },
+    {
+      "id": "conros",
+      "name": "Конрос",
+      "url": "https://conros.ru/1/soviet/",
+      "language": "ru",
+      "kind": "catalog",
+      "enabled": false,
+      "usage": "discovery_only",
+      "notes": "Каталог РСФСР, СССР и России с разновидностями. Не включён без явной лицензии на датасет."
+    },
+    {
+      "id": "sovmint",
+      "name": "SovMint",
+      "url": "https://sovmint.ru/katalog/",
+      "language": "ru",
+      "kind": "catalog",
+      "enabled": false,
+      "usage": "discovery_only",
+      "notes": "Полезен для разметки разновидностей; перед загрузкой требуется согласование с правообладателем."
+    },
+    {
+      "id": "coins_su",
+      "name": "Центральный форум нумизматов СССР",
+      "url": "https://coins.su/forum/",
+      "language": "ru",
+      "kind": "forum",
+      "enabled": false,
+      "usage": "discovery_only",
+      "notes": "Форумные фотографии принадлежат пользователям; автоматический сбор для обучения отключён."
+    },
+    {
+      "id": "meshok",
+      "name": "Мешок",
+      "url": "https://meshok.net/",
+      "language": "ru",
+      "kind": "marketplace",
+      "enabled": false,
+      "usage": "prohibited_for_training",
+      "notes": "Фотографии лотов пользовательские; правила прямо упоминают риск несанкционированного использования."
+    }
+  ]
+}
