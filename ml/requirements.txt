@@ -2,3 +2,6 @@ numpy
 pillow
 torch
 transformers
+fastapi
+python-multipart
+uvicorn

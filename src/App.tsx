@@ -17,6 +17,7 @@ import {
   X,
 } from 'lucide-react'
 import { queueRecognitionFeedback } from './learning/feedback'
+import { recognizeCoin, type RecognitionResult } from './recognition/api'
 
 type Coin = {
   id: number
@@ -69,27 +70,46 @@ function CoinFace({ coin, large = false }: { coin: Coin; large?: boolean }) {
 function Scanner({ onClose, onAdd }: { onClose: () => void; onAdd: (coin: Coin) => void }) {
   const inputRef = useRef<HTMLInputElement>(null)
   const cameraRef = useRef<HTMLInputElement>(null)
-  const [step, setStep] = useState<'pick' | 'analyzing' | 'result'>('pick')
+  const [step, setStep] = useState<'pick' | 'analyzing' | 'result' | 'error'>('pick')
   const [preview, setPreview] = useState('')
+  const [error, setError] = useState('')
+  const [match, setMatch] = useState<RecognitionResult | null>(null)
   const [learningConsent, setLearningConsent] = useState(false)
   const [form, setForm] = useState({
-    title: '1 рубль',
-    subtitle: 'Портрет Николая II',
-    country: 'Российская империя',
-    year: '1897',
-    metal: 'Серебро',
-    grade: 'VF 30',
-    value: '24500',
+    title: '',
+    subtitle: '',
+    country: 'Россия',
+    year: '',
+    metal: '',
+    grade: 'Не указана',
+    value: '0',
   })
 
   const chooseFile = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (!file) return
     const reader = new FileReader()
-    reader.onload = () => {
+    reader.onload = async () => {
       setPreview(String(reader.result))
       setStep('analyzing')
-      window.setTimeout(() => setStep('result'), 1450)
+      try {
+        const response = await recognizeCoin(file)
+        const result = response.results[0]
+        setMatch(result)
+        setForm({
+          title: result.title,
+          subtitle: result.subtitle,
+          country: result.country,
+          year: String(result.year),
+          metal: result.metal,
+          grade: 'Не указана',
+          value: '0',
+        })
+        setStep('result')
+      } catch (reason) {
+        setError(reason instanceof Error ? reason.message : 'Не удалось распознать монету')
+        setStep('error')
+      }
     }
     reader.readAsDataURL(file)
   }
@@ -109,10 +129,10 @@ function Scanner({ onClose, onAdd }: { onClose: () => void; onAdd: (coin: Coin) 
       queueRecognitionFeedback({
         coinId,
         prediction: {
-          title: '1 рубль',
-          country: 'Российская империя',
-          year: 1897,
-          metal: 'Серебро',
+          title: match?.title ?? coin.title,
+          country: match?.country ?? coin.country,
+          year: match?.year ?? coin.year,
+          metal: match?.metal ?? coin.metal,
         },
         correction: {
           title: coin.title,
@@ -155,13 +175,22 @@ function Scanner({ onClose, onAdd }: { onClose: () => void; onAdd: (coin: Coin) 
             <p>Считываем надписи, год и детали чеканки</p>
           </div>
         )}
+        {step === 'error' && (
+          <div className="recognition-error">
+            <div className="scanner-icon"><CircleHelp size={26} /></div>
+            <p className="eyebrow">Распознавание не выполнено</p>
+            <h2>Не удалось определить монету</h2>
+            <p>{error}</p>
+            <button className="primary-button" onClick={() => setStep('pick')}>Попробовать другое фото</button>
+          </div>
+        )}
         {step === 'result' && (
           <div className="result">
             <div className="result-heading">
-              <div><p className="eyebrow success"><Check size={13} /> Найдено совпадение · 92%</p><h2>Проверьте результат</h2></div>
+              <div><p className="eyebrow success"><Check size={13} /> Найдено совпадение · {Math.round((match?.confidence ?? 0) * 100)}%</p><h2>Проверьте результат</h2></div>
               <img src={preview} alt="Монета" />
             </div>
-            <div className="demo-note"><Sparkles size={16} /><span><strong>Демо-распознавание.</strong> Подключите vision API в адаптере, чтобы определять реальные монеты.</span></div>
+            <div className="source-note"><Sparkles size={16} /><span><strong>Источник: Банк России.</strong> Каталожный № {match?.catalogNumber}. <a href={match?.sourceUrl} target="_blank" rel="noreferrer">Открыть эталон</a></span></div>
             <div className="form-grid">
               <label className="span-2">Номинал<input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></label>
               <label className="span-2">Описание<input value={form.subtitle} onChange={(e) => setForm({ ...form, subtitle: e.target.value })} /></label>

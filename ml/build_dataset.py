@@ -18,6 +18,7 @@ def read_jsonl(path: Path) -> list[dict]:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--images", type=Path, default=Path("ml/data/wikimedia/manifest.jsonl"))
+    parser.add_argument("--cbr-images", type=Path, default=Path("ml/data/cbr_images/manifest.jsonl"))
     parser.add_argument("--metadata", type=Path, default=Path("ml/data/cbr/manifest.jsonl"))
     parser.add_argument("--feedback", type=Path, default=Path("ml/data/feedback/manifest.jsonl"))
     parser.add_argument("--output", type=Path, default=Path("ml/data/processed/dataset.jsonl"))
@@ -26,6 +27,12 @@ def main() -> None:
     metadata = {item["catalog_number"]: item for item in read_jsonl(args.metadata)}
     rows = []
     unmatched = 0
+    for image in read_jsonl(args.cbr_images):
+        rows.append({
+            **image,
+            "image": str(args.cbr_images.parent / image["image"]),
+        })
+
     for image in read_jsonl(args.images):
         catalog_number = image.get("catalog_number")
         coin = metadata.get(catalog_number)
@@ -51,7 +58,8 @@ def main() -> None:
     with args.output.open("w", encoding="utf-8") as target:
         for row in rows:
             target.write(json.dumps(row, ensure_ascii=False) + "\n")
-    print(f"Готово: {len(rows)} примеров; без разметки ЦБ: {unmatched}")
+    trusted = sum(1 for row in rows if row.get("trusted"))
+    print(f"Готово: {len(rows)} примеров; доверенных ЦБ: {trusted}; без разметки ЦБ: {unmatched}")
 
 
 if __name__ == "__main__":
