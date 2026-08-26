@@ -169,6 +169,7 @@ export default function App() {
   const [sort, setSort] = useState('Сначала новые')
   const [scannerOpen, setScannerOpen] = useState(false)
   const [view, setView] = useState<'grid' | 'list'>('grid')
+  const [menuOpen, setMenuOpen] = useState(false)
 
   const updateCoins = (next: Coin[]) => {
     setCoins(next)
@@ -201,13 +202,15 @@ export default function App() {
           <span className="logo-coin">Н</span>
           <span>Нумизмат<small>Ваша коллекция монет</small></span>
         </a>
-        <nav>
-          <a className="active" href="#collection">Моя коллекция</a>
-          <a href="#discover">Каталог монет</a>
-          <a href="#about">О проекте</a>
+        <nav className={menuOpen ? 'open' : ''}>
+          <a className="active" href="#" onClick={() => setMenuOpen(false)}>Главная</a>
+          <a href="#collection" onClick={() => setMenuOpen(false)}>Моя коллекция</a>
+          <a href="#about" onClick={() => setMenuOpen(false)}>Как это работает</a>
         </nav>
         <button className="help-button"><CircleHelp size={18} /> Как это работает</button>
-        <button className="menu-button" aria-label="Меню"><Menu /></button>
+        <button className="menu-button" aria-label={menuOpen ? 'Закрыть меню' : 'Открыть меню'} aria-expanded={menuOpen} onClick={() => setMenuOpen(!menuOpen)}>
+          {menuOpen ? <X /> : <Menu />}
+        </button>
       </header>
 
       <main>
