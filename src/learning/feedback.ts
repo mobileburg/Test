@@ -23,7 +23,7 @@ const QUEUE_KEY = 'numismat-learning-feedback-v1'
 export function queueRecognitionFeedback(
   feedback: Omit<RecognitionFeedback, 'id' | 'createdAt' | 'consent' | 'reviewStatus'>,
 ) {
-  let queue: RecognitionFeedback[] = []
+  let queue: RecognitionFeedback[]
   try {
     queue = JSON.parse(localStorage.getItem(QUEUE_KEY) ?? '[]') as RecognitionFeedback[]
   } catch {
