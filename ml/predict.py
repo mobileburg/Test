@@ -13,6 +13,11 @@ from PIL import Image
 from transformers import CLIPModel, CLIPProcessor
 
 
+def extract_image_features(model: CLIPModel, inputs: dict) -> torch.Tensor:
+    features = model.get_image_features(**inputs)
+    return features.pooler_output if hasattr(features, "pooler_output") else features
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("image", type=Path)
@@ -28,7 +33,9 @@ def main() -> None:
     processor = CLIPProcessor.from_pretrained(card["model"])
     inputs = processor(images=Image.open(args.image).convert("RGB"), return_tensors="pt")
     with torch.inference_mode():
-        query = model.get_image_features(**{key: value.to(device) for key, value in inputs.items()})
+        query = extract_image_features(
+            model, {key: value.to(device) for key, value in inputs.items()}
+        )
         query = (query / query.norm(dim=-1, keepdim=True)).cpu().numpy()[0]
     scores = index @ query
     best = np.argsort(scores)[::-1][:args.top_k]

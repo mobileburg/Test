@@ -15,6 +15,11 @@ from PIL import Image
 from transformers import CLIPModel, CLIPProcessor
 
 
+def extract_image_features(model: CLIPModel, inputs: dict) -> torch.Tensor:
+    features = model.get_image_features(**inputs)
+    return features.pooler_output if hasattr(features, "pooler_output") else features
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset", type=Path, default=Path("ml/data/processed/dataset.jsonl"))
@@ -30,7 +35,8 @@ def main() -> None:
 
     version = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
     output = args.output / version
-    output.mkdir(parents=True, exist_ok=False)
+    temporary_output = args.output / f".{version}.building"
+    temporary_output.mkdir(parents=True, exist_ok=False)
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model = CLIPModel.from_pretrained(args.model).to(device).eval()
     processor = CLIPProcessor.from_pretrained(args.model)
@@ -51,15 +57,17 @@ def main() -> None:
             continue
         inputs = processor(images=images, return_tensors="pt")
         with torch.inference_mode():
-            features = model.get_image_features(**{key: value.to(device) for key, value in inputs.items()})
+            features = extract_image_features(
+                model, {key: value.to(device) for key, value in inputs.items()}
+            )
             features = features / features.norm(dim=-1, keepdim=True)
         embeddings.append(features.cpu().numpy().astype("float32"))
         valid_rows.extend(accepted)
         print(f"Обработано {min(offset + args.batch_size, len(rows))}/{len(rows)}")
 
     matrix = np.concatenate(embeddings)
-    np.save(output / "embeddings.npy", matrix)
-    (output / "records.json").write_text(
+    np.save(temporary_output / "embeddings.npy", matrix)
+    (temporary_output / "records.json").write_text(
         json.dumps(valid_rows, ensure_ascii=False, indent=2), encoding="utf-8"
     )
     dataset_hash = hashlib.sha256(args.dataset.read_bytes()).hexdigest()
@@ -75,9 +83,10 @@ def main() -> None:
         "publication_status": "candidate",
         "quality_gate": "manual_review_required",
     }
-    (output / "model_card.json").write_text(
+    (temporary_output / "model_card.json").write_text(
         json.dumps(metadata, ensure_ascii=False, indent=2), encoding="utf-8"
     )
+    temporary_output.replace(output)
     print(f"Кандидат модели сохранён в {output}")
 
 

@@ -19,6 +19,11 @@ from transformers import CLIPModel, CLIPProcessor
 MAX_UPLOAD_BYTES = 15 * 1024 * 1024
 
 
+def extract_image_features(model: CLIPModel, inputs: dict) -> torch.Tensor:
+    features = model.get_image_features(**inputs)
+    return features.pooler_output if hasattr(features, "pooler_output") else features
+
+
 class Recognizer:
     def __init__(self, artifact: Path) -> None:
         self.card = json.loads((artifact / "model_card.json").read_text(encoding="utf-8"))
@@ -31,8 +36,9 @@ class Recognizer:
     def predict(self, image: Image.Image, top_k: int = 5) -> list[dict]:
         inputs = self.processor(images=image.convert("RGB"), return_tensors="pt")
         with torch.inference_mode():
-            query = self.model.get_image_features(
-                **{key: value.to(self.device) for key, value in inputs.items()}
+            query = extract_image_features(
+                self.model,
+                {key: value.to(self.device) for key, value in inputs.items()},
             )
             query = (query / query.norm(dim=-1, keepdim=True)).cpu().numpy()[0]
         scores = self.index @ query
@@ -62,7 +68,12 @@ class Recognizer:
 
 
 def latest_artifact(root: Path) -> Path:
-    candidates = sorted(path for path in root.iterdir() if path.is_dir())
+    required_files = ("model_card.json", "records.json", "embeddings.npy")
+    candidates = sorted(
+        path
+        for path in root.iterdir()
+        if path.is_dir() and all((path / filename).is_file() for filename in required_files)
+    )
     if not candidates:
         raise RuntimeError(f"В {root} нет собранной модели")
     return candidates[-1]
