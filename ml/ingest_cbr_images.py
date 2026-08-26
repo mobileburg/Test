@@ -11,6 +11,7 @@ import time
 import urllib.error
 import urllib.request
 from pathlib import Path
+from typing import Iterable
 
 BASE_URL = "https://www.cbr.ru/legacy/PhotoStore/img"
 USER_AGENT = "NumismatDatasetBuilder/0.2 (source: cbr.ru)"
@@ -45,22 +46,9 @@ def fetch(url: str) -> bytes:
     raise RuntimeError(f"Не удалось загрузить {url}")
 
 
-def download_side(record: dict, side: str, image_dir: Path) -> dict | None:
-    catalog_number = record["catalog_number"]
-    suffix = "r" if side == "reverse" else ""
-    source_url = f"{BASE_URL}/{catalog_number}{suffix}.jpg"
-    try:
-        payload = fetch(source_url)
-    except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError) as error:
-        print(f"Пропуск {catalog_number} {side}: {error}")
-        return None
-    extension = detect_extension(payload)
-    if not extension or len(payload) < 5_000:
-        print(f"Пропуск {catalog_number} {side}: неверный формат или размер")
-        return None
-    filename = f"{catalog_number}-{side}{extension}"
-    destination = image_dir / filename
-    destination.write_bytes(payload)
+def build_manifest_record(
+    record: dict, side: str, filename: str, payload: bytes, source_url: str
+) -> dict:
     return {
         **record,
         "image": f"images/{filename}",
@@ -74,6 +62,59 @@ def download_side(record: dict, side: str, image_dir: Path) -> dict | None:
     }
 
 
+def valid_payload(payload: bytes) -> str | None:
+    extension = detect_extension(payload)
+    return extension if extension and len(payload) >= 5_000 else None
+
+
+def existing_side(record: dict, side: str, image_dir: Path) -> dict | None:
+    catalog_number = record["catalog_number"]
+    suffix = "r" if side == "reverse" else ""
+    source_url = f"{BASE_URL}/{catalog_number}{suffix}.jpg"
+    stem = f"{catalog_number}-{side}"
+    for extension in MAGIC.values():
+        path = image_dir / f"{stem}{extension}"
+        if not path.is_file():
+            continue
+        payload = path.read_bytes()
+        if valid_payload(payload) == extension:
+            return build_manifest_record(record, side, path.name, payload, source_url)
+        print(f"Повторная загрузка {catalog_number} {side}: локальный файл повреждён")
+    return None
+
+
+def download_side(record: dict, side: str, image_dir: Path) -> dict | None:
+    existing = existing_side(record, side, image_dir)
+    if existing:
+        return existing
+    catalog_number = record["catalog_number"]
+    suffix = "r" if side == "reverse" else ""
+    source_url = f"{BASE_URL}/{catalog_number}{suffix}.jpg"
+    try:
+        payload = fetch(source_url)
+    except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError) as error:
+        print(f"Пропуск {catalog_number} {side}: {error}")
+        return None
+    extension = valid_payload(payload)
+    if not extension:
+        print(f"Пропуск {catalog_number} {side}: неверный формат или размер")
+        return None
+    filename = f"{catalog_number}-{side}{extension}"
+    destination = image_dir / filename
+    temporary = destination.with_suffix(destination.suffix + ".part")
+    temporary.write_bytes(payload)
+    temporary.replace(destination)
+    return build_manifest_record(record, side, filename, payload, source_url)
+
+
+def write_manifest(path: Path, records: Iterable[dict]) -> None:
+    temporary = path.with_suffix(path.suffix + ".part")
+    with temporary.open("w", encoding="utf-8") as target:
+        for record in sorted(records, key=lambda item: (item["catalog_number"], item["side"])):
+            target.write(json.dumps(record, ensure_ascii=False) + "\n")
+    temporary.replace(path)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--metadata", type=Path, default=Path("ml/data/cbr/manifest.jsonl"))
@@ -81,6 +122,8 @@ def main() -> None:
     parser.add_argument("--limit", type=int, default=0, help="0 — весь каталог")
     parser.add_argument("--workers", type=int, default=4)
     args = parser.parse_args()
+    if args.workers < 1:
+        parser.error("--workers должен быть не меньше 1")
 
     records = read_jsonl(args.metadata)
     if args.limit:
@@ -88,7 +131,8 @@ def main() -> None:
     image_dir = args.output / "images"
     image_dir.mkdir(parents=True, exist_ok=True)
     jobs = [(record, side) for record in records for side in ("obverse", "reverse")]
-    accepted: list[dict] = []
+    accepted: dict[tuple[str, str], dict] = {}
+    manifest_path = args.output / "manifest.jsonl"
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=args.workers) as executor:
         futures = [
@@ -98,15 +142,12 @@ def main() -> None:
         for index, future in enumerate(concurrent.futures.as_completed(futures), 1):
             result = future.result()
             if result:
-                accepted.append(result)
+                accepted[(result["catalog_number"], result["side"])] = result
             if index % 50 == 0 or index == len(jobs):
+                write_manifest(manifest_path, accepted.values())
                 print(f"Проверено {index}/{len(jobs)}, принято {len(accepted)}")
 
-    accepted.sort(key=lambda item: (item["catalog_number"], item["side"]))
-    manifest_path = args.output / "manifest.jsonl"
-    with manifest_path.open("w", encoding="utf-8") as target:
-        for record in accepted:
-            target.write(json.dumps(record, ensure_ascii=False) + "\n")
+    write_manifest(manifest_path, accepted.values())
     print(f"Готово: {len(accepted)} изображений, манифест {manifest_path}")
 
 
