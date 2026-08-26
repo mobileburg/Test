@@ -176,6 +176,10 @@ footer .logo { color: #fff; } footer p { color: #7f9890; font-size: 9px; }
 .form-grid label.span-2 { grid-column: span 2; }
 .form-grid input { border: 1px solid #d9dcd5; background: #fff; border-radius: 6px; height: 38px; padding: 0 11px; outline: none; color: #30433c; font-size: 10px; }
 .form-grid input:focus { border-color: #597c70; box-shadow: 0 0 0 3px #37695a12; }
+.learning-consent { display: flex; gap: 10px; align-items: flex-start; margin-top: 15px; padding: 11px; border: 1px solid #e0e2da; border-radius: 7px; background: #f6f7f2; cursor: pointer; }
+.learning-consent input { accent-color: var(--green); margin: 2px 0 0; }
+.learning-consent span { display: flex; flex-direction: column; gap: 3px; color: #40524c; font-size: 9px; }
+.learning-consent small { color: #7f8a86; font-size: 8px; line-height: 1.45; }
 .result-actions { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #e7e5dd; margin-top: 20px; padding-top: 17px; }
 
 @keyframes fade { from { opacity: 0 } }

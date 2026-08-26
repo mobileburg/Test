@@ -16,6 +16,7 @@ import {
   Upload,
   X,
 } from 'lucide-react'
+import { queueRecognitionFeedback } from './learning/feedback'
 
 type Coin = {
   id: number
@@ -70,6 +71,7 @@ function Scanner({ onClose, onAdd }: { onClose: () => void; onAdd: (coin: Coin) 
   const cameraRef = useRef<HTMLInputElement>(null)
   const [step, setStep] = useState<'pick' | 'analyzing' | 'result'>('pick')
   const [preview, setPreview] = useState('')
+  const [learningConsent, setLearningConsent] = useState(false)
   const [form, setForm] = useState({
     title: '1 рубль',
     subtitle: 'Портрет Николая II',
@@ -93,15 +95,34 @@ function Scanner({ onClose, onAdd }: { onClose: () => void; onAdd: (coin: Coin) 
   }
 
   const save = () => {
-    onAdd({
-      id: Date.now(),
+    const coinId = Date.now()
+    const coin = {
+      id: coinId,
       ...form,
       year: Number(form.year),
       value: Number(form.value),
       image: preview,
       color: 'silver',
       mark: '₽',
-    })
+    }
+    if (learningConsent) {
+      queueRecognitionFeedback({
+        coinId,
+        prediction: {
+          title: '1 рубль',
+          country: 'Российская империя',
+          year: 1897,
+          metal: 'Серебро',
+        },
+        correction: {
+          title: coin.title,
+          country: coin.country,
+          year: coin.year,
+          metal: coin.metal,
+        },
+      })
+    }
+    onAdd(coin)
   }
 
   return (
@@ -150,6 +171,10 @@ function Scanner({ onClose, onAdd }: { onClose: () => void; onAdd: (coin: Coin) 
               <label>Сохранность<input value={form.grade} onChange={(e) => setForm({ ...form, grade: e.target.value })} /></label>
               <label className="span-2">Оценочная стоимость, ₽<input inputMode="numeric" value={form.value} onChange={(e) => setForm({ ...form, value: e.target.value })} /></label>
             </div>
+            <label className="learning-consent">
+              <input type="checkbox" checked={learningConsent} onChange={(event) => setLearningConsent(event.target.checked)} />
+              <span><strong>Помочь улучшить распознавание</strong><small>Сохранить исправления в локальной очереди обучения. Ничего не отправляется без вашего действия.</small></span>
+            </label>
             <div className="result-actions">
               <button className="text-button" onClick={() => setStep('pick')}>Загрузить другое фото</button>
               <button className="primary-button" onClick={save}><Plus size={18} /> Добавить в коллекцию</button>
