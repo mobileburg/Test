@@ -10,6 +10,7 @@ import json
 import time
 import urllib.error
 import urllib.request
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Iterable
 
@@ -22,6 +23,8 @@ MAGIC = {
 
 
 def read_jsonl(path: Path) -> list[dict]:
+    if not path.exists():
+        return []
     with path.open(encoding="utf-8") as source:
         return [json.loads(line) for line in source if line.strip()]
 
@@ -39,7 +42,11 @@ def fetch(url: str) -> bytes:
         try:
             with urllib.request.urlopen(request, timeout=45) as response:
                 return response.read()
-        except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError):
+        except urllib.error.HTTPError as error:
+            if 400 <= error.code < 500 or attempt == 3:
+                raise
+            time.sleep(2 ** attempt)
+        except (urllib.error.URLError, TimeoutError):
             if attempt == 3:
                 raise
             time.sleep(2 ** attempt)
@@ -83,31 +90,48 @@ def existing_side(record: dict, side: str, image_dir: Path) -> dict | None:
     return None
 
 
-def download_side(record: dict, side: str, image_dir: Path) -> dict | None:
+def unavailable_record(record: dict, side: str, reason: str, source_url: str) -> dict:
+    return {
+        "catalog_number": record["catalog_number"],
+        "side": side,
+        "image_source_url": source_url,
+        "reason": reason,
+        "checked_at": datetime.now(UTC).isoformat(),
+    }
+
+
+def download_side(
+    record: dict, side: str, image_dir: Path
+) -> tuple[dict | None, dict | None]:
     existing = existing_side(record, side, image_dir)
     if existing:
-        return existing
+        return existing, None
     catalog_number = record["catalog_number"]
     suffix = "r" if side == "reverse" else ""
     source_url = f"{BASE_URL}/{catalog_number}{suffix}.jpg"
     try:
         payload = fetch(source_url)
-    except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError) as error:
+    except urllib.error.HTTPError as error:
         print(f"Пропуск {catalog_number} {side}: {error}")
-        return None
+        failure = unavailable_record(record, side, f"http_{error.code}", source_url)
+        return None, failure
+    except (urllib.error.URLError, TimeoutError) as error:
+        print(f"Временная ошибка {catalog_number} {side}: {error}")
+        return None, None
     extension = valid_payload(payload)
     if not extension:
         print(f"Пропуск {catalog_number} {side}: неверный формат или размер")
-        return None
+        failure = unavailable_record(record, side, "invalid_payload", source_url)
+        return None, failure
     filename = f"{catalog_number}-{side}{extension}"
     destination = image_dir / filename
     temporary = destination.with_suffix(destination.suffix + ".part")
     temporary.write_bytes(payload)
     temporary.replace(destination)
-    return build_manifest_record(record, side, filename, payload, source_url)
+    return build_manifest_record(record, side, filename, payload, source_url), None
 
 
-def write_manifest(path: Path, records: Iterable[dict]) -> None:
+def write_jsonl(path: Path, records: Iterable[dict]) -> None:
     temporary = path.with_suffix(path.suffix + ".part")
     with temporary.open("w", encoding="utf-8") as target:
         for record in sorted(records, key=lambda item: (item["catalog_number"], item["side"])):
@@ -121,6 +145,11 @@ def main() -> None:
     parser.add_argument("--output", type=Path, default=Path("ml/data/cbr_images"))
     parser.add_argument("--limit", type=int, default=0, help="0 — весь каталог")
     parser.add_argument("--workers", type=int, default=4)
+    parser.add_argument(
+        "--retry-unavailable",
+        action="store_true",
+        help="повторно проверить URL из failures.jsonl",
+    )
     args = parser.parse_args()
     if args.workers < 1:
         parser.error("--workers должен быть не меньше 1")
@@ -130,9 +159,22 @@ def main() -> None:
         records = records[:args.limit]
     image_dir = args.output / "images"
     image_dir.mkdir(parents=True, exist_ok=True)
-    jobs = [(record, side) for record in records for side in ("obverse", "reverse")]
     accepted: dict[tuple[str, str], dict] = {}
     manifest_path = args.output / "manifest.jsonl"
+    failure_path = args.output / "failures.jsonl"
+    failures = {
+        (item["catalog_number"], item["side"]): item
+        for item in read_jsonl(failure_path)
+    }
+    jobs = [
+        (record, side)
+        for record in records
+        for side in ("obverse", "reverse")
+        if args.retry_unavailable or (record["catalog_number"], side) not in failures
+    ]
+    skipped = len(records) * 2 - len(jobs)
+    if skipped:
+        print(f"Пропущено ранее недоступных URL: {skipped}")
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=args.workers) as executor:
         futures = [
@@ -140,14 +182,20 @@ def main() -> None:
             for record, side in jobs
         ]
         for index, future in enumerate(concurrent.futures.as_completed(futures), 1):
-            result = future.result()
+            result, failure = future.result()
             if result:
-                accepted[(result["catalog_number"], result["side"])] = result
+                key = (result["catalog_number"], result["side"])
+                accepted[key] = result
+                failures.pop(key, None)
+            if failure:
+                failures[(failure["catalog_number"], failure["side"])] = failure
             if index % 50 == 0 or index == len(jobs):
-                write_manifest(manifest_path, accepted.values())
+                write_jsonl(manifest_path, accepted.values())
+                write_jsonl(failure_path, failures.values())
                 print(f"Проверено {index}/{len(jobs)}, принято {len(accepted)}")
 
-    write_manifest(manifest_path, accepted.values())
+    write_jsonl(manifest_path, accepted.values())
+    write_jsonl(failure_path, failures.values())
     print(f"Готово: {len(accepted)} изображений, манифест {manifest_path}")
 
 
