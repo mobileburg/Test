@@ -1,0 +1,280 @@
+import { ChangeEvent, useMemo, useRef, useState } from 'react'
+import {
+  Camera,
+  Check,
+  ChevronDown,
+  CircleHelp,
+  Grid2X2,
+  ImagePlus,
+  LayoutGrid,
+  List,
+  Menu,
+  Plus,
+  Search,
+  SlidersHorizontal,
+  Sparkles,
+  Upload,
+  X,
+} from 'lucide-react'
+
+type Coin = {
+  id: number
+  title: string
+  subtitle: string
+  country: string
+  year: number
+  metal: string
+  grade: string
+  value: number
+  color: string
+  mark: string
+  image?: string
+}
+
+const initialCoins: Coin[] = [
+  { id: 1, title: '5 рублей', subtitle: 'Николай II', country: 'Российская империя', year: 1898, metal: 'Золото', grade: 'XF 45', value: 78400, color: 'gold', mark: 'Н II' },
+  { id: 2, title: '1 рубль', subtitle: '300 лет дому Романовых', country: 'Российская империя', year: 1913, metal: 'Серебро', grade: 'AU 53', value: 42900, color: 'silver', mark: '₽' },
+  { id: 3, title: '50 копеек', subtitle: 'Полтинник', country: 'СССР', year: 1924, metal: 'Серебро', grade: 'VF 30', value: 7200, color: 'silver', mark: '50' },
+  { id: 4, title: '2 копейки', subtitle: 'Регулярный выпуск', country: 'СССР', year: 1927, metal: 'Бронза', grade: 'F 15', value: 96500, color: 'bronze', mark: '2' },
+  { id: 5, title: '10 рублей', subtitle: 'Ямало-Ненецкий АО', country: 'Россия', year: 2010, metal: 'Биметалл', grade: 'UNC', value: 18400, color: 'bimetal', mark: '10' },
+  { id: 6, title: '1 марка', subtitle: 'Германская империя', country: 'Германия', year: 1910, metal: 'Серебро', grade: 'VF 35', value: 3400, color: 'silver', mark: '1 M' },
+  { id: 7, title: '1 доллар', subtitle: 'Морган', country: 'США', year: 1881, metal: 'Серебро', grade: 'MS 62', value: 11900, color: 'silver', mark: '$' },
+  { id: 8, title: '20 франков', subtitle: 'Марианна и петух', country: 'Франция', year: 1907, metal: 'Золото', grade: 'AU 58', value: 51200, color: 'gold', mark: '20' },
+]
+
+const formatPrice = (value: number) => new Intl.NumberFormat('ru-RU').format(value) + ' ₽'
+
+function loadCoins() {
+  try {
+    const saved = localStorage.getItem('numismat-coins')
+    return saved ? (JSON.parse(saved) as Coin[]) : initialCoins
+  } catch {
+    return initialCoins
+  }
+}
+
+function CoinFace({ coin, large = false }: { coin: Coin; large?: boolean }) {
+  if (coin.image) return <img className={`coin-photo ${large ? 'large' : ''}`} src={coin.image} alt={coin.title} />
+  return (
+    <div className={`coin-face ${coin.color} ${large ? 'large' : ''}`} aria-label={`${coin.title}, ${coin.year}`}>
+      <div className="coin-ring">
+        <span className="coin-mark">{coin.mark}</span>
+        <small>{coin.year}</small>
+      </div>
+    </div>
+  )
+}
+
+function Scanner({ onClose, onAdd }: { onClose: () => void; onAdd: (coin: Coin) => void }) {
+  const inputRef = useRef<HTMLInputElement>(null)
+  const cameraRef = useRef<HTMLInputElement>(null)
+  const [step, setStep] = useState<'pick' | 'analyzing' | 'result'>('pick')
+  const [preview, setPreview] = useState('')
+  const [form, setForm] = useState({
+    title: '1 рубль',
+    subtitle: 'Портрет Николая II',
+    country: 'Российская империя',
+    year: '1897',
+    metal: 'Серебро',
+    grade: 'VF 30',
+    value: '24500',
+  })
+
+  const chooseFile = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => {
+      setPreview(String(reader.result))
+      setStep('analyzing')
+      window.setTimeout(() => setStep('result'), 1450)
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const save = () => {
+    onAdd({
+      id: Date.now(),
+      ...form,
+      year: Number(form.year),
+      value: Number(form.value),
+      image: preview,
+      color: 'silver',
+      mark: '₽',
+    })
+  }
+
+  return (
+    <div className="modal-backdrop" role="presentation" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+      <section className="scanner" role="dialog" aria-modal="true" aria-labelledby="scanner-title">
+        <button className="icon-button close" onClick={onClose} aria-label="Закрыть"><X size={20} /></button>
+        {step === 'pick' && (
+          <>
+            <div className="scanner-icon"><Sparkles size={26} /></div>
+            <p className="eyebrow">Умное распознавание</p>
+            <h2 id="scanner-title">Добавьте фото монеты</h2>
+            <p className="scanner-lead">Сфотографируйте аверс при хорошем освещении. Для более точного результата загрузите также реверс.</p>
+            <div className="upload-zone" onClick={() => inputRef.current?.click()}>
+              <div className="upload-coin"><ImagePlus size={30} /></div>
+              <strong>Перетащите изображение сюда</strong>
+              <span>или выберите JPG, PNG, WEBP до 15 МБ</span>
+              <button className="outline-button" type="button"><Upload size={17} /> Выбрать файл</button>
+            </div>
+            <button className="camera-button" onClick={() => cameraRef.current?.click()}><Camera size={19} /> Сделать фото</button>
+            <input ref={inputRef} hidden type="file" accept="image/*" onChange={chooseFile} />
+            <input ref={cameraRef} hidden type="file" accept="image/*" capture="environment" onChange={chooseFile} />
+            <div className="privacy"><Check size={15} /> Изображение используется только для распознавания</div>
+          </>
+        )}
+        {step === 'analyzing' && (
+          <div className="analyzing">
+            <div className="preview-wrap"><img src={preview} alt="Загруженная монета" /><div className="scan-line" /></div>
+            <div className="loader"><span /><span /><span /></div>
+            <h2>Изучаем монету…</h2>
+            <p>Считываем надписи, год и детали чеканки</p>
+          </div>
+        )}
+        {step === 'result' && (
+          <div className="result">
+            <div className="result-heading">
+              <div><p className="eyebrow success"><Check size={13} /> Найдено совпадение · 92%</p><h2>Проверьте результат</h2></div>
+              <img src={preview} alt="Монета" />
+            </div>
+            <div className="demo-note"><Sparkles size={16} /><span><strong>Демо-распознавание.</strong> Подключите vision API в адаптере, чтобы определять реальные монеты.</span></div>
+            <div className="form-grid">
+              <label className="span-2">Номинал<input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></label>
+              <label className="span-2">Описание<input value={form.subtitle} onChange={(e) => setForm({ ...form, subtitle: e.target.value })} /></label>
+              <label>Страна<input value={form.country} onChange={(e) => setForm({ ...form, country: e.target.value })} /></label>
+              <label>Год<input inputMode="numeric" value={form.year} onChange={(e) => setForm({ ...form, year: e.target.value })} /></label>
+              <label>Металл<input value={form.metal} onChange={(e) => setForm({ ...form, metal: e.target.value })} /></label>
+              <label>Сохранность<input value={form.grade} onChange={(e) => setForm({ ...form, grade: e.target.value })} /></label>
+              <label className="span-2">Оценочная стоимость, ₽<input inputMode="numeric" value={form.value} onChange={(e) => setForm({ ...form, value: e.target.value })} /></label>
+            </div>
+            <div className="result-actions">
+              <button className="text-button" onClick={() => setStep('pick')}>Загрузить другое фото</button>
+              <button className="primary-button" onClick={save}><Plus size={18} /> Добавить в коллекцию</button>
+            </div>
+          </div>
+        )}
+      </section>
+    </div>
+  )
+}
+
+export default function App() {
+  const [coins, setCoins] = useState<Coin[]>(loadCoins)
+  const [query, setQuery] = useState('')
+  const [country, setCountry] = useState('Все страны')
+  const [metal, setMetal] = useState('Все металлы')
+  const [sort, setSort] = useState('Сначала новые')
+  const [scannerOpen, setScannerOpen] = useState(false)
+  const [view, setView] = useState<'grid' | 'list'>('grid')
+
+  const updateCoins = (next: Coin[]) => {
+    setCoins(next)
+    localStorage.setItem('numismat-coins', JSON.stringify(next))
+  }
+
+  const filtered = useMemo(() => {
+    const normalized = query.toLowerCase()
+    const result = coins.filter((coin) =>
+      `${coin.title} ${coin.subtitle} ${coin.country} ${coin.year}`.toLowerCase().includes(normalized)
+      && (country === 'Все страны' || coin.country === country)
+      && (metal === 'Все металлы' || coin.metal === metal),
+    )
+    return [...result].sort((a, b) => sort === 'По стоимости' ? b.value - a.value : sort === 'Сначала старые' ? a.year - b.year : b.id - a.id)
+  }, [coins, query, country, metal, sort])
+
+  const countries = ['Все страны', ...new Set(coins.map((coin) => coin.country))]
+  const metals = ['Все металлы', ...new Set(coins.map((coin) => coin.metal))]
+  const total = coins.reduce((sum, coin) => sum + coin.value, 0)
+
+  const addCoin = (coin: Coin) => {
+    updateCoins([coin, ...coins])
+    setScannerOpen(false)
+  }
+
+  return (
+    <div className="app-shell">
+      <header>
+        <a className="logo" href="#" aria-label="Нумизмат, главная">
+          <span className="logo-coin">Н</span>
+          <span>Нумизмат<small>Ваша коллекция монет</small></span>
+        </a>
+        <nav>
+          <a className="active" href="#collection">Моя коллекция</a>
+          <a href="#discover">Каталог монет</a>
+          <a href="#about">О проекте</a>
+        </nav>
+        <button className="help-button"><CircleHelp size={18} /> Как это работает</button>
+        <button className="menu-button" aria-label="Меню"><Menu /></button>
+      </header>
+
+      <main>
+        <section className="hero">
+          <div>
+            <p className="kicker"><span /> Личная коллекция</p>
+            <h1>Монеты, которые<br />рассказывают <em>историю</em></h1>
+            <p className="hero-copy">Оцифруйте коллекцию, узнайте больше о каждой монете и сохраните всё важное в одном месте.</p>
+            <button className="primary-button hero-button" onClick={() => setScannerOpen(true)}><Camera size={20} /> Распознать монету</button>
+          </div>
+          <div className="hero-art" aria-hidden="true">
+            <div className="orbit orbit-one" />
+            <div className="orbit orbit-two" />
+            <div className="floating-coin coin-a"><div>₽<small>1897</small></div></div>
+            <div className="floating-coin coin-b"><div>5<small>РУБЛЕЙ</small></div></div>
+            <div className="sparkle s-one">✦</div><div className="sparkle s-two">✦</div>
+          </div>
+        </section>
+
+        <section className="stats">
+          <div><span className="stat-icon"><LayoutGrid size={21} /></span><p><strong>{coins.length}</strong><small>монет в коллекции</small></p></div>
+          <div><span className="stat-icon"><Grid2X2 size={21} /></span><p><strong>{new Set(coins.map((coin) => coin.country)).size}</strong><small>стран и эпох</small></p></div>
+          <div><span className="stat-icon ruble">₽</span><p><strong>{formatPrice(total)}</strong><small>оценочная стоимость</small></p></div>
+        </section>
+
+        <section className="collection" id="collection">
+          <div className="section-heading">
+            <div><p className="kicker"><span /> Каталог</p><h2>Моя коллекция</h2><p>Все ваши находки — аккуратно и по порядку</p></div>
+            <button className="primary-button" onClick={() => setScannerOpen(true)}><Plus size={18} /> Добавить монету</button>
+          </div>
+          <div className="toolbar">
+            <label className="search"><Search size={19} /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Поиск по названию, году или стране…" /></label>
+            <label className="select-wrap"><SlidersHorizontal size={16} /><select value={country} onChange={(e) => setCountry(e.target.value)}>{countries.map((item) => <option key={item}>{item}</option>)}</select><ChevronDown size={15} /></label>
+            <label className="select-wrap"><select value={metal} onChange={(e) => setMetal(e.target.value)}>{metals.map((item) => <option key={item}>{item}</option>)}</select><ChevronDown size={15} /></label>
+            <label className="select-wrap sort"><select value={sort} onChange={(e) => setSort(e.target.value)}><option>Сначала новые</option><option>Сначала старые</option><option>По стоимости</option></select><ChevronDown size={15} /></label>
+            <div className="view-switch"><button className={view === 'grid' ? 'active' : ''} onClick={() => setView('grid')} aria-label="Плитка"><LayoutGrid size={18} /></button><button className={view === 'list' ? 'active' : ''} onClick={() => setView('list')} aria-label="Список"><List size={18} /></button></div>
+          </div>
+
+          {filtered.length ? (
+            <div className={`coin-grid ${view}`}>
+              {filtered.map((coin) => (
+                <article className="coin-card" key={coin.id}>
+                  <div className="coin-stage"><CoinFace coin={coin} /><span className="grade">{coin.grade}</span></div>
+                  <div className="coin-info">
+                    <div className="coin-title"><div><h3>{coin.title}</h3><p>{coin.subtitle}</p></div><strong>{coin.year}</strong></div>
+                    <div className="coin-meta"><span>{coin.country}</span><i /><span>{coin.metal}</span></div>
+                    <div className="coin-value"><span>Оценка</span><strong>{formatPrice(coin.value)}</strong></div>
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <div className="empty"><Search size={28} /><h3>Ничего не найдено</h3><p>Измените запрос или сбросьте фильтры</p><button className="text-button" onClick={() => { setQuery(''); setCountry('Все страны'); setMetal('Все металлы') }}>Сбросить фильтры</button></div>
+          )}
+        </section>
+
+        <section className="how" id="about">
+          <div><p className="kicker light"><span /> Быстро и просто</p><h2>От фотографии<br />до карточки монеты</h2></div>
+          <div className="steps">
+            <div><b>01</b><Camera /><h3>Сфотографируйте</h3><p>Сделайте чёткий снимок монеты с двух сторон</p></div>
+            <div><b>02</b><Sparkles /><h3>Проверьте результат</h3><p>Мы предложим страну, номинал, год и металл</p></div>
+            <div><b>03</b><Plus /><h3>Сохраните</h3><p>Дополните описание и добавьте в коллекцию</p></div>
+          </div>
+        </section>
+      </main>
+      <footer><div className="logo"><span className="logo-coin">Н</span><span>Нумизмат<small>История в каждой монете</small></span></div><p>Ваш каталог хранится на этом устройстве · Версия 0.1</p></footer>
+      {scannerOpen && <Scanner onClose={() => setScannerOpen(false)} onAdd={addCoin} />}
+    </div>
+  )
+}
