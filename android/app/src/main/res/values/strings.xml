@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Нумизмат</string>
+    <string name="title_activity_main">Нумизмат</string>
+    <string name="package_name">ru.numismat.app</string>
+    <string name="custom_url_scheme">ru.numismat.app</string>
+</resources>
