@@ -8,3 +8,5 @@ vite.config.d.ts
 .venv-ml
 ml/data
 ml/artifacts
+__pycache__
+*.pyc
