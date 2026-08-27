@@ -8,6 +8,11 @@ vite.config.js
 vite.config.d.ts
 .venv-ml
 ml/data
+ml/data/uploads
+uploads
 ml/artifacts
+app.db
+secret.key
 __pycache__
 *.pyc
+releases/*-lan.apk

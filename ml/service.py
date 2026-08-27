@@ -18,6 +18,8 @@ from fastapi.responses import FileResponse
 from PIL import Image, UnidentifiedImageError
 from transformers import CLIPModel, CLIPProcessor
 
+from ml.accounts import init_storage, router as accounts_router
+
 MAX_UPLOAD_BYTES = 15 * 1024 * 1024
 
 
@@ -32,8 +34,9 @@ class Recognizer:
         self.records = json.loads((artifact / "records.json").read_text(encoding="utf-8"))
         self.index = np.load(artifact / "embeddings.npy")
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.model = CLIPModel.from_pretrained(self.card["model"]).to(self.device).eval()
-        self.processor = CLIPProcessor.from_pretrained(self.card["model"])
+        clip_source = os.getenv("NUMISMAT_CLIP_MODEL") or self.card["model"]
+        self.model = CLIPModel.from_pretrained(clip_source, local_files_only=Path(clip_source).is_dir()).to(self.device).eval()
+        self.processor = CLIPProcessor.from_pretrained(clip_source, local_files_only=Path(clip_source).is_dir())
 
     def predict(self, image: Image.Image, top_k: int = 5) -> list[dict]:
         inputs = self.processor(images=image.convert("RGB"), return_tensors="pt")
@@ -91,6 +94,7 @@ def _load_recognizer(app: FastAPI, artifact: Path) -> None:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    init_storage()
     artifact_env = os.getenv("NUMISMAT_MODEL_ARTIFACT")
     artifact = Path(artifact_env) if artifact_env else latest_artifact(Path("ml/artifacts"))
     app.state.recognizer = None
@@ -104,12 +108,15 @@ WEB_DIST = Path(os.getenv("NUMISMAT_WEB_DIST", "dist"))
 CORS_ORIGINS = [item.strip() for item in os.getenv("NUMISMAT_CORS_ORIGINS", "http://localhost:5173").split(",") if item.strip()]
 
 app = FastAPI(title="Нумизмат — распознавание", version="1.0", lifespan=lifespan)
+_cors_wildcard = CORS_ORIGINS == ["*"]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=CORS_ORIGINS,
-    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["*"],
+    allow_credentials=not _cors_wildcard,
 )
+app.include_router(accounts_router)
 
 
 def _ready_recognizer() -> Recognizer:

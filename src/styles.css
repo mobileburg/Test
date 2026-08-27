@@ -40,6 +40,46 @@ nav a:hover, nav a.active { color: var(--green); }
 nav a.active::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 2px; background: var(--green); }
 .help-button { border: 0; background: none; color: #55645e; display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; }
 .menu-button { display: none; border: 0; background: transparent; color: var(--green); }
+.account-bar { display: flex; align-items: center; gap: 10px; margin-left: 18px; }
+.account-email { max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #55645e; font-size: 11px; font-weight: 600; }
+.ghost-button {
+  border: 1px solid #d5d6ce; background: #fff; color: var(--green); border-radius: 7px; min-height: 36px;
+  padding: 0 11px; display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700;
+}
+.offline-banner {
+  margin: 12px clamp(24px, 6vw, 96px) 0; padding: 10px 14px; border-radius: 8px;
+  background: #f4ead4; color: #6d5424; font-size: 12px; font-weight: 600;
+}
+
+.auth-screen {
+  min-height: 100vh; display: grid; place-items: center; padding: 24px;
+  background:
+    radial-gradient(circle at 20% 20%, #ffffffab, transparent 32%),
+    repeating-linear-gradient(90deg, transparent 0, transparent 79px, #173c3308 80px),
+    var(--cream);
+}
+.auth-card {
+  width: min(420px, 100%); background: var(--paper); border: 1px solid #e1e0d8; border-radius: 14px;
+  padding: 36px 32px 28px; box-shadow: 0 18px 50px #2b3f3920;
+}
+.auth-logo { margin-bottom: 22px; }
+.auth-card h1 { font-size: 28px; margin-bottom: 8px; }
+.auth-lead { color: #6a7772; font-size: 13px; line-height: 1.6; margin: 0 0 20px; }
+.auth-switch { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 4px; background: #f3f1ea; border-radius: 8px; margin-bottom: 18px; }
+.auth-switch button { border: 0; background: transparent; min-height: 36px; border-radius: 6px; color: #66736f; font-size: 12px; font-weight: 700; }
+.auth-switch button.active { background: #fff; color: var(--green); box-shadow: 0 2px 8px #173c3314; }
+.auth-card form { display: flex; flex-direction: column; gap: 12px; }
+.auth-card label { display: flex; flex-direction: column; gap: 6px; color: #74807c; font-size: 11px; font-weight: 800; }
+.auth-card input { border: 1px solid #d9dcd5; background: #fff; border-radius: 6px; height: 42px; padding: 0 12px; outline: none; color: #30433c; font-size: 13px; font-weight: 500; }
+.auth-card input:focus { border-color: #597c70; box-shadow: 0 0 0 3px #37695a12; }
+.auth-hint { color: #8b9591; font-size: 11px; }
+.auth-error { margin: 0; color: #8a3b32; background: #f8ece9; border-radius: 6px; padding: 8px 10px; font-size: 12px; }
+.auth-submit { width: 100%; min-height: 46px; margin-top: 4px; }
+.coin-delete {
+  position: absolute; left: 10px; top: 10px; width: 28px; height: 28px; border: 1px solid #d6d4ca;
+  border-radius: 6px; background: #fffdf7dd; color: #8a5b57; display: grid; place-items: center; opacity: 0; transition: .2s;
+}
+.coin-card:hover .coin-delete, .coin-delete:focus { opacity: 1; }
 
 .hero {
   min-height: 440px; overflow: hidden; padding: 65px clamp(24px, 8vw, 125px);
@@ -208,7 +248,11 @@ footer .logo { color: #fff; } footer p { color: #7f9890; font-size: 9px; }
   header nav a { min-height: 44px; padding: 0 13px; border-radius: 6px; }
   header nav a:hover, header nav a.active { background: #edf1ed; }
   header nav a.active::after { display: none; }
-  .menu-button { display: grid; place-items: center; margin-left: auto; width: 42px; height: 42px; border-radius: 7px; }
+  .menu-button { display: grid; place-items: center; margin-left: 8px; width: 42px; height: 42px; border-radius: 7px; }
+  .account-bar { margin-left: auto; }
+  .account-email { display: none; }
+  .coin-delete { opacity: 1; }
+  .offline-banner { margin: 10px 16px 0; }
   .hero { display: block; min-height: 630px; padding: 48px 22px 0; }.hero-art { transform: scale(.78); transform-origin: left top; margin-top: 28px; }
   h1 { font-size: 43px; }.hero-copy { font-size: 13px; }
   .stats { margin: -8px 15px 0; grid-template-columns: 1fr; }.stats > div { height: 76px; justify-content: flex-start; padding-left: 28px; }.stats > div + div { border-left: 0; border-top: 1px solid #e3e1d8; }
