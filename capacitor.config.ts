@@ -5,8 +5,12 @@ const config: CapacitorConfig = {
   appName: 'Нумизмат',
   webDir: 'dist',
   bundledWebRuntime: false,
+  server: {
+    // Debug APK ходит на HTTP API в LAN; без cleartext Android блокирует запросы.
+    cleartext: true,
+  },
   android: {
-    allowMixedContent: false,
+    allowMixedContent: true,
     backgroundColor: '#f7f5ef',
   },
 }

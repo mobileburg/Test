@@ -33,25 +33,14 @@ type Coin = {
   image?: string
 }
 
-const initialCoins: Coin[] = [
-  { id: 1, title: '5 рублей', subtitle: 'Николай II', country: 'Российская империя', year: 1898, metal: 'Золото', grade: 'XF 45', value: 78400, color: 'gold', mark: 'Н II' },
-  { id: 2, title: '1 рубль', subtitle: '300 лет дому Романовых', country: 'Российская империя', year: 1913, metal: 'Серебро', grade: 'AU 53', value: 42900, color: 'silver', mark: '₽' },
-  { id: 3, title: '50 копеек', subtitle: 'Полтинник', country: 'СССР', year: 1924, metal: 'Серебро', grade: 'VF 30', value: 7200, color: 'silver', mark: '50' },
-  { id: 4, title: '2 копейки', subtitle: 'Регулярный выпуск', country: 'СССР', year: 1927, metal: 'Бронза', grade: 'F 15', value: 96500, color: 'bronze', mark: '2' },
-  { id: 5, title: '10 рублей', subtitle: 'Ямало-Ненецкий АО', country: 'Россия', year: 2010, metal: 'Биметалл', grade: 'UNC', value: 18400, color: 'bimetal', mark: '10' },
-  { id: 6, title: '1 марка', subtitle: 'Германская империя', country: 'Германия', year: 1910, metal: 'Серебро', grade: 'VF 35', value: 3400, color: 'silver', mark: '1 M' },
-  { id: 7, title: '1 доллар', subtitle: 'Морган', country: 'США', year: 1881, metal: 'Серебро', grade: 'MS 62', value: 11900, color: 'silver', mark: '$' },
-  { id: 8, title: '20 франков', subtitle: 'Марианна и петух', country: 'Франция', year: 1907, metal: 'Золото', grade: 'AU 58', value: 51200, color: 'gold', mark: '20' },
-]
-
 const formatPrice = (value: number) => new Intl.NumberFormat('ru-RU').format(value) + ' ₽'
 
 function loadCoins() {
   try {
     const saved = localStorage.getItem('numismat-coins')
-    return saved ? (JSON.parse(saved) as Coin[]) : initialCoins
+    return saved ? (JSON.parse(saved) as Coin[]) : []
   } catch {
-    return initialCoins
+    return []
   }
 }
 
@@ -315,6 +304,13 @@ export default function App() {
                   </div>
                 </article>
               ))}
+            </div>
+          ) : coins.length === 0 ? (
+            <div className="empty">
+              <ImagePlus size={28} />
+              <h3>Коллекция пока пуста</h3>
+              <p>Сфотографируйте монету или загрузите снимок — карточка появится здесь</p>
+              <button className="text-button" onClick={() => setScannerOpen(true)}>Добавить первую монету</button>
             </div>
           ) : (
             <div className="empty"><Search size={28} /><h3>Ничего не найдено</h3><p>Измените запрос или сбросьте фильтры</p><button className="text-button" onClick={() => { setQuery(''); setCountry('Все страны'); setMetal('Все металлы') }}>Сбросить фильтры</button></div>

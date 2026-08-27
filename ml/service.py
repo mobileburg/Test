@@ -6,6 +6,7 @@ from __future__ import annotations
 import io
 import json
 import os
+import threading
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -13,6 +14,7 @@ import numpy as np
 import torch
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from PIL import Image, UnidentifiedImageError
 from transformers import CLIPModel, CLIPProcessor
 
@@ -79,26 +81,68 @@ def latest_artifact(root: Path) -> Path:
     return candidates[-1]
 
 
+def _load_recognizer(app: FastAPI, artifact: Path) -> None:
+    try:
+        app.state.recognizer = Recognizer(artifact)
+        app.state.recognizer_error = None
+    except Exception as exc:  # noqa: BLE001 — ошибка уходит в health/recognize
+        app.state.recognizer_error = str(exc)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     artifact_env = os.getenv("NUMISMAT_MODEL_ARTIFACT")
     artifact = Path(artifact_env) if artifact_env else latest_artifact(Path("ml/artifacts"))
-    app.state.recognizer = Recognizer(artifact)
+    app.state.recognizer = None
+    app.state.recognizer_error = None
+    thread = threading.Thread(target=_load_recognizer, args=(app, artifact), daemon=True)
+    thread.start()
     yield
 
+
+WEB_DIST = Path(os.getenv("NUMISMAT_WEB_DIST", "dist"))
+CORS_ORIGINS = [item.strip() for item in os.getenv("NUMISMAT_CORS_ORIGINS", "http://localhost:5173").split(",") if item.strip()]
 
 app = FastAPI(title="Нумизмат — распознавание", version="1.0", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=os.getenv("NUMISMAT_CORS_ORIGINS", "http://localhost:5173").split(","),
-    allow_methods=["POST", "GET"],
-    allow_headers=["Content-Type"],
+    allow_origins=CORS_ORIGINS,
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["*"],
 )
+
+
+def _ready_recognizer() -> Recognizer:
+    error = getattr(app.state, "recognizer_error", None)
+    if error:
+        raise HTTPException(500, error)
+    recognizer = getattr(app.state, "recognizer", None)
+    if recognizer is None:
+        raise HTTPException(503, "Модель ещё загружается")
+    return recognizer
+
+
+def _web_index() -> Path | None:
+    index = WEB_DIST / "index.html"
+    return index if index.is_file() else None
+
+
+@app.get("/")
+def root():
+    index = _web_index()
+    if index is not None:
+        return FileResponse(index)
+    return {"status": "ok", "service": "numismat-recognition"}
 
 
 @app.get("/api/v1/health")
 def health() -> dict:
-    recognizer: Recognizer = app.state.recognizer
+    error = getattr(app.state, "recognizer_error", None)
+    if error:
+        raise HTTPException(500, error)
+    recognizer = getattr(app.state, "recognizer", None)
+    if recognizer is None:
+        return {"status": "starting"}
     return {
         "status": "ok",
         "modelVersion": recognizer.card["version"],
@@ -120,9 +164,27 @@ async def recognize(file: UploadFile = File(...)) -> dict:
         image = Image.open(io.BytesIO(payload))
     except (UnidentifiedImageError, OSError):
         raise HTTPException(422, "Не удалось прочитать изображение") from None
-    recognizer: Recognizer = app.state.recognizer
+    recognizer = _ready_recognizer()
     return {
         "modelVersion": recognizer.card["version"],
         "results": recognizer.predict(image),
         "attribution": "Источник каталожных данных и эталонных изображений: Банк России",
     }
+
+
+@app.get("/{full_path:path}")
+def spa(full_path: str):
+    if full_path.startswith("api/"):
+        raise HTTPException(404, "Not Found")
+    index = _web_index()
+    if index is None:
+        raise HTTPException(404, "Not Found")
+    dist_root = WEB_DIST.resolve()
+    candidate = (WEB_DIST / full_path).resolve()
+    try:
+        candidate.relative_to(dist_root)
+    except ValueError:
+        return FileResponse(index)
+    if candidate.is_file():
+        return FileResponse(candidate)
+    return FileResponse(index)
