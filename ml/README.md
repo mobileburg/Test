@@ -89,6 +89,12 @@ origin. Это удобно для production reverse proxy. Для Android APK 
 `multipart/form-data` с полем `file` в `POST /api/v1/recognize`; поддерживаются
 JPG, PNG и WEBP размером до 15 МБ.
 
+Личные кабинеты: `POST /api/v1/auth/register`, `POST /api/v1/auth/login`,
+`GET /api/v1/me`, `GET/POST /api/v1/coins`. Админка (только `role=admin`):
+`GET /api/v1/admin/users`, `GET /api/v1/admin/users/{id}/coins`. Не-админ получает 403.
+Как назначить admin: первый пользователь в пустой БД, либо `NUMISMAT_ADMIN_EMAIL`,
+либо `python scripts/promote_admin.py email@domain`.
+
 ## Следующий этап backend
 
 - хранить оригиналы в объектном хранилище, а не в БД;

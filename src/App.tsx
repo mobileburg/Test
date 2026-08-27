@@ -34,23 +34,13 @@ import {
   revokeCoinImages,
   writeCachedCoins,
 } from './api'
+import AdminScreen from './AdminScreen'
 import AuthScreen from './AuthScreen'
+import { CoinFace } from './CoinFace'
 import { queueRecognitionFeedback } from './learning/feedback'
 import { recognizeCoin, type RecognitionResult } from './recognition/api'
 
 const formatPrice = (value: number) => new Intl.NumberFormat('ru-RU').format(value) + ' ₽'
-
-function CoinFace({ coin, large = false }: { coin: Coin; large?: boolean }) {
-  if (coin.image) return <img className={`coin-photo ${large ? 'large' : ''}`} src={coin.image} alt={coin.title} />
-  return (
-    <div className={`coin-face ${coin.color} ${large ? 'large' : ''}`} aria-label={`${coin.title}, ${coin.year}`}>
-      <div className="coin-ring">
-        <span className="coin-mark">{coin.mark}</span>
-        <small>{coin.year}</small>
-      </div>
-    </div>
-  )
-}
 
 function Scanner({ onClose, onAdd }: { onClose: () => void; onAdd: (draft: CoinDraft, photo?: File) => Promise<void> }) {
   const inputRef = useRef<HTMLInputElement>(null)
@@ -220,6 +210,7 @@ export default function App() {
   const [scannerOpen, setScannerOpen] = useState(false)
   const [view, setView] = useState<'grid' | 'list'>('grid')
   const [menuOpen, setMenuOpen] = useState(false)
+  const [page, setPage] = useState<'cabinet' | 'admin'>('cabinet')
 
   const replaceCoins = (next: Coin[]) => {
     setCoins((prev) => {
@@ -312,6 +303,7 @@ export default function App() {
     setCoins([])
     writeCachedCoins([])
     setMenuOpen(false)
+    setPage('cabinet')
   }
 
   if (!authReady) {
@@ -332,9 +324,12 @@ export default function App() {
           <span>Нумизмат<small>Ваша коллекция монет</small></span>
         </a>
         <nav className={menuOpen ? 'open' : ''}>
-          <a className="active" href="#" onClick={() => setMenuOpen(false)}>Главная</a>
-          <a href="#collection" onClick={() => setMenuOpen(false)}>Моя коллекция</a>
-          <a href="#about" onClick={() => setMenuOpen(false)}>Как это работает</a>
+          <a className={page === 'cabinet' ? 'active' : ''} href="#" onClick={() => { setPage('cabinet'); setMenuOpen(false) }}>Главная</a>
+          <a href="#collection" onClick={() => { setPage('cabinet'); setMenuOpen(false) }}>Моя коллекция</a>
+          {session.role === 'admin' && (
+            <a className={page === 'admin' ? 'active' : ''} href="#admin" onClick={() => { setPage('admin'); setMenuOpen(false) }}>Админка</a>
+          )}
+          <a href="#about" onClick={() => { setPage('cabinet'); setMenuOpen(false) }}>Как это работает</a>
         </nav>
         <div className="account-bar">
           <span className="account-email" title={session.email}>{session.email}</span>
@@ -346,6 +341,9 @@ export default function App() {
         </button>
       </header>
 
+      {page === 'admin' && session.role === 'admin' ? (
+        <AdminScreen />
+      ) : (
       <main>
         {offline && <div className="offline-banner">Показана копия с этого устройства. Нет связи с сервером — изменения появятся после входа при восстановлении связи.</div>}
         <section className="hero">
@@ -421,8 +419,9 @@ export default function App() {
           </div>
         </section>
       </main>
+      )}
       <footer><div className="logo"><span className="logo-coin">Н</span><span>Нумизмат<small>История в каждой монете</small></span></div><p>Коллекция хранится в личном кабинете на сервере · Версия 0.2</p></footer>
-      {scannerOpen && <Scanner onClose={() => setScannerOpen(false)} onAdd={addCoin} />}
+      {scannerOpen && page === 'cabinet' && <Scanner onClose={() => setScannerOpen(false)} onAdd={addCoin} />}
     </div>
   )
 }

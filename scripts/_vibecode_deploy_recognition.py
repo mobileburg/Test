@@ -249,6 +249,7 @@ def poll_public_cabinets() -> None:
                 asset = "/" + token
                 break
         login_js = False
+        js = ""
         if asset:
             js_req = Request(EXPECTED_URL + asset, headers={"Accept": "*/*"})
             with urlopen(js_req, context=CTX, timeout=30) as js_resp:
@@ -258,6 +259,20 @@ def poll_public_cabinets() -> None:
         print("PUBLIC_LOGIN_UI", login_html or login_js)
         if not (login_html or login_js):
             raise SystemExit("PUBLIC_INDEX_NO_LOGIN")
+        admin_js = "Админка" in (js if asset else "") or "Админка" in html
+        print("PUBLIC_ADMIN_UI", admin_js)
+
+
+def poll_public_admin_guard() -> None:
+    req = Request(EXPECTED_URL + "/api/v1/admin/users", headers={"Accept": "application/json"})
+    try:
+        with urlopen(req, context=CTX, timeout=30) as resp:
+            print("PUBLIC_ADMIN", resp.status)
+            raise SystemExit("PUBLIC_ADMIN_EXPECTED_401")
+    except HTTPError as err:
+        print("PUBLIC_ADMIN", err.code)
+        if err.code not in (401, 403):
+            raise SystemExit(f"PUBLIC_ADMIN_UNEXPECTED {err.code}") from None
 
 
 def verify_persistent_clip(key: str) -> None:
@@ -625,6 +640,7 @@ def main() -> None:
     poll_public_health()
     verify_persistent_clip(key)
     poll_public_cabinets()
+    poll_public_admin_guard()
 
     status, payload, _ = api(key, "GET", f"/v1/infra/servers/{TARGET}")
     if isinstance(payload, dict) and payload.get("success"):
@@ -711,6 +727,7 @@ if __name__ == "__main__":
         verify_persistent_clip(key)
         poll_public_health()
         poll_public_cabinets()
+        poll_public_admin_guard()
         raise SystemExit(0)
     if len(sys.argv) > 1 and sys.argv[1] == "clip":
         key = load_personal_key()

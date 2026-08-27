@@ -19,6 +19,14 @@ export type Coin = {
   image?: string
 }
 
+export type AdminUser = {
+  id: number
+  email: string
+  role: 'user' | 'admin'
+  coinsCount: number
+  created: string
+}
+
 export type CoinDraft = Omit<Coin, 'id' | 'hasPhoto' | 'image'>
 
 const API_BASE = (import.meta.env.VITE_RECOGNITION_API_URL ?? '').replace(/\/$/, '')
@@ -166,6 +174,19 @@ async function hydratePhoto(coin: Coin): Promise<Coin> {
 
 export async function fetchCoins(): Promise<Coin[]> {
   const coins = await jsonFetch<Coin[]>('/api/v1/coins', {}, 'Не удалось загрузить коллекцию')
+  return Promise.all(coins.map(hydratePhoto))
+}
+
+export async function fetchAdminUsers(): Promise<AdminUser[]> {
+  return jsonFetch<AdminUser[]>('/api/v1/admin/users', {}, 'Не удалось загрузить пользователей')
+}
+
+export async function fetchAdminUserCoins(userId: number): Promise<Coin[]> {
+  const coins = await jsonFetch<Coin[]>(
+    `/api/v1/admin/users/${userId}/coins`,
+    {},
+    'Не удалось загрузить коллекцию пользователя',
+  )
   return Promise.all(coins.map(hydratePhoto))
 }
 

@@ -1,5 +1,13 @@
 #!/usr/bin/env python3
-"""Личные кабинеты: регистрация, сессии и коллекция на сервере."""
+"""Личные кабинеты: регистрация, сессии и коллекция на сервере.
+
+Как назначить администратора (role=admin):
+1. Если в БД ещё нет ни одного admin — первый зарегистрированный получает роль admin.
+2. Либо email из переменной NUMISMAT_ADMIN_EMAIL (при регистрации, входе и старте сервиса).
+3. Вручную: `python scripts/promote_admin.py you@example.com`
+   или SQL: `UPDATE users SET role = 'admin' WHERE email = 'you@example.com';`
+   (файл БД: $NUMISMAT_DATA_DIR/app.db, на проде обычно /opt/data/app.db).
+"""
 
 from __future__ import annotations
 
@@ -137,6 +145,36 @@ def db() -> Iterator[sqlite3.Connection]:
         conn.close()
 
 
+def _admin_email() -> str:
+    return os.getenv("NUMISMAT_ADMIN_EMAIL", "").strip().lower()
+
+
+def _promote_env_admin(conn: sqlite3.Connection) -> None:
+    email = _admin_email()
+    if email:
+        conn.execute("UPDATE users SET role = 'admin' WHERE email = ?", (email,))
+
+
+def _ensure_bootstrap_admin(conn: sqlite3.Connection) -> None:
+    """Если админа нет — назначить email из env или самого первого пользователя."""
+    _promote_env_admin(conn)
+    has_admin = conn.execute("SELECT id FROM users WHERE role = 'admin' LIMIT 1").fetchone()
+    if has_admin is not None:
+        return
+    first = conn.execute("SELECT id FROM users ORDER BY id ASC LIMIT 1").fetchone()
+    if first is not None:
+        conn.execute("UPDATE users SET role = 'admin' WHERE id = ?", (int(first["id"]),))
+
+
+def _role_for_new_user(conn: sqlite3.Connection, email: str) -> str:
+    if _admin_email() and email == _admin_email():
+        return "admin"
+    has_admin = conn.execute("SELECT id FROM users WHERE role = 'admin' LIMIT 1").fetchone()
+    if has_admin is None:
+        return "admin"
+    return "user"
+
+
 def init_storage() -> None:
     _data_dir().mkdir(parents=True, exist_ok=True)
     _uploads_dir().mkdir(parents=True, exist_ok=True)
@@ -169,6 +207,7 @@ def init_storage() -> None:
             CREATE INDEX IF NOT EXISTS idx_coins_user ON coins(user_id);
             """
         )
+        _ensure_bootstrap_admin(conn)
 
 
 def _now() -> str:
@@ -236,6 +275,12 @@ def get_current_user(
     return _user_public(row)
 
 
+def require_admin(user: dict[str, Any] = Depends(get_current_user)) -> dict[str, Any]:
+    if user.get("role") != "admin":
+        raise HTTPException(403, "Недостаточно прав")
+    return user
+
+
 def _get_owned_coin(conn: sqlite3.Connection, user: dict[str, Any], coin_id: int) -> sqlite3.Row:
     row = conn.execute("SELECT * FROM coins WHERE id = ?", (coin_id,)).fetchone()
     if row is None:
@@ -287,11 +332,12 @@ def register(body: AuthIn, response: Response) -> dict[str, Any]:
         exists = conn.execute("SELECT id FROM users WHERE email = ?", (email,)).fetchone()
         if exists:
             raise HTTPException(409, "Пользователь с таким email уже зарегистрирован")
+        role = _role_for_new_user(conn, email)
         cursor = conn.execute(
-            "INSERT INTO users (email, password_hash, role, created_at) VALUES (?, ?, 'user', ?)",
-            (email, hash_password(body.password), _now()),
+            "INSERT INTO users (email, password_hash, role, created_at) VALUES (?, ?, ?, ?)",
+            (email, hash_password(body.password), role, _now()),
         )
-        user = {"id": int(cursor.lastrowid), "email": email, "role": "user"}
+        user = {"id": int(cursor.lastrowid), "email": email, "role": role}
     token = _token_for(user["id"])
     _set_session_cookie(response, token)
     return {"token": token, "user": user}
@@ -306,6 +352,12 @@ def login(body: AuthIn, response: Response) -> dict[str, Any]:
             "SELECT id, email, role, password_hash FROM users WHERE email = ?",
             (email,),
         ).fetchone()
+        if row is not None:
+            _ensure_bootstrap_admin(conn)
+            row = conn.execute(
+                "SELECT id, email, role, password_hash FROM users WHERE email = ?",
+                (email,),
+            ).fetchone()
     if row is None or not verify_password(body.password, row["password_hash"]):
         raise HTTPException(401, "Неверный email или пароль")
     user = _user_public(row)
@@ -325,17 +377,54 @@ def me(user: dict[str, Any] = Depends(get_current_user)) -> dict[str, Any]:
     return user
 
 
+@router.get("/api/v1/admin/users")
+def admin_list_users(_admin: dict[str, Any] = Depends(require_admin)) -> list[dict[str, Any]]:
+    init_storage()
+    with db() as conn:
+        rows = conn.execute(
+            """
+            SELECT u.id, u.email, u.role, u.created_at,
+                   COUNT(c.id) AS coins_count
+            FROM users u
+            LEFT JOIN coins c ON c.user_id = u.id
+            GROUP BY u.id
+            ORDER BY u.id ASC
+            """
+        ).fetchall()
+    return [
+        {
+            "id": int(row["id"]),
+            "email": row["email"],
+            "role": row["role"],
+            "coinsCount": int(row["coins_count"]),
+            "created": row["created_at"],
+        }
+        for row in rows
+    ]
+
+
+@router.get("/api/v1/admin/users/{user_id}/coins")
+def admin_user_coins(user_id: int, _admin: dict[str, Any] = Depends(require_admin)) -> list[dict[str, Any]]:
+    init_storage()
+    with db() as conn:
+        owner = conn.execute("SELECT id FROM users WHERE id = ?", (user_id,)).fetchone()
+        if owner is None:
+            raise HTTPException(404, "Пользователь не найден")
+        rows = conn.execute(
+            "SELECT * FROM coins WHERE user_id = ? ORDER BY id DESC",
+            (user_id,),
+        ).fetchall()
+    return [_coin_public(row) for row in rows]
+
+
 @router.get("/api/v1/coins")
 def list_coins(user: dict[str, Any] = Depends(get_current_user)) -> list[dict[str, Any]]:
     init_storage()
     with db() as conn:
-        if user["role"] == "admin":
-            rows = conn.execute("SELECT * FROM coins ORDER BY id DESC").fetchall()
-        else:
-            rows = conn.execute(
-                "SELECT * FROM coins WHERE user_id = ? ORDER BY id DESC",
-                (user["id"],),
-            ).fetchall()
+        rows = conn.execute(
+            "SELECT * FROM coins WHERE user_id = ? ORDER BY id DESC",
+            (user["id"],),
+        ).fetchall()
     return [_coin_public(row) for row in rows]
 
 
