@@ -27,6 +27,28 @@ export type AdminUser = {
   created: string
 }
 
+export type ShareAccess = 'read' | 'write'
+
+export type ShareLink = {
+  id: number
+  token: string
+  url: string
+  access: ShareAccess
+  email: string | null
+  userId: number | null
+  created: string
+  ownerId?: number
+  ownerEmail?: string
+  coinsCount?: number
+}
+
+export type SharedCollection = {
+  token: string
+  access: ShareAccess
+  owner: { id: number; email: string } | null
+  coins: Coin[]
+}
+
 export type CoinDraft = Omit<Coin, 'id' | 'hasPhoto' | 'image'>
 
 const API_BASE = (import.meta.env.VITE_RECOGNITION_API_URL ?? '').replace(/\/$/, '')
@@ -166,7 +188,11 @@ export async function fetchMe(): Promise<User> {
 async function hydratePhoto(coin: Coin): Promise<Coin> {
   if (!coin.hasPhoto && !coin.image) return { ...coin, image: undefined }
   if (coin.image?.startsWith('data:') || coin.image?.startsWith('blob:')) return coin
-  const response = await apiFetch(`/api/v1/coins/${coin.id}/photo`)
+  const photoPath =
+    coin.image && !coin.image.startsWith('http')
+      ? coin.image
+      : `/api/v1/coins/${coin.id}/photo`
+  const response = await apiFetch(photoPath)
   if (!response.ok) return { ...coin, image: undefined }
   const blob = await response.blob()
   return { ...coin, hasPhoto: true, image: URL.createObjectURL(blob) }
@@ -209,6 +235,38 @@ export async function createCoin(draft: CoinDraft, photo?: File, hydrate = true)
 
 export async function deleteCoin(id: number) {
   await jsonFetch<void>(`/api/v1/coins/${id}`, { method: 'DELETE' }, 'Не удалось удалить монету')
+}
+
+export async function createShare(body: { access?: ShareAccess; email?: string } = {}): Promise<ShareLink> {
+  return jsonFetch<ShareLink>(
+    '/api/v1/shares',
+    { method: 'POST', body: JSON.stringify({ access: body.access ?? 'read', email: body.email }) },
+    'Не удалось создать ссылку',
+  )
+}
+
+export async function fetchShares(): Promise<ShareLink[]> {
+  return jsonFetch<ShareLink[]>('/api/v1/shares', {}, 'Не удалось загрузить выданные доступы')
+}
+
+export async function fetchShareInbox(): Promise<ShareLink[]> {
+  return jsonFetch<ShareLink[]>('/api/v1/shares/inbox', {}, 'Не удалось загрузить открытые коллекции')
+}
+
+export async function revokeShare(id: number) {
+  await jsonFetch<void>(`/api/v1/shares/${id}`, { method: 'DELETE' }, 'Не удалось отозвать доступ')
+}
+
+export async function fetchSharedCollection(token: string): Promise<SharedCollection> {
+  const payload = await jsonFetch<SharedCollection>(
+    `/api/v1/shares/view/${encodeURIComponent(token)}`,
+    {},
+    'Ссылка недействительна или доступ отозван',
+  )
+  return {
+    ...payload,
+    coins: await Promise.all(payload.coins.map(hydratePhoto)),
+  }
 }
 
 function dataUrlToFile(dataUrl: string, filename: string): File | null {

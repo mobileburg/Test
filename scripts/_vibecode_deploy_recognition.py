@@ -261,6 +261,10 @@ def poll_public_cabinets() -> None:
             raise SystemExit("PUBLIC_INDEX_NO_LOGIN")
         admin_js = "Админка" in (js if asset else "") or "Админка" in html
         print("PUBLIC_ADMIN_UI", admin_js)
+        share_ui = "Поделиться" in (js if asset else "") or "Мне открыли" in (js if asset else "")
+        print("PUBLIC_SHARE_UI", share_ui)
+        if not share_ui:
+            raise SystemExit("PUBLIC_INDEX_NO_SHARE")
 
 
 def poll_public_admin_guard() -> None:
@@ -312,6 +316,7 @@ def deploy_spec() -> dict:
             "NUMISMAT_DATA_DIR": "/opt/data",
             "NUMISMAT_UPLOADS_DIR": "/opt/data/uploads",
             "NUMISMAT_COOKIE_SECURE": "1",
+            "NUMISMAT_PUBLIC_URL": "https://app-66ba5c12d8dc.vibecode.bitrix24.tech",
             "HF_HOME": "/opt/data/hf",
             "HF_HUB_CACHE": "/opt/data/hf/hub",
             "TRANSFORMERS_CACHE": "/opt/data/hf/transformers",
@@ -552,7 +557,7 @@ def main() -> None:
     exec_cmd(
         key,
         "mkdir -p /opt/data /opt/data/uploads /etc/systemd/system/app.service.d && "
-        "printf '[Service]\\nEnvironment=NUMISMAT_CLIP_MODEL=/opt/data/clip\\nEnvironment=NUMISMAT_DATA_DIR=/opt/data\\nEnvironment=NUMISMAT_UPLOADS_DIR=/opt/data/uploads\\nEnvironment=NUMISMAT_COOKIE_SECURE=1\\nEnvironment=HF_HUB_OFFLINE=1\\n' "
+        "printf '[Service]\\nEnvironment=NUMISMAT_CLIP_MODEL=/opt/data/clip\\nEnvironment=NUMISMAT_DATA_DIR=/opt/data\\nEnvironment=NUMISMAT_UPLOADS_DIR=/opt/data/uploads\\nEnvironment=NUMISMAT_COOKIE_SECURE=1\\nEnvironment=NUMISMAT_PUBLIC_URL=https://app-66ba5c12d8dc.vibecode.bitrix24.tech\\nEnvironment=HF_HUB_OFFLINE=1\\n' "
         "> /etc/systemd/system/app.service.d/clip.conf && "
         "test -f /opt/data/clip/config.json -o -d /opt/data/hf/hub/models--openai--clip-vit-base-patch32 && echo CLIP_BEFORE_OK || echo CLIP_BEFORE_MISSING; "
         "test -f /opt/app/ml/artifacts/20260826T193916Z/embeddings.npy && echo ARTIFACT_BEFORE_OK || echo ARTIFACT_BEFORE_MISSING",
@@ -718,7 +723,7 @@ if __name__ == "__main__":
             key,
             "mkdir -p /opt/data /opt/data/uploads /etc/systemd/system/app.service.d && "
             "rm -rf /opt/app/dist && tar -xzf /opt/app/_web_dist.tar.gz -C /opt/app && rm -f /opt/app/_web_dist.tar.gz && "
-            "printf '[Service]\\nEnvironment=NUMISMAT_CLIP_MODEL=/opt/data/clip\\nEnvironment=NUMISMAT_DATA_DIR=/opt/data\\nEnvironment=NUMISMAT_UPLOADS_DIR=/opt/data/uploads\\nEnvironment=NUMISMAT_COOKIE_SECURE=1\\nEnvironment=HF_HUB_OFFLINE=1\\n' "
+            "printf '[Service]\\nEnvironment=NUMISMAT_CLIP_MODEL=/opt/data/clip\\nEnvironment=NUMISMAT_DATA_DIR=/opt/data\\nEnvironment=NUMISMAT_UPLOADS_DIR=/opt/data/uploads\\nEnvironment=NUMISMAT_COOKIE_SECURE=1\\nEnvironment=NUMISMAT_PUBLIC_URL=https://app-66ba5c12d8dc.vibecode.bitrix24.tech\\nEnvironment=HF_HUB_OFFLINE=1\\n' "
             "> /etc/systemd/system/app.service.d/clip.conf && "
             "chown -R vibeapp:vibeapp /opt/data /opt/app/ml /opt/app/dist && "
             "systemctl daemon-reload && systemctl restart app && echo REPAIRED",

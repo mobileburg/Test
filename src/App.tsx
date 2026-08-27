@@ -12,6 +12,7 @@ import {
   Menu,
   Plus,
   Search,
+  Share2,
   SlidersHorizontal,
   Sparkles,
   Trash2,
@@ -36,7 +37,9 @@ import {
 } from './api'
 import AdminScreen from './AdminScreen'
 import AuthScreen from './AuthScreen'
+import CoinDetail from './CoinDetail'
 import { CoinFace } from './CoinFace'
+import { ShareDialog, SharedCollectionPage, SharedInbox, readShareToken } from './ShareScreen'
 import { queueRecognitionFeedback } from './learning/feedback'
 import { recognizeCoin, type RecognitionResult } from './recognition/api'
 
@@ -210,7 +213,10 @@ export default function App() {
   const [scannerOpen, setScannerOpen] = useState(false)
   const [view, setView] = useState<'grid' | 'list'>('grid')
   const [menuOpen, setMenuOpen] = useState(false)
-  const [page, setPage] = useState<'cabinet' | 'admin'>('cabinet')
+  const [page, setPage] = useState<'cabinet' | 'admin' | 'inbox'>('cabinet')
+  const [selectedCoinId, setSelectedCoinId] = useState<number | null>(null)
+  const [shareOpen, setShareOpen] = useState(false)
+  const [shareToken, setShareToken] = useState<string | null>(readShareToken)
 
   const replaceCoins = (next: Coin[]) => {
     setCoins((prev) => {
@@ -268,6 +274,42 @@ export default function App() {
   const countries = ['Все страны', ...new Set(coins.map((coin) => coin.country))]
   const metals = ['Все металлы', ...new Set(coins.map((coin) => coin.metal))]
   const total = coins.reduce((sum, coin) => sum + coin.value, 0)
+  const selectedCoin = selectedCoinId == null ? null : coins.find((coin) => coin.id === selectedCoinId) ?? null
+
+  useEffect(() => {
+    const onPop = () => setShareToken(readShareToken())
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, [])
+
+  const leaveShareUrl = () => {
+    if (readShareToken()) history.pushState({}, '', '/')
+    setShareToken(null)
+  }
+
+  const goCabinet = () => {
+    leaveShareUrl()
+    setPage('cabinet')
+    setSelectedCoinId(null)
+    setMenuOpen(false)
+    setShareOpen(false)
+  }
+
+  const goInbox = () => {
+    leaveShareUrl()
+    setPage('inbox')
+    setSelectedCoinId(null)
+    setMenuOpen(false)
+    setShareOpen(false)
+  }
+
+  const openShared = (token: string) => {
+    history.pushState({}, '', `/share/${token}`)
+    setShareToken(token)
+    setSelectedCoinId(null)
+    setMenuOpen(false)
+    setShareOpen(false)
+  }
 
   const addCoin = async (draft: CoinDraft, photo?: File) => {
     const created = await createCoin(draft, photo)
@@ -304,6 +346,9 @@ export default function App() {
     writeCachedCoins([])
     setMenuOpen(false)
     setPage('cabinet')
+    setSelectedCoinId(null)
+    setShareOpen(false)
+    leaveShareUrl()
   }
 
   if (!authReady) {
@@ -314,22 +359,52 @@ export default function App() {
     )
   }
 
+  if (shareToken) {
+    return (
+      <div className="app-shell">
+        <header>
+          <a className="logo" href="#" aria-label="Нумизмат, главная" onClick={(event) => { event.preventDefault(); goCabinet() }}>
+            <span className="logo-coin">Н</span>
+            <span>Нумизмат<small>Открытая коллекция</small></span>
+          </a>
+          {session ? (
+            <div className="account-bar">
+              <span className="account-email" title={session.email}>{session.email}</span>
+              <button className="ghost-button" onClick={handleLogout}><LogOut size={16} /> Выйти</button>
+            </div>
+          ) : (
+            <div className="account-bar">
+              <button className="ghost-button" type="button" onClick={goCabinet}>Войти</button>
+            </div>
+          )}
+        </header>
+        <SharedCollectionPage
+          token={shareToken}
+          onBack={goCabinet}
+          backLabel={session ? 'К кабинету' : 'На главную'}
+        />
+        <footer><div className="logo"><span className="logo-coin">Н</span><span>Нумизмат<small>История в каждой монете</small></span></div><p>Коллекция открыта по ссылке · только просмотр</p></footer>
+      </div>
+    )
+  }
+
   if (!session) return <AuthScreen onSuccess={handleAuth} />
 
   return (
     <div className="app-shell">
       <header>
-        <a className="logo" href="#" aria-label="Нумизмат, главная">
+        <a className="logo" href="#" aria-label="Нумизмат, главная" onClick={(event) => { event.preventDefault(); goCabinet() }}>
           <span className="logo-coin">Н</span>
           <span>Нумизмат<small>Ваша коллекция монет</small></span>
         </a>
         <nav className={menuOpen ? 'open' : ''}>
-          <a className={page === 'cabinet' ? 'active' : ''} href="#" onClick={() => { setPage('cabinet'); setMenuOpen(false) }}>Главная</a>
-          <a href="#collection" onClick={() => { setPage('cabinet'); setMenuOpen(false) }}>Моя коллекция</a>
+          <a className={page === 'cabinet' && !selectedCoinId ? 'active' : ''} href="#" onClick={goCabinet}>Главная</a>
+          <a href="#collection" onClick={goCabinet}>Моя коллекция</a>
+          <a className={page === 'inbox' ? 'active' : ''} href="#inbox" onClick={(event) => { event.preventDefault(); goInbox() }}>Мне открыли</a>
           {session.role === 'admin' && (
-            <a className={page === 'admin' ? 'active' : ''} href="#admin" onClick={() => { setPage('admin'); setMenuOpen(false) }}>Админка</a>
+            <a className={page === 'admin' ? 'active' : ''} href="#admin" onClick={() => { setPage('admin'); setSelectedCoinId(null); setMenuOpen(false) }}>Админка</a>
           )}
-          <a href="#about" onClick={() => { setPage('cabinet'); setMenuOpen(false) }}>Как это работает</a>
+          <a href="#about" onClick={goCabinet}>Как это работает</a>
         </nav>
         <div className="account-bar">
           <span className="account-email" title={session.email}>{session.email}</span>
@@ -343,6 +418,10 @@ export default function App() {
 
       {page === 'admin' && session.role === 'admin' ? (
         <AdminScreen />
+      ) : page === 'inbox' ? (
+        <SharedInbox onOpen={openShared} />
+      ) : selectedCoin ? (
+        <CoinDetail coin={selectedCoin} onBack={goCabinet} />
       ) : (
       <main>
         {offline && <div className="offline-banner">Показана копия с этого устройства. Нет связи с сервером — изменения появятся после входа при восстановлении связи.</div>}
@@ -371,7 +450,10 @@ export default function App() {
         <section className="collection" id="collection">
           <div className="section-heading">
             <div><p className="kicker"><span /> Каталог</p><h2>Моя коллекция</h2><p>Все ваши находки хранятся на сервере</p></div>
-            <button className="primary-button" onClick={() => setScannerOpen(true)}><Plus size={18} /> Добавить монету</button>
+            <div className="heading-actions">
+              <button className="outline-button" type="button" onClick={() => setShareOpen(true)}><Share2 size={18} /> Поделиться</button>
+              <button className="primary-button" onClick={() => setScannerOpen(true)}><Plus size={18} /> Добавить монету</button>
+            </div>
           </div>
           <div className="toolbar">
             <label className="search"><Search size={19} /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Поиск по названию, году или стране…" /></label>
@@ -384,11 +466,24 @@ export default function App() {
           {filtered.length ? (
             <div className={`coin-grid ${view}`}>
               {filtered.map((coin) => (
-                <article className="coin-card" key={coin.id}>
+                <article
+                  className="coin-card"
+                  key={coin.id}
+                  role="link"
+                  tabIndex={0}
+                  aria-label={`${coin.title}, открыть карточку`}
+                  onClick={() => setSelectedCoinId(coin.id)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault()
+                      setSelectedCoinId(coin.id)
+                    }
+                  }}
+                >
                   <div className="coin-stage">
                     <CoinFace coin={coin} />
                     <span className="grade">{coin.grade}</span>
-                    <button className="coin-delete" type="button" aria-label="Удалить монету" onClick={() => removeCoin(coin.id)}><Trash2 size={14} /></button>
+                    <button className="coin-delete" type="button" aria-label="Удалить монету" onClick={(event) => { event.stopPropagation(); removeCoin(coin.id) }}><Trash2 size={14} /></button>
                   </div>
                   <div className="coin-info">
                     <div className="coin-title"><div><h3>{coin.title}</h3><p>{coin.subtitle}</p></div><strong>{coin.year}</strong></div>
@@ -422,6 +517,7 @@ export default function App() {
       )}
       <footer><div className="logo"><span className="logo-coin">Н</span><span>Нумизмат<small>История в каждой монете</small></span></div><p>Коллекция хранится в личном кабинете на сервере · Версия 0.2</p></footer>
       {scannerOpen && page === 'cabinet' && <Scanner onClose={() => setScannerOpen(false)} onAdd={addCoin} />}
+      {shareOpen && page === 'cabinet' && <ShareDialog open={shareOpen} onClose={() => setShareOpen(false)} />}
     </div>
   )
 }

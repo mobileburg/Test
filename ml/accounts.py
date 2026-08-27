@@ -25,7 +25,7 @@ from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, Iterator
+from typing import Any, Iterator, Literal
 
 from fastapi import APIRouter, Depends, File, Header, HTTPException, Request, Response, UploadFile
 from fastapi.responses import FileResponse
@@ -205,6 +205,20 @@ def init_storage() -> None:
                 FOREIGN KEY (user_id) REFERENCES users(id)
             );
             CREATE INDEX IF NOT EXISTS idx_coins_user ON coins(user_id);
+            CREATE TABLE IF NOT EXISTS shares (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                owner_id INTEGER NOT NULL,
+                token TEXT NOT NULL UNIQUE,
+                access TEXT NOT NULL DEFAULT 'read',
+                invitee_email TEXT,
+                invitee_user_id INTEGER,
+                created_at TEXT NOT NULL,
+                FOREIGN KEY (owner_id) REFERENCES users(id),
+                FOREIGN KEY (invitee_user_id) REFERENCES users(id)
+            );
+            CREATE INDEX IF NOT EXISTS idx_shares_owner ON shares(owner_id);
+            CREATE INDEX IF NOT EXISTS idx_shares_token ON shares(token);
+            CREATE INDEX IF NOT EXISTS idx_shares_invitee_email ON shares(invitee_email);
             """
         )
         _ensure_bootstrap_admin(conn)
@@ -234,9 +248,10 @@ def _user_public(row: sqlite3.Row | dict[str, Any]) -> dict[str, Any]:
     return {"id": int(row["id"]), "email": row["email"], "role": row["role"]}
 
 
-def _coin_public(row: sqlite3.Row) -> dict[str, Any]:
+def _coin_public(row: sqlite3.Row, photo_path: str | None = None) -> dict[str, Any]:
     has_photo = bool(row["photo_relpath"])
     coin_id = int(row["id"])
+    image = photo_path if photo_path is not None else (f"/api/v1/coins/{coin_id}/photo" if has_photo else None)
     return {
         "id": coin_id,
         "title": row["title"],
@@ -249,8 +264,57 @@ def _coin_public(row: sqlite3.Row) -> dict[str, Any]:
         "color": row["color"],
         "mark": row["mark"],
         "hasPhoto": has_photo,
-        "image": f"/api/v1/coins/{coin_id}/photo" if has_photo else None,
+        "image": image,
     }
+
+
+def _coin_shared(row: sqlite3.Row, token: str) -> dict[str, Any]:
+    has_photo = bool(row["photo_relpath"])
+    coin_id = int(row["id"])
+    photo = f"/api/v1/shares/view/{token}/coins/{coin_id}/photo" if has_photo else None
+    return _coin_public(row, photo)
+
+
+def _public_origin(request: Request) -> str:
+    env = os.getenv("NUMISMAT_PUBLIC_URL", "").strip().rstrip("/")
+    if env:
+        return env
+    forwarded_host = (request.headers.get("x-forwarded-host") or "").split(",")[0].strip()
+    proto = (request.headers.get("x-forwarded-proto") or request.url.scheme or "https").split(",")[0].strip()
+    if forwarded_host:
+        return f"{proto}://{forwarded_host}"
+    host = request.headers.get("host")
+    if host:
+        return f"{proto}://{host}"
+    return str(request.base_url).rstrip("/")
+
+
+def _share_public(row: sqlite3.Row, request: Request) -> dict[str, Any]:
+    token = str(row["token"])
+    invitee_id = row["invitee_user_id"]
+    return {
+        "id": int(row["id"]),
+        "token": token,
+        "url": f"{_public_origin(request)}/share/{token}",
+        "access": row["access"],
+        "email": row["invitee_email"],
+        "userId": int(invitee_id) if invitee_id is not None else None,
+        "created": row["created_at"],
+    }
+
+
+def _photo_response(relpath: str) -> FileResponse:
+    if not relpath:
+        raise HTTPException(404, "Фото не найдено")
+    path = (_uploads_dir() / relpath).resolve()
+    try:
+        path.relative_to(_uploads_dir().resolve())
+    except ValueError:
+        raise HTTPException(404, "Фото не найдено") from None
+    if not path.is_file():
+        raise HTTPException(404, "Фото не найдено")
+    media = {".jpg": "image/jpeg", ".png": "image/png", ".webp": "image/webp"}.get(path.suffix, "application/octet-stream")
+    return FileResponse(path, media_type=media)
 
 
 def get_current_user(
@@ -317,6 +381,11 @@ class CoinPatch(BaseModel):
     value: float | None = None
     color: str | None = Field(default=None, max_length=40)
     mark: str | None = Field(default=None, max_length=8)
+
+
+class ShareIn(BaseModel):
+    access: Literal["read", "write"] = "read"
+    email: str | None = Field(default=None, max_length=254)
 
 
 router = APIRouter(tags=["cabinet"])
@@ -539,17 +608,135 @@ def get_photo(coin_id: int, user: dict[str, Any] = Depends(get_current_user)) ->
     with db() as conn:
         row = _get_owned_coin(conn, user, coin_id)
         relpath = row["photo_relpath"]
-    if not relpath:
-        raise HTTPException(404, "Фото не найдено")
-    path = (_uploads_dir() / relpath).resolve()
-    try:
-        path.relative_to(_uploads_dir().resolve())
-    except ValueError:
-        raise HTTPException(404, "Фото не найдено") from None
-    if not path.is_file():
-        raise HTTPException(404, "Фото не найдено")
-    media = {".jpg": "image/jpeg", ".png": "image/png", ".webp": "image/webp"}.get(path.suffix, "application/octet-stream")
-    return FileResponse(path, media_type=media)
+    return _photo_response(relpath or "")
+
+
+@router.post("/api/v1/shares", status_code=201)
+def create_share(
+    body: ShareIn,
+    request: Request,
+    user: dict[str, Any] = Depends(get_current_user),
+) -> dict[str, Any]:
+    email = body.email.strip().lower() if body.email else None
+    if email:
+        if not EMAIL_RE.match(email):
+            raise HTTPException(422, "Укажите корректный email")
+        if email == user["email"]:
+            raise HTTPException(400, "Нельзя открыть коллекцию самому себе")
+    init_storage()
+    with db() as conn:
+        invitee_id: int | None = None
+        if email:
+            found = conn.execute("SELECT id FROM users WHERE email = ?", (email,)).fetchone()
+            invitee_id = int(found["id"]) if found else None
+            existing = conn.execute(
+                "SELECT * FROM shares WHERE owner_id = ? AND invitee_email = ?",
+                (user["id"], email),
+            ).fetchone()
+            if existing is not None:
+                conn.execute(
+                    "UPDATE shares SET access = ?, invitee_user_id = ? WHERE id = ?",
+                    (body.access, invitee_id, int(existing["id"])),
+                )
+                row = conn.execute("SELECT * FROM shares WHERE id = ?", (int(existing["id"]),)).fetchone()
+                return _share_public(row, request)
+        token = secrets.token_urlsafe(24)
+        cursor = conn.execute(
+            """
+            INSERT INTO shares (owner_id, token, access, invitee_email, invitee_user_id, created_at)
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (user["id"], token, body.access, email, invitee_id, _now()),
+        )
+        row = conn.execute("SELECT * FROM shares WHERE id = ?", (cursor.lastrowid,)).fetchone()
+    return _share_public(row, request)
+
+
+@router.get("/api/v1/shares")
+def list_shares(request: Request, user: dict[str, Any] = Depends(get_current_user)) -> list[dict[str, Any]]:
+    init_storage()
+    with db() as conn:
+        rows = conn.execute(
+            "SELECT * FROM shares WHERE owner_id = ? ORDER BY id DESC",
+            (user["id"],),
+        ).fetchall()
+    return [_share_public(row, request) for row in rows]
+
+
+@router.get("/api/v1/shares/inbox")
+def share_inbox(request: Request, user: dict[str, Any] = Depends(get_current_user)) -> list[dict[str, Any]]:
+    init_storage()
+    with db() as conn:
+        rows = conn.execute(
+            """
+            SELECT s.*, u.email AS owner_email,
+                   (SELECT COUNT(*) FROM coins c WHERE c.user_id = s.owner_id) AS coins_count
+            FROM shares s
+            JOIN users u ON u.id = s.owner_id
+            WHERE s.owner_id != ?
+              AND (s.invitee_user_id = ? OR s.invitee_email = ?)
+            ORDER BY s.id DESC
+            """,
+            (user["id"], user["id"], user["email"]),
+        ).fetchall()
+    result: list[dict[str, Any]] = []
+    for row in rows:
+        item = _share_public(row, request)
+        item["ownerId"] = int(row["owner_id"])
+        item["ownerEmail"] = row["owner_email"]
+        item["coinsCount"] = int(row["coins_count"])
+        result.append(item)
+    return result
+
+
+@router.get("/api/v1/shares/view/{token}")
+def view_share(token: str) -> dict[str, Any]:
+    init_storage()
+    with db() as conn:
+        share = conn.execute("SELECT * FROM shares WHERE token = ?", (token,)).fetchone()
+        if share is None:
+            raise HTTPException(404, "Ссылка недействительна или доступ отозван")
+        owner = conn.execute("SELECT id, email FROM users WHERE id = ?", (int(share["owner_id"]),)).fetchone()
+        rows = conn.execute(
+            "SELECT * FROM coins WHERE user_id = ? ORDER BY id DESC",
+            (int(share["owner_id"]),),
+        ).fetchall()
+    return {
+        "token": token,
+        "access": share["access"],
+        "owner": {"id": int(owner["id"]), "email": owner["email"]} if owner else None,
+        "coins": [_coin_shared(row, token) for row in rows],
+    }
+
+
+@router.get("/api/v1/shares/view/{token}/coins/{coin_id}/photo")
+def view_share_photo(token: str, coin_id: int) -> FileResponse:
+    init_storage()
+    with db() as conn:
+        share = conn.execute("SELECT * FROM shares WHERE token = ?", (token,)).fetchone()
+        if share is None:
+            raise HTTPException(404, "Ссылка недействительна или доступ отозван")
+        row = conn.execute(
+            "SELECT * FROM coins WHERE id = ? AND user_id = ?",
+            (coin_id, int(share["owner_id"])),
+        ).fetchone()
+        if row is None:
+            raise HTTPException(404, "Монета не найдена")
+        relpath = row["photo_relpath"]
+    return _photo_response(relpath or "")
+
+
+@router.delete("/api/v1/shares/{share_id}", status_code=204)
+def revoke_share(share_id: int, user: dict[str, Any] = Depends(get_current_user)) -> Response:
+    init_storage()
+    with db() as conn:
+        row = conn.execute("SELECT * FROM shares WHERE id = ?", (share_id,)).fetchone()
+        if row is None:
+            raise HTTPException(404, "Доступ не найден")
+        if int(row["owner_id"]) != int(user["id"]) and user["role"] != "admin":
+            raise HTTPException(404, "Доступ не найден")
+        conn.execute("DELETE FROM shares WHERE id = ?", (share_id,))
+    return Response(status_code=204)
 
 
 def _unlink_photo(relpath: str) -> None:

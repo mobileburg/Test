@@ -128,6 +128,7 @@ h1 em { color: #a8792c; font-weight: 600; }
 .section-heading { display: flex; align-items: end; justify-content: space-between; margin-bottom: 29px; }
 .section-heading h2, .how h2 { font-size: 36px; line-height: 1.1; }
 .section-heading > div > p:last-child { font-size: 12px; color: #84908b; margin: 9px 0 0; }
+.heading-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
 .toolbar { display: flex; gap: 9px; margin-bottom: 24px; }
 .search { height: 43px; min-width: 250px; flex: 1; border: 1px solid #dcddd6; border-radius: 7px; display: flex; align-items: center; gap: 10px; padding: 0 13px; background: #fff; color: #8b9591; }
 .search:focus-within { border-color: #53766c; box-shadow: 0 0 0 3px #2a5a4d12; }
@@ -139,7 +140,7 @@ h1 em { color: #a8792c; font-weight: 600; }
 .view-switch button { width: 34px; border: 0; border-radius: 5px; background: transparent; color: #929b98; }
 .view-switch button.active { background: #e7ece9; color: var(--green); }
 .coin-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 17px; }
-.coin-card { background: var(--paper); border: 1px solid #e0ded5; border-radius: 9px; overflow: hidden; transition: .25s; }
+.coin-card { background: var(--paper); border: 1px solid #e0ded5; border-radius: 9px; overflow: hidden; transition: .25s; cursor: pointer; }
 .coin-card:hover { transform: translateY(-3px); box-shadow: 0 14px 30px #283e3717; border-color: #c8cbc3; }
 .coin-stage { height: 195px; display: grid; place-items: center; position: relative; background: radial-gradient(circle at center, #fff 0, #f0eee6 68%); overflow: hidden; }
 .coin-face { width: 126px; height: 126px; border-radius: 50%; padding: 7px; display: grid; place-items: center; box-shadow: 5px 10px 18px #293d362d, inset -5px -5px 9px #60491f30; transition: .3s; }
@@ -230,6 +231,112 @@ footer .logo { color: #fff; } footer p { color: #7f9890; font-size: 9px; }
 @keyframes scan { 0%, 100% { top: 8% } 50% { top: 90% } }
 @keyframes pulse { 50% { opacity: .25; transform: translateY(-3px) } }
 
+.coin-detail-page {
+  min-height: calc(100vh - 176px);
+  padding: 18px 16px 48px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background:
+    radial-gradient(circle at 50% 0%, #ffffff80, transparent 42%),
+    var(--cream);
+}
+.coin-detail-bar {
+  width: min(390px, 100%);
+  margin-bottom: 14px;
+}
+.coin-detail-bar .ghost-button { min-height: 40px; padding: 0 12px; font-size: 12px; }
+.detail-card {
+  width: min(390px, 100%);
+  background: #fff;
+  border: 1px solid #e2e0d8;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 16px 42px #2b3f3918;
+}
+.detail-stage {
+  position: relative;
+  height: 292px;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(circle at 50% 42%, #f8f6f1 0%, #efece6 58%, #e7e3db 100%);
+}
+.detail-grade {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 1;
+  background: #fff;
+  border: 1px solid #d8d6ce;
+  border-radius: 5px;
+  padding: 5px 8px;
+  color: #8a908c;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+}
+.detail-podium {
+  width: 214px;
+  height: 214px;
+  border-radius: 50%;
+  padding: 11px;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(circle at 38% 32%, #2d4f44, #14352c 72%);
+  box-shadow: 0 22px 36px #14352c3d, 0 4px 10px #14352c22;
+}
+.detail-podium .coin-photo,
+.detail-podium .coin-photo.large,
+.detail-podium .coin-face,
+.detail-podium .coin-face.large {
+  width: 100%;
+  height: 100%;
+  box-shadow: none;
+}
+.detail-podium .coin-mark { font-size: 42px; }
+.detail-info { padding: 20px 22px 22px; background: #fff; }
+.detail-headline { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.detail-headline h1 {
+  margin: 0;
+  min-width: 0;
+  font: 600 28px/1.12 'Playfair Display', serif;
+  color: var(--green);
+  letter-spacing: -.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.detail-year {
+  flex: 0 0 auto;
+  color: #b5985a;
+  font: 600 18px/1 'Playfair Display', serif;
+}
+.detail-subtitle {
+  margin: 8px 0 0;
+  color: #7a847f;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.detail-origin {
+  margin: 8px 0 0;
+  color: #9aa39e;
+  font-size: 12px;
+  font-weight: 500;
+}
+.detail-value {
+  margin-top: 16px;
+  padding-top: 13px;
+  border-top: 1px solid #eceae3;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.detail-value span { color: #a3aba7; font-size: 12px; font-weight: 600; }
+.detail-value strong { color: var(--green); font-size: 16px; font-weight: 800; }
+
 .admin-panel { padding: 36px clamp(24px, 6vw, 96px) 80px; }
 .admin-error { margin: 0 0 18px; }
 .admin-muted { color: var(--muted); font-size: 13px; font-weight: 600; }
@@ -243,6 +350,31 @@ footer .logo { color: #fff; } footer p { color: #7f9890; font-size: 9px; }
   border: 0; background: none; padding: 0; color: var(--green); font-weight: 700; display: inline-flex; align-items: center; gap: 6px;
 }
 .admin-user-link:hover { text-decoration: underline; }
+
+.share-dialog {
+  width: min(520px, 100%); max-height: calc(100vh - 35px); overflow: auto;
+  background: #fffef9; border-radius: 15px; padding: 34px 32px 24px;
+  box-shadow: 0 28px 80px #0006; position: relative; text-align: left; animation: rise .25s;
+}
+.share-dialog h2 { font-size: 28px; margin-bottom: 8px; }
+.share-lead { color: #77837f; font-size: 13px; line-height: 1.65; margin: 0 0 18px; }
+.share-dialog .primary-button { width: 100%; margin-bottom: 14px; }
+.share-copy-field { display: flex; flex-direction: column; gap: 6px; color: #74807c; font-size: 11px; font-weight: 800; margin-bottom: 16px; }
+.share-copy-field span { display: flex; gap: 8px; }
+.share-copy-field input { flex: 1; border: 1px solid #d9dcd5; background: #fff; border-radius: 6px; height: 42px; padding: 0 12px; color: #30433c; font-size: 12px; font-weight: 500; }
+.share-invite { display: flex; gap: 8px; align-items: end; margin-bottom: 14px; }
+.share-invite label { flex: 1; display: flex; flex-direction: column; gap: 6px; color: #74807c; font-size: 11px; font-weight: 800; }
+.share-invite input { border: 1px solid #d9dcd5; background: #fff; border-radius: 6px; height: 42px; padding: 0 12px; color: #30433c; font-size: 13px; }
+.share-list-title { font-size: 13px; margin: 8px 0 10px; color: var(--green); }
+.share-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.share-list li {
+  display: flex; justify-content: space-between; gap: 12px; align-items: center;
+  padding: 10px 12px; border: 1px solid #e4e2d9; border-radius: 8px; background: #fff;
+}
+.share-list strong { display: block; font-size: 13px; color: #31433d; }
+.share-list small { display: block; margin-top: 3px; color: #84908b; font-size: 11px; }
+.share-list-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.share-collection { padding-top: 36px; }
 
 @media (max-width: 1000px) {
   nav { gap: 18px; }.help-button { display: none; }
@@ -272,11 +404,19 @@ footer .logo { color: #fff; } footer p { color: #7f9890; font-size: 9px; }
   .stats { margin: -8px 15px 0; grid-template-columns: 1fr; }.stats > div { height: 76px; justify-content: flex-start; padding-left: 28px; }.stats > div + div { border-left: 0; border-top: 1px solid #e3e1d8; }
   .collection { padding: 60px 16px 75px; }.section-heading { align-items: flex-start; gap: 22px; }.section-heading h2 { font-size: 31px; }.section-heading .primary-button { font-size: 0; padding: 0; width: 45px; flex: 0 0 auto; }
   .section-heading .primary-button svg { margin: 0; }
+  .heading-actions { width: 100%; justify-content: flex-start; }
+  .share-invite { flex-direction: column; align-items: stretch; }
   .select-wrap { flex: 1; }.select-wrap select { min-width: 0; width: 100%; }.view-switch { display: none; }
   .coin-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }.coin-stage { height: 155px; }.coin-face { width: 105px; height: 105px; }.coin-photo { width: 112px; height: 112px; }.coin-title p { max-width: 100px; }
   .coin-grid.list { grid-template-columns: 1fr; }.coin-grid.list .coin-card { grid-template-columns: 105px 1fr; }.coin-grid.list .coin-info { display: block; }
   .how { padding: 55px 20px; }.steps { grid-template-columns: 1fr; }.steps > div { padding: 20px; }
   .admin-panel { padding: 28px 16px 70px; }
+  .coin-detail-page { min-height: calc(100vh - 164px); padding: 12px 14px 36px; }
+  .detail-stage { height: 268px; }
+  .detail-podium { width: 196px; height: 196px; }
+  .detail-podium .coin-photo,
+  .detail-podium .coin-face { width: 100%; height: 100%; }
+  .detail-headline h1 { font-size: 26px; }
   footer { padding: 0 20px; } footer p { display: none; }
   .scanner { padding: 31px 20px 22px; }.result-heading h2 { font-size: 24px; }.form-grid { gap: 8px; }.result-actions { gap: 8px; }.result-actions .primary-button { padding: 0 11px; }
 }
