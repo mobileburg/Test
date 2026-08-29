@@ -22,6 +22,13 @@ function accessLabel(access: ShareLink['access']) {
   return access === 'write' ? 'Просмотр (запись позже)' : 'Только просмотр'
 }
 
+function scopeLabel(share: Pick<ShareLink, 'scope' | 'coinTitle'>) {
+  if (share.scope === 'coin') {
+    return share.coinTitle ? `Монета «${share.coinTitle}»` : 'Монета'
+  }
+  return 'Коллекция'
+}
+
 export function readShareToken() {
   const match = window.location.pathname.match(/^\/share\/([^/?#]+)\/?$/)
   return match ? decodeURIComponent(match[1]) : null
@@ -168,14 +175,14 @@ export function ShareDialog({ open, onClose }: { open: boolean; onClose: () => v
         {error && <p className="auth-error">{error}</p>}
         <h3 className="share-list-title">Выданные доступы</h3>
         {shares.length === 0 ? (
-          <p className="admin-muted">Пока никому не открывали коллекцию</p>
+          <p className="admin-muted">Пока никому не открывали доступ</p>
         ) : (
           <ul className="share-list">
             {shares.map((share) => (
               <li key={share.id}>
                 <div>
                   <strong>{share.email || 'Ссылка без email'}</strong>
-                  <small>{accessLabel(share.access)} · {formatCreated(share.created)}</small>
+                  <small>{scopeLabel(share)} · {accessLabel(share.access)} · {formatCreated(share.created)}</small>
                 </div>
                 <div className="share-list-actions">
                   <button className="ghost-button" type="button" onClick={() => markCopied(share)}>
@@ -221,7 +228,7 @@ export function SharedInbox({ onOpen }: { onOpen: (token: string) => void }) {
           <div>
             <p className="kicker"><span /> Доступ</p>
             <h2>Мне открыли</h2>
-            <p>Коллекции, которыми с вами поделились по email. Можно только смотреть.</p>
+            <p>Коллекции и отдельные монеты, которыми с вами поделились по email. Можно только смотреть.</p>
           </div>
         </div>
         {error && <p className="auth-error admin-error">{error}</p>}
@@ -239,6 +246,7 @@ export function SharedInbox({ onOpen }: { onOpen: (token: string) => void }) {
               <thead>
                 <tr>
                   <th>Владелец</th>
+                  <th>Что</th>
                   <th>Доступ</th>
                   <th>Монет</th>
                   <th>Когда</th>
@@ -253,6 +261,7 @@ export function SharedInbox({ onOpen }: { onOpen: (token: string) => void }) {
                         {item.ownerEmail}
                       </button>
                     </td>
+                    <td>{scopeLabel(item)}</td>
                     <td>{accessLabel(item.access)}</td>
                     <td>{item.coinsCount ?? 0}</td>
                     <td>{formatCreated(item.created)}</td>
@@ -278,6 +287,7 @@ export function SharedCollectionPage({
 }) {
   const [coins, setCoins] = useState<Coin[]>([])
   const [ownerEmail, setOwnerEmail] = useState('')
+  const [scope, setScope] = useState<'collection' | 'coin'>('collection')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState<Coin | null>(null)
@@ -285,6 +295,7 @@ export function SharedCollectionPage({
   useEffect(() => {
     let cancelled = false
     setSelected(null)
+    setScope('collection')
     setLoading(true)
     setError('')
     ;(async () => {
@@ -299,6 +310,7 @@ export function SharedCollectionPage({
           return payload.coins
         })
         setOwnerEmail(payload.owner?.email ?? '')
+        setScope(payload.scope === 'coin' ? 'coin' : 'collection')
       } catch (reason) {
         if (!cancelled) setError(reason instanceof Error ? reason.message : 'Не удалось открыть коллекцию')
       } finally {
@@ -316,6 +328,29 @@ export function SharedCollectionPage({
 
   if (selected) {
     return <CoinDetail coin={selected} onBack={() => setSelected(null)} />
+  }
+
+  if (!loading && !error && scope === 'coin') {
+    const coin = coins[0]
+    if (!coin) {
+      return (
+        <main>
+          <section className="collection share-collection" id="shared">
+            <div className="section-heading">
+              <div>
+                <p className="kicker"><span /> Открытая монета</p>
+                <h2>{ownerEmail || 'Монета по ссылке'}</h2>
+                <p>Владелец удалил монету или доступ больше не действует.</p>
+              </div>
+              <button className="ghost-button" type="button" onClick={onBack}>
+                <ArrowLeft size={16} /> {backLabel}
+              </button>
+            </div>
+          </section>
+        </main>
+      )
+    }
+    return <CoinDetail coin={coin} onBack={onBack} backLabel={backLabel} />
   }
 
   return (

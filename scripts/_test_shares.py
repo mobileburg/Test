@@ -73,9 +73,57 @@ def run() -> None:
     assert viewed.status_code == 200, viewed.text
     body = viewed.json()
     assert body["access"] == "read"
+    assert body["scope"] == "collection"
     assert len(body["coins"]) == 1
     assert body["coins"][0]["title"] == "Рубль"
     assert body["owner"]["email"] == "owner@example.com"
+
+    other = client.post(
+        "/api/v1/coins",
+        headers=owner_headers,
+        json={"title": "Копейка", "subtitle": "Вторая", "country": "Россия", "year": 2023, "metal": "медь"},
+    )
+    assert other.status_code == 201, other.text
+    other_id = other.json()["id"]
+
+    coin_share = client.post("/api/v1/shares", headers=owner_headers, json={"access": "read", "coin_id": coin_id})
+    assert coin_share.status_code == 201, coin_share.text
+    coin_payload = coin_share.json()
+    assert coin_payload["scope"] == "coin"
+    assert coin_payload["coinId"] == coin_id
+    assert coin_payload["coinTitle"] == "Рубль"
+    assert coin_payload["url"].endswith(f"/share/{coin_payload['token']}")
+    coin_token = coin_payload["token"]
+
+    listed_both = client.get("/api/v1/shares", headers=owner_headers)
+    assert listed_both.status_code == 200
+    scopes = {item["scope"] for item in listed_both.json()}
+    assert scopes == {"collection", "coin"}
+
+    viewed_coin = TestClient(app).get(f"/api/v1/shares/view/{coin_token}")
+    assert viewed_coin.status_code == 200, viewed_coin.text
+    coin_view = viewed_coin.json()
+    assert coin_view["scope"] == "coin"
+    assert coin_view["coinId"] == coin_id
+    assert len(coin_view["coins"]) == 1
+    assert coin_view["coins"][0]["id"] == coin_id
+    assert coin_view["coins"][0]["title"] == "Рубль"
+
+    other_photo = TestClient(app).get(f"/api/v1/shares/view/{coin_token}/coins/{other_id}/photo")
+    assert other_photo.status_code == 404
+
+    viewed_all = TestClient(app).get(f"/api/v1/shares/view/{token}")
+    assert viewed_all.status_code == 200
+    assert viewed_all.json()["scope"] == "collection"
+    assert len(viewed_all.json()["coins"]) == 2
+
+    stolen = client.post("/api/v1/shares", headers=guest_headers, json={"access": "read", "coin_id": coin_id})
+    assert stolen.status_code == 404
+
+    revoked_coin = client.delete(f"/api/v1/shares/{coin_payload['id']}", headers=owner_headers)
+    assert revoked_coin.status_code == 204
+    gone_coin = TestClient(app).get(f"/api/v1/shares/view/{coin_token}")
+    assert gone_coin.status_code == 404
 
     missing = TestClient(app).get("/api/v1/shares/view/not-a-real-token")
     assert missing.status_code == 404
@@ -94,6 +142,17 @@ def run() -> None:
     assert len(inbox.json()) == 1
     assert inbox.json()[0]["ownerEmail"] == "owner@example.com"
     assert inbox.json()[0]["access"] == "write"
+    assert inbox.json()[0]["scope"] == "collection"
+
+    coin_invite = client.post(
+        "/api/v1/shares",
+        headers=owner_headers,
+        json={"access": "read", "email": "guest@example.com", "coin_id": coin_id},
+    )
+    assert coin_invite.status_code == 201, coin_invite.text
+    inbox_both = client.get("/api/v1/shares/inbox", headers=guest_headers)
+    assert inbox_both.status_code == 200
+    assert {item["scope"] for item in inbox_both.json()} == {"collection", "coin"}
 
     owner_inbox = client.get("/api/v1/shares/inbox", headers=owner_headers)
     assert owner_inbox.json() == []

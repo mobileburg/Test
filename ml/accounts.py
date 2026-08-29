@@ -212,6 +212,7 @@ def init_storage() -> None:
                 access TEXT NOT NULL DEFAULT 'read',
                 invitee_email TEXT,
                 invitee_user_id INTEGER,
+                coin_id INTEGER,
                 created_at TEXT NOT NULL,
                 FOREIGN KEY (owner_id) REFERENCES users(id),
                 FOREIGN KEY (invitee_user_id) REFERENCES users(id)
@@ -219,9 +220,18 @@ def init_storage() -> None:
             CREATE INDEX IF NOT EXISTS idx_shares_owner ON shares(owner_id);
             CREATE INDEX IF NOT EXISTS idx_shares_token ON shares(token);
             CREATE INDEX IF NOT EXISTS idx_shares_invitee_email ON shares(invitee_email);
+            CREATE INDEX IF NOT EXISTS idx_shares_coin ON shares(coin_id);
             """
         )
+        _ensure_share_schema(conn)
         _ensure_bootstrap_admin(conn)
+
+
+def _ensure_share_schema(conn: sqlite3.Connection) -> None:
+    columns = {row[1] for row in conn.execute("PRAGMA table_info(shares)").fetchall()}
+    if "coin_id" not in columns:
+        conn.execute("ALTER TABLE shares ADD COLUMN coin_id INTEGER")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_shares_coin ON shares(coin_id)")
 
 
 def _now() -> str:
@@ -289,9 +299,24 @@ def _public_origin(request: Request) -> str:
     return str(request.base_url).rstrip("/")
 
 
-def _share_public(row: sqlite3.Row, request: Request) -> dict[str, Any]:
+def _share_coin_id(row: sqlite3.Row) -> int | None:
+    try:
+        value = row["coin_id"]
+    except (KeyError, IndexError):
+        return None
+    return int(value) if value is not None else None
+
+
+def _share_public(row: sqlite3.Row, request: Request, coin_title: str | None = None) -> dict[str, Any]:
     token = str(row["token"])
     invitee_id = row["invitee_user_id"]
+    coin_id = _share_coin_id(row)
+    title = coin_title
+    if title is None:
+        try:
+            title = row["coin_title"]
+        except (KeyError, IndexError):
+            title = None
     return {
         "id": int(row["id"]),
         "token": token,
@@ -300,6 +325,9 @@ def _share_public(row: sqlite3.Row, request: Request) -> dict[str, Any]:
         "email": row["invitee_email"],
         "userId": int(invitee_id) if invitee_id is not None else None,
         "created": row["created_at"],
+        "scope": "coin" if coin_id is not None else "collection",
+        "coinId": coin_id,
+        "coinTitle": title,
     }
 
 
@@ -386,6 +414,7 @@ class CoinPatch(BaseModel):
 class ShareIn(BaseModel):
     access: Literal["read", "write"] = "read"
     email: str | None = Field(default=None, max_length=254)
+    coin_id: int | None = None
 
 
 router = APIRouter(tags=["cabinet"])
@@ -562,6 +591,7 @@ def delete_coin(coin_id: int, user: dict[str, Any] = Depends(get_current_user)) 
     with db() as conn:
         row = _get_owned_coin(conn, user, coin_id)
         relpath = row["photo_relpath"]
+        conn.execute("DELETE FROM shares WHERE coin_id = ?", (coin_id,))
         conn.execute("DELETE FROM coins WHERE id = ?", (coin_id,))
     if relpath:
         _unlink_photo(relpath)
@@ -622,34 +652,50 @@ def create_share(
         if not EMAIL_RE.match(email):
             raise HTTPException(422, "Укажите корректный email")
         if email == user["email"]:
-            raise HTTPException(400, "Нельзя открыть коллекцию самому себе")
+            raise HTTPException(400, "Нельзя открыть доступ самому себе")
     init_storage()
     with db() as conn:
+        coin_id = body.coin_id
+        coin_title: str | None = None
+        if coin_id is not None:
+            owned = conn.execute(
+                "SELECT * FROM coins WHERE id = ? AND user_id = ?",
+                (coin_id, user["id"]),
+            ).fetchone()
+            if owned is None:
+                raise HTTPException(404, "Монета не найдена")
+            coin_title = owned["title"]
         invitee_id: int | None = None
         if email:
             found = conn.execute("SELECT id FROM users WHERE email = ?", (email,)).fetchone()
             invitee_id = int(found["id"]) if found else None
-            existing = conn.execute(
-                "SELECT * FROM shares WHERE owner_id = ? AND invitee_email = ?",
-                (user["id"], email),
-            ).fetchone()
+            if coin_id is None:
+                existing = conn.execute(
+                    "SELECT * FROM shares WHERE owner_id = ? AND invitee_email = ? AND coin_id IS NULL",
+                    (user["id"], email),
+                ).fetchone()
+            else:
+                existing = conn.execute(
+                    "SELECT * FROM shares WHERE owner_id = ? AND invitee_email = ? AND coin_id = ?",
+                    (user["id"], email, coin_id),
+                ).fetchone()
             if existing is not None:
                 conn.execute(
                     "UPDATE shares SET access = ?, invitee_user_id = ? WHERE id = ?",
                     (body.access, invitee_id, int(existing["id"])),
                 )
                 row = conn.execute("SELECT * FROM shares WHERE id = ?", (int(existing["id"]),)).fetchone()
-                return _share_public(row, request)
+                return _share_public(row, request, coin_title)
         token = secrets.token_urlsafe(24)
         cursor = conn.execute(
             """
-            INSERT INTO shares (owner_id, token, access, invitee_email, invitee_user_id, created_at)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO shares (owner_id, token, access, invitee_email, invitee_user_id, coin_id, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
             """,
-            (user["id"], token, body.access, email, invitee_id, _now()),
+            (user["id"], token, body.access, email, invitee_id, coin_id, _now()),
         )
         row = conn.execute("SELECT * FROM shares WHERE id = ?", (cursor.lastrowid,)).fetchone()
-    return _share_public(row, request)
+    return _share_public(row, request, coin_title)
 
 
 @router.get("/api/v1/shares")
@@ -657,7 +703,13 @@ def list_shares(request: Request, user: dict[str, Any] = Depends(get_current_use
     init_storage()
     with db() as conn:
         rows = conn.execute(
-            "SELECT * FROM shares WHERE owner_id = ? ORDER BY id DESC",
+            """
+            SELECT s.*, c.title AS coin_title
+            FROM shares s
+            LEFT JOIN coins c ON c.id = s.coin_id
+            WHERE s.owner_id = ?
+            ORDER BY s.id DESC
+            """,
             (user["id"],),
         ).fetchall()
     return [_share_public(row, request) for row in rows]
@@ -669,10 +721,14 @@ def share_inbox(request: Request, user: dict[str, Any] = Depends(get_current_use
     with db() as conn:
         rows = conn.execute(
             """
-            SELECT s.*, u.email AS owner_email,
-                   (SELECT COUNT(*) FROM coins c WHERE c.user_id = s.owner_id) AS coins_count
+            SELECT s.*, u.email AS owner_email, coin.title AS coin_title,
+                   CASE
+                       WHEN s.coin_id IS NOT NULL THEN 1
+                       ELSE (SELECT COUNT(*) FROM coins c WHERE c.user_id = s.owner_id)
+                   END AS coins_count
             FROM shares s
             JOIN users u ON u.id = s.owner_id
+            LEFT JOIN coins coin ON coin.id = s.coin_id
             WHERE s.owner_id != ?
               AND (s.invitee_user_id = ? OR s.invitee_email = ?)
             ORDER BY s.id DESC
@@ -697,13 +753,22 @@ def view_share(token: str) -> dict[str, Any]:
         if share is None:
             raise HTTPException(404, "Ссылка недействительна или доступ отозван")
         owner = conn.execute("SELECT id, email FROM users WHERE id = ?", (int(share["owner_id"]),)).fetchone()
-        rows = conn.execute(
-            "SELECT * FROM coins WHERE user_id = ? ORDER BY id DESC",
-            (int(share["owner_id"]),),
-        ).fetchall()
+        coin_id = _share_coin_id(share)
+        if coin_id is not None:
+            rows = conn.execute(
+                "SELECT * FROM coins WHERE id = ? AND user_id = ?",
+                (coin_id, int(share["owner_id"])),
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                "SELECT * FROM coins WHERE user_id = ? ORDER BY id DESC",
+                (int(share["owner_id"]),),
+            ).fetchall()
     return {
         "token": token,
         "access": share["access"],
+        "scope": "coin" if coin_id is not None else "collection",
+        "coinId": coin_id,
         "owner": {"id": int(owner["id"]), "email": owner["email"]} if owner else None,
         "coins": [_coin_shared(row, token) for row in rows],
     }
@@ -716,6 +781,9 @@ def view_share_photo(token: str, coin_id: int) -> FileResponse:
         share = conn.execute("SELECT * FROM shares WHERE token = ?", (token,)).fetchone()
         if share is None:
             raise HTTPException(404, "Ссылка недействительна или доступ отозван")
+        share_coin_id = _share_coin_id(share)
+        if share_coin_id is not None and share_coin_id != coin_id:
+            raise HTTPException(404, "Монета не найдена")
         row = conn.execute(
             "SELECT * FROM coins WHERE id = ? AND user_id = ?",
             (coin_id, int(share["owner_id"])),

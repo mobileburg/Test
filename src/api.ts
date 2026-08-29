@@ -28,6 +28,7 @@ export type AdminUser = {
 }
 
 export type ShareAccess = 'read' | 'write'
+export type ShareScope = 'collection' | 'coin'
 
 export type ShareLink = {
   id: number
@@ -37,6 +38,9 @@ export type ShareLink = {
   email: string | null
   userId: number | null
   created: string
+  scope: ShareScope
+  coinId: number | null
+  coinTitle?: string | null
   ownerId?: number
   ownerEmail?: string
   coinsCount?: number
@@ -45,6 +49,8 @@ export type ShareLink = {
 export type SharedCollection = {
   token: string
   access: ShareAccess
+  scope?: ShareScope
+  coinId?: number | null
   owner: { id: number; email: string } | null
   coins: Coin[]
 }
@@ -237,10 +243,17 @@ export async function deleteCoin(id: number) {
   await jsonFetch<void>(`/api/v1/coins/${id}`, { method: 'DELETE' }, 'Не удалось удалить монету')
 }
 
-export async function createShare(body: { access?: ShareAccess; email?: string } = {}): Promise<ShareLink> {
+export async function createShare(body: { access?: ShareAccess; email?: string; coinId?: number } = {}): Promise<ShareLink> {
   return jsonFetch<ShareLink>(
     '/api/v1/shares',
-    { method: 'POST', body: JSON.stringify({ access: body.access ?? 'read', email: body.email }) },
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        access: body.access ?? 'read',
+        email: body.email,
+        coin_id: body.coinId,
+      }),
+    },
     'Не удалось создать ссылку',
   )
 }

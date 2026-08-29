@@ -103,6 +103,7 @@ def build_archive(dest: Path) -> int:
         tar.add(ROOT / "ml" / "__init__.py", arcname="ml/__init__.py")
         tar.add(ROOT / "ml" / "service.py", arcname="ml/service.py")
         tar.add(ROOT / "ml" / "accounts.py", arcname="ml/accounts.py")
+        tar.add(ROOT / "ml" / "feedback.py", arcname="ml/feedback.py")
         for name in required:
             tar.add(ARTIFACT / name, arcname=f"ml/artifacts/20260826T193916Z/{name}")
         if (dist / "index.html").is_file():
@@ -265,6 +266,14 @@ def poll_public_cabinets() -> None:
         print("PUBLIC_SHARE_UI", share_ui)
         if not share_ui:
             raise SystemExit("PUBLIC_INDEX_NO_SHARE")
+        feedback_ui = "Очередь обучения" in (js if asset else "") or "Попробуй распознать ещё" in (js if asset else "")
+        print("PUBLIC_FEEDBACK_UI", feedback_ui)
+        if not feedback_ui:
+            raise SystemExit("PUBLIC_INDEX_NO_FEEDBACK")
+        coin_share_ui = "Поделиться монетой" in (js if asset else "") or "Поделиться монетой" in html
+        print("PUBLIC_COIN_SHARE_UI", coin_share_ui)
+        if not coin_share_ui:
+            raise SystemExit("PUBLIC_INDEX_NO_COIN_SHARE")
 
 
 def poll_public_admin_guard() -> None:
@@ -279,11 +288,24 @@ def poll_public_admin_guard() -> None:
             raise SystemExit(f"PUBLIC_ADMIN_UNEXPECTED {err.code}") from None
 
 
+def poll_public_feedback_guard() -> None:
+    req = Request(EXPECTED_URL + "/api/v1/admin/feedback", headers={"Accept": "application/json"})
+    try:
+        with urlopen(req, context=CTX, timeout=30) as resp:
+            print("PUBLIC_FEEDBACK", resp.status)
+            raise SystemExit("PUBLIC_FEEDBACK_EXPECTED_401")
+    except HTTPError as err:
+        print("PUBLIC_FEEDBACK", err.code)
+        if err.code not in (401, 403):
+            raise SystemExit(f"PUBLIC_FEEDBACK_UNEXPECTED {err.code}") from None
+
+
 def verify_persistent_clip(key: str) -> None:
     payload = exec_cmd(
         key,
         "test -f /opt/app/ml/artifacts/20260826T193916Z/embeddings.npy && echo ARTIFACT_OK || echo ARTIFACT_MISSING; "
         "test -f /opt/app/ml/accounts.py && echo ACCOUNTS_OK || echo ACCOUNTS_MISSING; "
+        "test -f /opt/app/ml/feedback.py && echo FEEDBACK_OK || echo FEEDBACK_MISSING; "
         "test -d /opt/data/clip -o -d /opt/data/hf/hub/models--openai--clip-vit-base-patch32 && echo CLIP_OK || echo CLIP_MISSING; "
         "mkdir -p /opt/data/uploads && echo DATA_DIR /opt/data && ls /opt/data | head",
         timeout=30,
@@ -291,7 +313,7 @@ def verify_persistent_clip(key: str) -> None:
     stdout = ""
     if isinstance(payload, dict):
         stdout = str((payload.get("data") or {}).get("stdout") or "")
-    if "ARTIFACT_MISSING" in stdout or "CLIP_MISSING" in stdout or "ACCOUNTS_MISSING" in stdout:
+    if "ARTIFACT_MISSING" in stdout or "CLIP_MISSING" in stdout or "ACCOUNTS_MISSING" in stdout or "FEEDBACK_MISSING" in stdout:
         raise SystemExit("PERSISTENT_CLIP_OR_CODE_MISSING")
 
 
@@ -646,6 +668,7 @@ def main() -> None:
     verify_persistent_clip(key)
     poll_public_cabinets()
     poll_public_admin_guard()
+    poll_public_feedback_guard()
 
     status, payload, _ = api(key, "GET", f"/v1/infra/servers/{TARGET}")
     if isinstance(payload, dict) and payload.get("success"):
@@ -689,7 +712,7 @@ if __name__ == "__main__":
             "test -d /opt/data/clip -o -d /opt/data/hf/hub/models--openai--clip-vit-base-patch32 && echo CLIP_BEFORE_OK || echo CLIP_BEFORE_MISSING",
             timeout=20,
         )
-        for rel in ("ml/service.py", "ml/accounts.py", "ml/__init__.py"):
+        for rel in ("ml/service.py", "ml/accounts.py", "ml/feedback.py", "ml/__init__.py"):
             encoded = base64.b64encode((ROOT / rel).read_bytes()).decode("ascii")
             status, payload, _ = api(
                 key,
@@ -733,6 +756,7 @@ if __name__ == "__main__":
         poll_public_health()
         poll_public_cabinets()
         poll_public_admin_guard()
+        poll_public_feedback_guard()
         raise SystemExit(0)
     if len(sys.argv) > 1 and sys.argv[1] == "clip":
         key = load_personal_key()

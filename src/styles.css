@@ -224,6 +224,45 @@ footer .logo { color: #fff; } footer p { color: #7f9890; font-size: 9px; }
 .learning-consent input { accent-color: var(--green); margin: 2px 0 0; }
 .learning-consent span { display: flex; flex-direction: column; gap: 3px; color: #40524c; font-size: 9px; }
 .learning-consent small { color: #7f8a86; font-size: 8px; line-height: 1.45; }
+.feedback-panel { margin-top: 16px; padding: 13px; border: 1px solid #e0e2da; border-radius: 8px; background: #f6f7f2; }
+.feedback-title { margin: 0 0 4px; color: var(--green); font-size: 12px; font-weight: 800; }
+.feedback-lead { margin: 0 0 10px; color: #6a7772; font-size: 9px; line-height: 1.45; }
+.feedback-comment { display: flex; flex-direction: column; gap: 6px; color: #74807c; font-size: 8px; font-weight: 800; }
+.feedback-comment textarea {
+  border: 1px solid #d9dcd5; background: #fff; border-radius: 6px; padding: 8px 11px; outline: none;
+  color: #30433c; font-size: 11px; font-weight: 500; resize: vertical; min-height: 68px;
+}
+.feedback-comment textarea:focus { border-color: #597c70; box-shadow: 0 0 0 3px #37695a12; }
+.feedback-retry { display: flex; gap: 8px; align-items: flex-start; margin: 10px 0 12px; color: #40524c; font-size: 10px; font-weight: 700; cursor: pointer; }
+.feedback-retry input { accent-color: var(--green); margin-top: 2px; }
+.feedback-verdict { display: flex; gap: 8px; }
+.feedback-verdict .primary-button, .feedback-verdict .outline-button { flex: 1; min-height: 40px; }
+.feedback-status { margin: 10px 0 0; color: #35574c; background: #eaf1ed; border-radius: 6px; padding: 8px 10px; font-size: 10px; line-height: 1.45; }
+.feedback-admin-hint { margin: 8px 0 0; color: #887349; font-size: 9px; line-height: 1.4; }
+.admin-tabs { display: flex; gap: 8px; margin: 0 0 22px; }
+.admin-tabs button {
+  border: 1px solid #d5d6ce; background: #fff; color: #55645e; border-radius: 7px; min-height: 38px;
+  padding: 0 14px; display: inline-flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 700;
+}
+.admin-tabs button.active { background: var(--green); color: #fff; border-color: var(--green); }
+.admin-filter { display: flex; gap: 6px; margin: 0 0 18px; flex-wrap: wrap; }
+.admin-filter button {
+  border: 1px solid #d5d6ce; background: #fff; color: #55645e; border-radius: 6px; min-height: 34px;
+  padding: 0 12px; font-size: 11px; font-weight: 700;
+}
+.admin-filter button.active { background: #eaf1ed; color: var(--green); border-color: #b7c9c0; }
+.feedback-queue { display: flex; flex-direction: column; gap: 12px; }
+.feedback-card {
+  display: grid; grid-template-columns: 112px 1fr; gap: 16px; padding: 14px; border: 1px solid #e0ded5;
+  border-radius: 10px; background: var(--paper);
+}
+.feedback-thumb { width: 112px; height: 112px; border-radius: 8px; overflow: hidden; background: #eceae3; display: grid; place-items: center; color: #8a908c; font-size: 11px; }
+.feedback-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.feedback-body h3 { font-size: 18px; margin: 4px 0 6px; }
+.feedback-body > p { margin: 0 0 6px; color: #40524c; font-size: 13px; }
+.feedback-meta { display: flex; flex-wrap: wrap; gap: 8px; color: #6b7873; font-size: 11px; }
+.feedback-user-comment { background: #f6f7f2; border-radius: 6px; padding: 8px 10px; font-size: 13px; line-height: 1.45; }
+.feedback-moderation { display: flex; gap: 8px; margin-top: 10px; }
 .result-actions { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #e7e5dd; margin-top: 20px; padding-top: 17px; }
 
 @keyframes fade { from { opacity: 0 } }
@@ -244,8 +283,17 @@ footer .logo { color: #fff; } footer p { color: #7f9890; font-size: 9px; }
 .coin-detail-bar {
   width: min(390px, 100%);
   margin-bottom: 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
 }
 .coin-detail-bar .ghost-button { min-height: 40px; padding: 0 12px; font-size: 12px; }
+.coin-share-box {
+  width: min(390px, 100%);
+  margin: 0 0 14px;
+}
+.coin-share-box .share-copy-field { margin-bottom: 0; }
 .detail-card {
   width: min(390px, 100%);
   background: #fff;
@@ -410,6 +458,8 @@ footer .logo { color: #fff; } footer p { color: #7f9890; font-size: 9px; }
   .coin-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }.coin-stage { height: 155px; }.coin-face { width: 105px; height: 105px; }.coin-photo { width: 112px; height: 112px; }.coin-title p { max-width: 100px; }
   .coin-grid.list { grid-template-columns: 1fr; }.coin-grid.list .coin-card { grid-template-columns: 105px 1fr; }.coin-grid.list .coin-info { display: block; }
   .how { padding: 55px 20px; }.steps { grid-template-columns: 1fr; }.steps > div { padding: 20px; }
+  .feedback-card { grid-template-columns: 1fr; }
+  .feedback-thumb { width: 100%; height: 160px; }
   .admin-panel { padding: 28px 16px 70px; }
   .coin-detail-page { min-height: calc(100vh - 164px); padding: 12px 14px 36px; }
   .detail-stage { height: 268px; }
