@@ -1,6 +1,9 @@
 import { FormEvent, useState } from 'react'
 import { loginAccount, registerAccount, type User } from './api'
 
+const ANDROID_APK_URL =
+  'https://github.com/mobileburg/Test/raw/refs/heads/cursor/numismat-apk-install-af25/releases/numismat-1.0.2.apk'
+
 type AuthScreenProps = {
   onSuccess: (user: User) => void
 }
@@ -56,6 +59,12 @@ export default function AuthScreen({ onSuccess }: AuthScreenProps) {
             {pending ? 'Подождите…' : mode === 'login' ? 'Войти' : 'Создать кабинет'}
           </button>
         </form>
+        <a className="auth-apk" href={ANDROID_APK_URL}>
+          Скачать приложение для Android
+        </a>
+        <p className="auth-hint">
+          Если установка срывается, сначала удалите старую «Нумизмат» и повторите.
+        </p>
       </section>
     </div>
   )
