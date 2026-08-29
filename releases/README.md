@@ -7,6 +7,7 @@
 - `versionName`: 1.0.2, `versionCode`: 3
 - подпись: постоянный ключ `android/keystore/numismat-upload.jks` (v1+v2+v3)
 - API: `https://app-66ba5c12d8dc.vibecode.bitrix24.tech`
+- SHA-256: `ba9a2f73e9ec0882957936cafcab44f6a4a86b750048233f8f17bdedab4102f6`
 - Android 7.0+
 
 Если телефон пишет «не установлено», удалите старую «Нумизмат» и поставьте эту сборку заново. Старые debug-APK подписаны другим ключом, Android не даёт обновить их поверх.
