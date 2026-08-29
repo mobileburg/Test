@@ -27,7 +27,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any, Iterator, Literal
 
-from fastapi import APIRouter, Depends, File, Header, HTTPException, Request, Response, UploadFile
+from fastapi import APIRouter, Depends, File, Header, HTTPException, Query, Request, Response, UploadFile
 from fastapi.responses import FileResponse
 from PIL import Image, UnidentifiedImageError
 from pydantic import BaseModel, Field
@@ -201,6 +201,7 @@ def init_storage() -> None:
                 color TEXT NOT NULL DEFAULT 'silver',
                 mark TEXT NOT NULL DEFAULT '₽',
                 photo_relpath TEXT,
+                photo_reverse_relpath TEXT,
                 created_at TEXT NOT NULL,
                 FOREIGN KEY (user_id) REFERENCES users(id)
             );
@@ -223,7 +224,14 @@ def init_storage() -> None:
             """
         )
         _ensure_share_schema(conn)
+        _ensure_coin_photo_schema(conn)
         _ensure_bootstrap_admin(conn)
+
+
+def _ensure_coin_photo_schema(conn: sqlite3.Connection) -> None:
+    columns = {row[1] for row in conn.execute("PRAGMA table_info(coins)").fetchall()}
+    if "photo_reverse_relpath" not in columns:
+        conn.execute("ALTER TABLE coins ADD COLUMN photo_reverse_relpath TEXT")
 
 
 def _ensure_share_schema(conn: sqlite3.Connection) -> None:
@@ -257,10 +265,43 @@ def _user_public(row: sqlite3.Row | dict[str, Any]) -> dict[str, Any]:
     return {"id": int(row["id"]), "email": row["email"], "role": row["role"]}
 
 
-def _coin_public(row: sqlite3.Row, photo_path: str | None = None) -> dict[str, Any]:
-    has_photo = bool(row["photo_relpath"])
+def _row_value(row: sqlite3.Row, key: str) -> Any:
+    try:
+        return row[key]
+    except (KeyError, IndexError):
+        return None
+
+
+def _parse_photo_side(side: str | None) -> Literal["obverse", "reverse"]:
+    value = (side or "obverse").strip().lower()
+    if value in {"obverse", "avers", "аверс"}:
+        return "obverse"
+    if value in {"reverse", "revers", "реверс"}:
+        return "reverse"
+    raise HTTPException(422, "Укажите сторону: obverse или reverse")
+
+
+def _photo_column(side: Literal["obverse", "reverse"]) -> str:
+    return "photo_relpath" if side == "obverse" else "photo_reverse_relpath"
+
+
+def _coin_relpath(row: sqlite3.Row, side: Literal["obverse", "reverse"]) -> str | None:
+    value = _row_value(row, _photo_column(side))
+    return str(value) if value else None
+
+
+def _photo_url(coin_id: int, side: Literal["obverse", "reverse"], token: str | None = None) -> str:
+    if token:
+        return f"/api/v1/shares/view/{token}/coins/{coin_id}/photo?side={side}"
+    return f"/api/v1/coins/{coin_id}/photo?side={side}"
+
+
+def _coin_public(row: sqlite3.Row, token: str | None = None) -> dict[str, Any]:
     coin_id = int(row["id"])
-    image = photo_path if photo_path is not None else (f"/api/v1/coins/{coin_id}/photo" if has_photo else None)
+    has_obverse = bool(_coin_relpath(row, "obverse"))
+    has_reverse = bool(_coin_relpath(row, "reverse"))
+    image = _photo_url(coin_id, "obverse", token) if has_obverse else None
+    image_reverse = _photo_url(coin_id, "reverse", token) if has_reverse else None
     return {
         "id": coin_id,
         "title": row["title"],
@@ -272,16 +313,17 @@ def _coin_public(row: sqlite3.Row, photo_path: str | None = None) -> dict[str, A
         "value": float(row["value"]),
         "color": row["color"],
         "mark": row["mark"],
-        "hasPhoto": has_photo,
+        "hasPhoto": has_obverse,
+        "hasPhotoObverse": has_obverse,
+        "hasPhotoReverse": has_reverse,
         "image": image,
+        "imageObverse": image,
+        "imageReverse": image_reverse,
     }
 
 
 def _coin_shared(row: sqlite3.Row, token: str) -> dict[str, Any]:
-    has_photo = bool(row["photo_relpath"])
-    coin_id = int(row["id"])
-    photo = f"/api/v1/shares/view/{token}/coins/{coin_id}/photo" if has_photo else None
-    return _coin_public(row, photo)
+    return _coin_public(row, token)
 
 
 def _public_origin(request: Request) -> str:
@@ -589,10 +631,10 @@ def patch_coin(
 def delete_coin(coin_id: int, user: dict[str, Any] = Depends(get_current_user)) -> Response:
     with db() as conn:
         row = _get_owned_coin(conn, user, coin_id)
-        relpath = row["photo_relpath"]
+        paths = [_coin_relpath(row, "obverse"), _coin_relpath(row, "reverse")]
         conn.execute("DELETE FROM shares WHERE coin_id = ?", (coin_id,))
         conn.execute("DELETE FROM coins WHERE id = ?", (coin_id,))
-    if relpath:
+    for relpath in {item for item in paths if item}:
         _unlink_photo(relpath)
     return Response(status_code=204)
 
@@ -601,8 +643,10 @@ def delete_coin(coin_id: int, user: dict[str, Any] = Depends(get_current_user)) 
 async def upload_photo(
     coin_id: int,
     file: UploadFile = File(...),
+    side: str = Query(default="obverse"),
     user: dict[str, Any] = Depends(get_current_user),
 ) -> dict[str, Any]:
+    parsed = _parse_photo_side(side)
     content_type = (file.content_type or "").lower()
     suffix = ALLOWED_PHOTO_TYPES.get(content_type)
     if suffix is None:
@@ -622,21 +666,27 @@ async def upload_photo(
     destination.parent.mkdir(parents=True, exist_ok=True)
     destination.write_bytes(payload)
 
+    column = _photo_column(parsed)
     with db() as conn:
         row = _get_owned_coin(conn, user, coin_id)
-        old = row["photo_relpath"]
-        conn.execute("UPDATE coins SET photo_relpath = ? WHERE id = ?", (relpath, coin_id))
+        old = _coin_relpath(row, parsed)
+        conn.execute(f"UPDATE coins SET {column} = ? WHERE id = ?", (relpath, coin_id))
         row = conn.execute("SELECT * FROM coins WHERE id = ?", (coin_id,)).fetchone()
-    if old:
+    if old and old != relpath:
         _unlink_photo(old)
     return _coin_public(row)
 
 
 @router.get("/api/v1/coins/{coin_id}/photo")
-def get_photo(coin_id: int, user: dict[str, Any] = Depends(get_current_user)) -> FileResponse:
+def get_photo(
+    coin_id: int,
+    side: str = Query(default="obverse"),
+    user: dict[str, Any] = Depends(get_current_user),
+) -> FileResponse:
+    parsed = _parse_photo_side(side)
     with db() as conn:
         row = _get_owned_coin(conn, user, coin_id)
-        relpath = row["photo_relpath"]
+        relpath = _coin_relpath(row, parsed)
     return _photo_response(relpath or "")
 
 
@@ -774,7 +824,12 @@ def view_share(token: str) -> dict[str, Any]:
 
 
 @router.get("/api/v1/shares/view/{token}/coins/{coin_id}/photo")
-def view_share_photo(token: str, coin_id: int) -> FileResponse:
+def view_share_photo(
+    token: str,
+    coin_id: int,
+    side: str = Query(default="obverse"),
+) -> FileResponse:
+    parsed = _parse_photo_side(side)
     init_storage()
     with db() as conn:
         share = conn.execute("SELECT * FROM shares WHERE token = ?", (token,)).fetchone()
@@ -789,7 +844,7 @@ def view_share_photo(token: str, coin_id: int) -> FileResponse:
         ).fetchone()
         if row is None:
             raise HTTPException(404, "Монета не найдена")
-        relpath = row["photo_relpath"]
+        relpath = _coin_relpath(row, parsed)
     return _photo_response(relpath or "")
 
 

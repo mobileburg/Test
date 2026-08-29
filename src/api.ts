@@ -4,6 +4,13 @@ export type User = {
   role: 'user' | 'admin'
 }
 
+export type CoinSide = 'obverse' | 'reverse'
+
+export type CoinPhotos = {
+  obverse?: File
+  reverse?: File
+}
+
 export type Coin = {
   id: number
   title: string
@@ -16,7 +23,11 @@ export type Coin = {
   color: string
   mark: string
   hasPhoto?: boolean
+  hasPhotoObverse?: boolean
+  hasPhotoReverse?: boolean
   image?: string
+  imageObverse?: string
+  imageReverse?: string
 }
 
 export type AdminUser = {
@@ -55,7 +66,10 @@ export type SharedCollection = {
   coins: Coin[]
 }
 
-export type CoinDraft = Omit<Coin, 'id' | 'hasPhoto' | 'image'>
+export type CoinDraft = Omit<
+  Coin,
+  'id' | 'hasPhoto' | 'hasPhotoObverse' | 'hasPhotoReverse' | 'image' | 'imageObverse' | 'imageReverse'
+>
 
 const API_BASE = (import.meta.env.VITE_RECOGNITION_API_URL ?? '').replace(/\/$/, '')
 const TOKEN_KEY = 'numismat-token'
@@ -94,18 +108,35 @@ export function readCachedCoins(): Coin[] {
   }
 }
 
+function stripBlob(value?: string) {
+  return value?.startsWith('blob:') ? undefined : value
+}
+
 export function writeCachedCoins(coins: Coin[]) {
   const serializable = coins.map((coin) => ({
     ...coin,
-    image: coin.image?.startsWith('blob:') ? undefined : coin.image,
+    image: stripBlob(coin.image),
+    imageObverse: stripBlob(coin.imageObverse),
+    imageReverse: stripBlob(coin.imageReverse),
   }))
   localStorage.setItem(COINS_CACHE_KEY, JSON.stringify(serializable))
 }
 
 export function revokeCoinImages(coins: Coin[]) {
+  const seen = new Set<string>()
   for (const coin of coins) {
-    if (coin.image?.startsWith('blob:')) URL.revokeObjectURL(coin.image)
+    for (const value of [coin.image, coin.imageObverse, coin.imageReverse]) {
+      if (value?.startsWith('blob:') && !seen.has(value)) {
+        seen.add(value)
+        URL.revokeObjectURL(value)
+      }
+    }
   }
+}
+
+export function coinSideImage(coin: Coin, side: CoinSide = 'obverse'): string | undefined {
+  if (side === 'reverse') return coin.imageReverse
+  return coin.imageObverse || coin.image
 }
 
 function storeSession(token: string, user: User) {
@@ -191,17 +222,37 @@ export async function fetchMe(): Promise<User> {
   return user
 }
 
-async function hydratePhoto(coin: Coin): Promise<Coin> {
-  if (!coin.hasPhoto && !coin.image) return { ...coin, image: undefined }
-  if (coin.image?.startsWith('data:') || coin.image?.startsWith('blob:')) return coin
+async function hydrateSide(coin: Coin, side: CoinSide): Promise<string | undefined> {
+  const existing = coinSideImage(coin, side)
+  const has =
+    side === 'reverse'
+      ? Boolean(coin.hasPhotoReverse || coin.imageReverse)
+      : Boolean(coin.hasPhotoObverse || coin.hasPhoto || coin.imageObverse || coin.image)
+  if (!has && !existing) return undefined
+  if (existing?.startsWith('data:') || existing?.startsWith('blob:')) return existing
   const photoPath =
-    coin.image && !coin.image.startsWith('http')
-      ? coin.image
-      : `/api/v1/coins/${coin.id}/photo`
+    existing && !existing.startsWith('http')
+      ? existing
+      : `/api/v1/coins/${coin.id}/photo?side=${side}`
   const response = await apiFetch(photoPath)
-  if (!response.ok) return { ...coin, image: undefined }
-  const blob = await response.blob()
-  return { ...coin, hasPhoto: true, image: URL.createObjectURL(blob) }
+  if (!response.ok) return undefined
+  return URL.createObjectURL(await response.blob())
+}
+
+async function hydratePhoto(coin: Coin): Promise<Coin> {
+  const [image, imageReverse] = await Promise.all([
+    hydrateSide(coin, 'obverse'),
+    hydrateSide(coin, 'reverse'),
+  ])
+  return {
+    ...coin,
+    hasPhoto: Boolean(image),
+    hasPhotoObverse: Boolean(image),
+    hasPhotoReverse: Boolean(imageReverse),
+    image,
+    imageObverse: image,
+    imageReverse,
+  }
 }
 
 export async function fetchCoins(): Promise<Coin[]> {
@@ -222,21 +273,55 @@ export async function fetchAdminUserCoins(userId: number): Promise<Coin[]> {
   return Promise.all(coins.map(hydratePhoto))
 }
 
-export async function createCoin(draft: CoinDraft, photo?: File, hydrate = true): Promise<Coin> {
+function normalizePhotos(photos?: File | CoinPhotos): CoinPhotos {
+  if (!photos) return {}
+  if (photos instanceof File) return { obverse: photos }
+  return photos
+}
+
+export async function uploadCoinPhoto(coinId: number, file: File, side: CoinSide = 'obverse'): Promise<Coin> {
+  const body = new FormData()
+  body.append('file', file)
+  const updated = await jsonFetch<Coin>(
+    `/api/v1/coins/${coinId}/photo?side=${side}`,
+    { method: 'POST', body },
+    'Не удалось загрузить фото',
+  )
+  return hydratePhoto(updated)
+}
+
+export async function createCoin(
+  draft: CoinDraft,
+  photos?: File | CoinPhotos,
+  hydrate = true,
+): Promise<Coin> {
   const created = await jsonFetch<Coin>(
     '/api/v1/coins',
     { method: 'POST', body: JSON.stringify(draft) },
     'Не удалось сохранить монету',
   )
-  if (!photo) return created
-  const body = new FormData()
-  body.append('file', photo)
-  const withPhoto = await jsonFetch<Coin>(
-    `/api/v1/coins/${created.id}/photo`,
-    { method: 'POST', body },
-    'Монета сохранена, но фото не загрузилось',
-  )
-  return hydrate ? hydratePhoto(withPhoto) : withPhoto
+  const { obverse, reverse } = normalizePhotos(photos)
+  let current = created
+  if (obverse) {
+    const body = new FormData()
+    body.append('file', obverse)
+    current = await jsonFetch<Coin>(
+      `/api/v1/coins/${created.id}/photo?side=obverse`,
+      { method: 'POST', body },
+      'Монета сохранена, но фото аверса не загрузилось',
+    )
+  }
+  if (reverse) {
+    const body = new FormData()
+    body.append('file', reverse)
+    current = await jsonFetch<Coin>(
+      `/api/v1/coins/${created.id}/photo?side=reverse`,
+      { method: 'POST', body },
+      'Монета сохранена, но фото реверса не загрузилось',
+    )
+  }
+  if (!obverse && !reverse) return created
+  return hydrate ? hydratePhoto(current) : current
 }
 
 export async function deleteCoin(id: number) {

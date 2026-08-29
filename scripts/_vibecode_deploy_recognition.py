@@ -274,6 +274,12 @@ def poll_public_cabinets() -> None:
         print("PUBLIC_COIN_SHARE_UI", coin_share_ui)
         if not coin_share_ui:
             raise SystemExit("PUBLIC_INDEX_NO_COIN_SHARE")
+        sides_ui = ("Аверс" in (js if asset else "") or "Аверс" in html) and (
+            "Реверс" in (js if asset else "") or "Реверс" in html
+        )
+        print("PUBLIC_SIDES_UI", sides_ui)
+        if not sides_ui:
+            raise SystemExit("PUBLIC_INDEX_NO_SIDES")
 
 
 def poll_public_admin_guard() -> None:

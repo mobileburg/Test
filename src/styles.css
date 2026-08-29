@@ -153,6 +153,9 @@ h1 em { color: #a8792c; font-weight: 600; }
 .coin-mark { font: 600 31px 'Playfair Display'; line-height: 1; }
 .coin-ring small { font-size: 8px; font-weight: 800; margin-top: 5px; letter-spacing: .08em; }
 .coin-photo { width: 142px; height: 142px; border-radius: 50%; object-fit: cover; box-shadow: 5px 10px 20px #293d3638; }
+.coin-sides-thumb { display: flex; align-items: center; justify-content: center; gap: 10px; }
+.coin-sides-thumb .coin-face,
+.coin-sides-thumb .coin-photo { width: 86px; height: 86px; }
 .grade { position: absolute; right: 10px; top: 10px; background: #fffdf7dd; border: 1px solid #d6d4ca; padding: 4px 7px; border-radius: 4px; color: #66726e; font-size: 8px; font-weight: 800; }
 .coin-info { padding: 15px 15px 13px; }
 .coin-title { display: flex; justify-content: space-between; gap: 8px; }
@@ -193,6 +196,17 @@ footer .logo { color: #fff; } footer p { color: #7f9890; font-size: 9px; }
 .scanner-icon { width: 52px; height: 52px; border-radius: 50%; background: #e6ece8; color: var(--green); display: grid; place-items: center; margin: 0 auto 14px; }
 .scanner .eyebrow { justify-content: center; margin-bottom: 7px; }.scanner h2 { font-size: 29px; }
 .scanner-lead { color: #77837f; font-size: 11px; line-height: 1.65; max-width: 410px; margin: 11px auto 20px; }
+.scanner-sides {
+  display: flex;
+  justify-content: center;
+  gap: 22px;
+  margin: 0 0 18px;
+}
+.scanner-sides .coin-slot-podium {
+  width: 148px;
+  height: 148px;
+}
+.result-sides { margin: 0 0 16px; }
 .upload-zone { border: 1px dashed #9baea7; border-radius: 10px; padding: 26px 20px; background: #f5f6f1; display: flex; align-items: center; flex-direction: column; cursor: pointer; transition: .2s; }
 .upload-zone:hover { border-color: var(--green); background: #eff3ef; }
 .upload-coin { color: #71857e; margin-bottom: 10px; }
@@ -281,7 +295,7 @@ footer .logo { color: #fff; } footer p { color: #7f9890; font-size: 9px; }
     var(--cream);
 }
 .coin-detail-bar {
-  width: min(390px, 100%);
+  width: min(520px, 100%);
   margin-bottom: 14px;
   display: flex;
   justify-content: space-between;
@@ -290,12 +304,12 @@ footer .logo { color: #fff; } footer p { color: #7f9890; font-size: 9px; }
 }
 .coin-detail-bar .ghost-button { min-height: 40px; padding: 0 12px; font-size: 12px; }
 .coin-share-box {
-  width: min(390px, 100%);
+  width: min(520px, 100%);
   margin: 0 0 14px;
 }
 .coin-share-box .share-copy-field { margin-bottom: 0; }
 .detail-card {
-  width: min(390px, 100%);
+  width: min(520px, 100%);
   background: #fff;
   border: 1px solid #e2e0d8;
   border-radius: 16px;
@@ -304,10 +318,81 @@ footer .logo { color: #fff; } footer p { color: #7f9890; font-size: 9px; }
 }
 .detail-stage {
   position: relative;
-  height: 292px;
+  min-height: 268px;
+  padding: 36px 16px 22px;
   display: grid;
   place-items: center;
   background: radial-gradient(circle at 50% 42%, #f8f6f1 0%, #efece6 58%, #e7e3db 100%);
+}
+.detail-sides {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 22px;
+  width: 100%;
+}
+.detail-photo-error { margin: 12px 0 0; text-align: center; }
+.coin-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.coin-slot-podium {
+  width: 156px;
+  height: 156px;
+  border-radius: 50%;
+  padding: 9px;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(circle at 38% 32%, #2d4f44, #14352c 72%);
+  box-shadow: 0 16px 28px #14352c3d, 0 3px 8px #14352c22;
+}
+.coin-slot-podium .coin-photo,
+.coin-slot-podium .coin-photo.large {
+  width: 100%;
+  height: 100%;
+  box-shadow: none;
+}
+.coin-slot-empty {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  border-radius: 50%;
+  background: #f3f5f1;
+  color: #5d6d67;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.25;
+  text-align: center;
+  padding: 12px;
+  cursor: pointer;
+}
+.coin-slot-empty:disabled { opacity: .6; cursor: wait; }
+div.coin-slot-empty { cursor: default; }
+.coin-slot-label {
+  color: #6b7873;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+.coin-slot-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.coin-slot-actions .ghost-button {
+  min-height: 32px;
+  padding: 0 8px;
+  font-size: 11px;
 }
 .detail-grade {
   position: absolute;
@@ -333,15 +418,6 @@ footer .logo { color: #fff; } footer p { color: #7f9890; font-size: 9px; }
   background: radial-gradient(circle at 38% 32%, #2d4f44, #14352c 72%);
   box-shadow: 0 22px 36px #14352c3d, 0 4px 10px #14352c22;
 }
-.detail-podium .coin-photo,
-.detail-podium .coin-photo.large,
-.detail-podium .coin-face,
-.detail-podium .coin-face.large {
-  width: 100%;
-  height: 100%;
-  box-shadow: none;
-}
-.detail-podium .coin-mark { font-size: 42px; }
 .detail-info { padding: 20px 22px 22px; background: #fff; }
 .detail-headline { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
 .detail-headline h1 {
@@ -462,10 +538,11 @@ footer .logo { color: #fff; } footer p { color: #7f9890; font-size: 9px; }
   .feedback-thumb { width: 100%; height: 160px; }
   .admin-panel { padding: 28px 16px 70px; }
   .coin-detail-page { min-height: calc(100vh - 164px); padding: 12px 14px 36px; }
-  .detail-stage { height: 268px; }
-  .detail-podium { width: 196px; height: 196px; }
-  .detail-podium .coin-photo,
-  .detail-podium .coin-face { width: 100%; height: 100%; }
+  .detail-stage { min-height: 0; padding: 32px 12px 18px; }
+  .detail-sides, .scanner-sides { gap: 12px; }
+  .coin-slot-podium, .scanner-sides .coin-slot-podium { width: 132px; height: 132px; }
+  .coin-sides-thumb .coin-face,
+  .coin-sides-thumb .coin-photo { width: 72px; height: 72px; }
   .detail-headline h1 { font-size: 26px; }
   footer { padding: 0 20px; } footer p { display: none; }
   .scanner { padding: 31px 20px 22px; }.result-heading h2 { font-size: 24px; }.form-grid { gap: 8px; }.result-actions { gap: 8px; }.result-actions .primary-button { padding: 0 11px; }

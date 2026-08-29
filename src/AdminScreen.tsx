@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { ArrowLeft, Check, GraduationCap, Shield, Users, X } from 'lucide-react'
 import { type AdminUser, type Coin, fetchAdminUserCoins, fetchAdminUsers, revokeCoinImages } from './api'
-import { CoinFace } from './CoinFace'
+import { CoinSidesThumb } from './CoinFace'
 import {
   approveFeedback,
   fetchAdminFeedback,
@@ -294,7 +294,7 @@ export default function AdminScreen() {
             {coins.map((coin) => (
               <article className="coin-card" key={coin.id}>
                 <div className="coin-stage">
-                  <CoinFace coin={coin} />
+                  <CoinSidesThumb coin={coin} />
                   <span className="grade">{coin.grade}</span>
                 </div>
                 <div className="coin-info">

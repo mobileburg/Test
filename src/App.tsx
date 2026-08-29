@@ -1,4 +1,4 @@
-import { ChangeEvent, useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   Camera,
   Check,
@@ -16,12 +16,13 @@ import {
   SlidersHorizontal,
   Sparkles,
   Trash2,
-  Upload,
   X,
 } from 'lucide-react'
 import {
   type Coin,
   type CoinDraft,
+  type CoinPhotos,
+  type CoinSide,
   type User,
   createCoin,
   deleteCoin,
@@ -38,7 +39,7 @@ import {
 import AdminScreen from './AdminScreen'
 import AuthScreen from './AuthScreen'
 import CoinDetail from './CoinDetail'
-import { CoinFace } from './CoinFace'
+import { CoinFace, CoinPhotoSlot } from './CoinFace'
 import { ShareDialog, SharedCollectionPage, SharedInbox, readShareToken } from './ShareScreen'
 import { queueRecognitionFeedback, submitRecognitionFeedback } from './learning/feedback'
 import { recognizeCoin, type RecognitionResult } from './recognition/api'
@@ -51,14 +52,14 @@ function Scanner({
   isAdmin,
 }: {
   onClose: () => void
-  onAdd: (draft: CoinDraft, photo?: File) => Promise<void>
+  onAdd: (draft: CoinDraft, photos?: File | CoinPhotos) => Promise<void>
   isAdmin: boolean
 }) {
-  const inputRef = useRef<HTMLInputElement>(null)
-  const cameraRef = useRef<HTMLInputElement>(null)
   const [step, setStep] = useState<'pick' | 'analyzing' | 'result' | 'error'>('pick')
   const [preview, setPreview] = useState('')
   const [photoFile, setPhotoFile] = useState<File | undefined>()
+  const [reversePreview, setReversePreview] = useState('')
+  const [reverseFile, setReverseFile] = useState<File | undefined>()
   const [error, setError] = useState('')
   const [match, setMatch] = useState<RecognitionResult | null>(null)
   const [comment, setComment] = useState('')
@@ -77,9 +78,14 @@ function Scanner({
     value: '0',
   })
 
-  const chooseFile = (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (!file) return
+  const chooseSide = (side: CoinSide, file: File) => {
+    if (side === 'reverse') {
+      setReverseFile(file)
+      const reader = new FileReader()
+      reader.onload = () => setReversePreview(String(reader.result))
+      reader.readAsDataURL(file)
+      return
+    }
     setPhotoFile(file)
     const reader = new FileReader()
     reader.onload = async () => {
@@ -204,7 +210,7 @@ function Scanner({
       mark: '₽',
     }
     try {
-      await onAdd(draft, photoFile)
+      await onAdd(draft, { obverse: photoFile, reverse: reverseFile })
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Не удалось сохранить монету')
       setStep('error')
@@ -221,16 +227,11 @@ function Scanner({
             <div className="scanner-icon"><Sparkles size={26} /></div>
             <p className="eyebrow">Умное распознавание</p>
             <h2 id="scanner-title">Добавьте фото монеты</h2>
-            <p className="scanner-lead">Сфотографируйте аверс при хорошем освещении. Для более точного результата загрузите также реверс.</p>
-            <div className="upload-zone" onClick={() => inputRef.current?.click()}>
-              <div className="upload-coin"><ImagePlus size={30} /></div>
-              <strong>Перетащите изображение сюда</strong>
-              <span>или выберите JPG, PNG, WEBP до 15 МБ</span>
-              <button className="outline-button" type="button"><Upload size={17} /> Выбрать файл</button>
+            <p className="scanner-lead">Сначала снимите или загрузите аверс — по нему распознаём монету. Реверс можно добавить сразу или позже, по очереди.</p>
+            <div className="scanner-sides">
+              <CoinPhotoSlot side="obverse" preview={preview} canEdit onFile={chooseSide} />
+              <CoinPhotoSlot side="reverse" preview={reversePreview} canEdit onFile={chooseSide} />
             </div>
-            <button className="camera-button" onClick={() => cameraRef.current?.click()}><Camera size={19} /> Сделать фото</button>
-            <input ref={inputRef} hidden type="file" accept="image/*" onChange={chooseFile} />
-            <input ref={cameraRef} hidden type="file" accept="image/*" capture="environment" onChange={chooseFile} />
             <div className="privacy"><Check size={15} /> Изображение используется только для распознавания</div>
           </>
         )}
@@ -255,7 +256,10 @@ function Scanner({
           <div className="result">
             <div className="result-heading">
               <div><p className="eyebrow success"><Check size={13} /> Найдено совпадение · {Math.round((match?.confidence ?? 0) * 100)}%</p><h2>Проверьте результат</h2></div>
-              <img src={preview} alt="Монета" />
+            </div>
+            <div className="scanner-sides result-sides">
+              <CoinPhotoSlot side="obverse" preview={preview} canEdit onFile={chooseSide} />
+              <CoinPhotoSlot side="reverse" preview={reversePreview} canEdit onFile={chooseSide} />
             </div>
             <div className="source-note"><Sparkles size={16} /><span><strong>Источник: Банк России.</strong> Каталожный № {match?.catalogNumber}. <a href={match?.sourceUrl} target="_blank" rel="noreferrer">Открыть эталон</a></span></div>
             <div className="form-grid">
@@ -415,8 +419,8 @@ export default function App() {
     setShareOpen(false)
   }
 
-  const addCoin = async (draft: CoinDraft, photo?: File) => {
-    const created = await createCoin(draft, photo)
+  const addCoin = async (draft: CoinDraft, photos?: File | CoinPhotos) => {
+    const created = await createCoin(draft, photos)
     setCoins((prev) => {
       const next = [created, ...prev]
       writeCachedCoins(next)
@@ -525,7 +529,19 @@ export default function App() {
       ) : page === 'inbox' ? (
         <SharedInbox onOpen={openShared} />
       ) : selectedCoin ? (
-        <CoinDetail coin={selectedCoin} onBack={goCabinet} />
+        <CoinDetail
+          coin={selectedCoin}
+          onBack={goCabinet}
+          canEditPhotos
+          onCoinChange={(updated) => {
+            setCoins((prev) => {
+              revokeCoinImages(prev.filter((item) => item.id === updated.id))
+              const next = prev.map((item) => (item.id === updated.id ? updated : item))
+              writeCachedCoins(next)
+              return next
+            })
+          }}
+        />
       ) : (
       <main>
         {offline && <div className="offline-banner">Показана копия с этого устройства. Нет связи с сервером — изменения появятся после входа при восстановлении связи.</div>}

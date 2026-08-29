@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { ArrowLeft, Copy, Share2 } from 'lucide-react'
-import { createShare, hasSessionToken, type Coin } from './api'
-import { CoinFace } from './CoinFace'
+import { createShare, hasSessionToken, uploadCoinPhoto, type Coin, type CoinSide } from './api'
+import { CoinPhotoSlot } from './CoinFace'
 
 function isShareRoute() {
   return /^\/share\/[^/?#]+\/?$/.test(window.location.pathname)
@@ -45,16 +45,22 @@ export default function CoinDetail({
   coin,
   onBack,
   backLabel = 'К коллекции',
+  canEditPhotos = false,
+  onCoinChange,
 }: {
   coin: Coin
   onBack: () => void
   backLabel?: string
+  canEditPhotos?: boolean
+  onCoinChange?: (coin: Coin) => void
 }) {
   const canShare = hasSessionToken() && !isShareRoute()
   const [shareUrl, setShareUrl] = useState('')
   const [shareError, setShareError] = useState('')
   const [sharePending, setSharePending] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [photoBusy, setPhotoBusy] = useState(false)
+  const [photoError, setPhotoError] = useState('')
 
   useEffect(() => {
     window.scrollTo(0, 0)
@@ -64,6 +70,7 @@ export default function CoinDetail({
     setShareUrl('')
     setShareError('')
     setCopied(false)
+    setPhotoError('')
   }, [coin.id])
 
   const title = displayText(coin.title)
@@ -88,6 +95,20 @@ export default function CoinDetail({
       setShareError(reason instanceof Error ? reason.message : 'Не удалось создать ссылку')
     } finally {
       setSharePending(false)
+    }
+  }
+
+  const uploadSide = async (side: CoinSide, file: File) => {
+    if (!canEditPhotos || photoBusy) return
+    setPhotoBusy(true)
+    setPhotoError('')
+    try {
+      const updated = await uploadCoinPhoto(coin.id, file, side)
+      onCoinChange?.(updated)
+    } catch (reason) {
+      setPhotoError(reason instanceof Error ? reason.message : 'Не удалось загрузить фото')
+    } finally {
+      setPhotoBusy(false)
     }
   }
 
@@ -125,9 +146,11 @@ export default function CoinDetail({
       <article className="detail-card" aria-labelledby="coin-detail-title">
         <div className="detail-stage">
           <span className="detail-grade">{grade}</span>
-          <div className="detail-podium">
-            <CoinFace coin={coin} large />
+          <div className="detail-sides">
+            <CoinPhotoSlot coin={coin} side="obverse" canEdit={canEditPhotos} busy={photoBusy} onFile={uploadSide} />
+            <CoinPhotoSlot coin={coin} side="reverse" canEdit={canEditPhotos} busy={photoBusy} onFile={uploadSide} />
           </div>
+          {photoError && <p className="auth-error detail-photo-error">{photoError}</p>}
         </div>
         <div className="detail-info">
           <div className="detail-headline">

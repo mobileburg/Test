@@ -99,7 +99,10 @@ JPG, PNG и WEBP размером до 15 МБ. Опционально: `exclude
 Оценка с клиента под `role=admin` сразу `approved`.
 
 Личные кабинеты: `POST /api/v1/auth/register`, `POST /api/v1/auth/login`,
-`GET /api/v1/me`, `GET/POST /api/v1/coins`. Админка (только `role=admin`):
+`GET /api/v1/me`, `GET/POST /api/v1/coins`. Фото сторон:
+`POST /api/v1/coins/{id}/photo?side=obverse|reverse` (по умолчанию аверс),
+`GET` с тем же `side`. Старое одно фото в `photo_relpath` считается аверсом.
+Админка (только `role=admin`):
 `GET /api/v1/admin/users`, `GET /api/v1/admin/users/{id}/coins`. Не-админ получает 403.
 Как назначить admin: первый пользователь в пустой БД, либо `NUMISMAT_ADMIN_EMAIL`,
 либо `python scripts/promote_admin.py email@domain`.
