@@ -220,7 +220,6 @@ def init_storage() -> None:
             CREATE INDEX IF NOT EXISTS idx_shares_owner ON shares(owner_id);
             CREATE INDEX IF NOT EXISTS idx_shares_token ON shares(token);
             CREATE INDEX IF NOT EXISTS idx_shares_invitee_email ON shares(invitee_email);
-            CREATE INDEX IF NOT EXISTS idx_shares_coin ON shares(coin_id);
             """
         )
         _ensure_share_schema(conn)
