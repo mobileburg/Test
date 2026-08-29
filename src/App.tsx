@@ -40,12 +40,20 @@ import AuthScreen from './AuthScreen'
 import CoinDetail from './CoinDetail'
 import { CoinFace } from './CoinFace'
 import { ShareDialog, SharedCollectionPage, SharedInbox, readShareToken } from './ShareScreen'
-import { queueRecognitionFeedback } from './learning/feedback'
+import { queueRecognitionFeedback, submitRecognitionFeedback } from './learning/feedback'
 import { recognizeCoin, type RecognitionResult } from './recognition/api'
 
 const formatPrice = (value: number) => new Intl.NumberFormat('ru-RU').format(value) + ' ₽'
 
-function Scanner({ onClose, onAdd }: { onClose: () => void; onAdd: (draft: CoinDraft, photo?: File) => Promise<void> }) {
+function Scanner({
+  onClose,
+  onAdd,
+  isAdmin,
+}: {
+  onClose: () => void
+  onAdd: (draft: CoinDraft, photo?: File) => Promise<void>
+  isAdmin: boolean
+}) {
   const inputRef = useRef<HTMLInputElement>(null)
   const cameraRef = useRef<HTMLInputElement>(null)
   const [step, setStep] = useState<'pick' | 'analyzing' | 'result' | 'error'>('pick')
@@ -53,7 +61,11 @@ function Scanner({ onClose, onAdd }: { onClose: () => void; onAdd: (draft: CoinD
   const [photoFile, setPhotoFile] = useState<File | undefined>()
   const [error, setError] = useState('')
   const [match, setMatch] = useState<RecognitionResult | null>(null)
-  const [learningConsent, setLearningConsent] = useState(false)
+  const [comment, setComment] = useState('')
+  const [retryWrong, setRetryWrong] = useState(false)
+  const [excludedCatalogs, setExcludedCatalogs] = useState<string[]>([])
+  const [feedbackNote, setFeedbackNote] = useState('')
+  const [feedbackBusy, setFeedbackBusy] = useState(false)
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState({
     title: '',
@@ -77,6 +89,10 @@ function Scanner({ onClose, onAdd }: { onClose: () => void; onAdd: (draft: CoinD
         const response = await recognizeCoin(file)
         const result = response.results[0]
         setMatch(result)
+        setExcludedCatalogs([])
+        setComment('')
+        setRetryWrong(false)
+        setFeedbackNote('')
         setForm({
           title: result.title,
           subtitle: result.subtitle,
@@ -95,6 +111,88 @@ function Scanner({ onClose, onAdd }: { onClose: () => void; onAdd: (draft: CoinD
     reader.readAsDataURL(file)
   }
 
+  const applyResult = (result: RecognitionResult) => {
+    setMatch(result)
+    setForm({
+      title: result.title,
+      subtitle: result.subtitle,
+      country: result.country,
+      year: String(result.year),
+      metal: result.metal,
+      grade: 'Не указана',
+      value: '0',
+    })
+  }
+
+  const sendFeedback = async (verdict: 'correct' | 'incorrect') => {
+    if (!match || !photoFile || feedbackBusy) return
+    setFeedbackBusy(true)
+    setError('')
+    const retry = verdict === 'incorrect' && retryWrong
+    const prediction = {
+      title: match.title,
+      country: match.country,
+      year: match.year,
+      metal: match.metal,
+    }
+    const correction = {
+      title: form.title,
+      country: form.country,
+      year: Number(form.year) || match.year,
+      metal: form.metal,
+    }
+    try {
+      const saved = await submitRecognitionFeedback({
+        photo: photoFile,
+        predictedCatalog: match.catalogNumber,
+        predictedTitle: match.title,
+        predicted: { ...match },
+        verdict,
+        comment,
+        retry,
+      })
+      queueRecognitionFeedback({
+        coinId: Date.now(),
+        prediction,
+        correction,
+        reviewStatus: saved.reviewStatus,
+      })
+      if (isAdmin) {
+        setFeedbackNote('Оценка принята как истина и попадёт в следующее обучение без модерации.')
+      } else {
+        setFeedbackNote('Оценка сохранена и ждёт проверки администратора. В обучение она не пойдёт, пока её не одобрят.')
+      }
+      if (retry) {
+        const nextExcluded = [...excludedCatalogs, match.catalogNumber]
+        setExcludedCatalogs(nextExcluded)
+        setStep('analyzing')
+        try {
+          const response = await recognizeCoin(photoFile, {
+            excludeCatalogs: nextExcluded,
+            excludeIds: [saved.id],
+          })
+          const result = response.results[0]
+          applyResult(result)
+          setComment('')
+          setRetryWrong(false)
+          setFeedbackNote(
+            isAdmin
+              ? `Предыдущий вариант ${match.catalogNumber} исключён. Новая оценка администратора снова будет принята сразу.`
+              : `Предыдущий вариант ${match.catalogNumber} исключён. Проверьте новый результат.`,
+          )
+          setStep('result')
+        } catch (reason) {
+          setError(reason instanceof Error ? reason.message : 'Других вариантов в каталоге нет')
+          setStep('error')
+        }
+      }
+    } catch (reason) {
+      setFeedbackNote(reason instanceof Error ? reason.message : 'Не удалось отправить оценку')
+    } finally {
+      setFeedbackBusy(false)
+    }
+  }
+
   const save = async () => {
     if (saving) return
     setSaving(true)
@@ -107,23 +205,6 @@ function Scanner({ onClose, onAdd }: { onClose: () => void; onAdd: (draft: CoinD
     }
     try {
       await onAdd(draft, photoFile)
-      if (learningConsent) {
-        queueRecognitionFeedback({
-          coinId: Date.now(),
-          prediction: {
-            title: match?.title ?? draft.title,
-            country: match?.country ?? draft.country,
-            year: match?.year ?? draft.year,
-            metal: match?.metal ?? draft.metal,
-          },
-          correction: {
-            title: draft.title,
-            country: draft.country,
-            year: draft.year,
-            metal: draft.metal,
-          },
-        })
-      }
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Не удалось сохранить монету')
       setStep('error')
@@ -186,10 +267,33 @@ function Scanner({ onClose, onAdd }: { onClose: () => void; onAdd: (draft: CoinD
               <label>Сохранность<input value={form.grade} onChange={(e) => setForm({ ...form, grade: e.target.value })} /></label>
               <label className="span-2">Оценочная стоимость, ₽<input inputMode="numeric" value={form.value} onChange={(e) => setForm({ ...form, value: e.target.value })} /></label>
             </div>
-            <label className="learning-consent">
-              <input type="checkbox" checked={learningConsent} onChange={(event) => setLearningConsent(event.target.checked)} />
-              <span><strong>Помочь улучшить распознавание</strong><small>Сохранить исправления в локальной очереди обучения. Ничего не отправляется без вашего действия.</small></span>
-            </label>
+            <div className="feedback-panel">
+              <p className="feedback-title">Оценка распознавания</p>
+              <p className="feedback-lead">Это поможет ИИ учиться. Напишите, что верно, а что нет.</p>
+              <label className="feedback-comment">
+                Комментарий
+                <textarea
+                  value={comment}
+                  onChange={(event) => setComment(event.target.value)}
+                  rows={3}
+                  placeholder="Что правильно, что нет, какой должна быть монета"
+                />
+              </label>
+              <label className="feedback-retry">
+                <input type="checkbox" checked={retryWrong} onChange={(event) => setRetryWrong(event.target.checked)} />
+                <span>Попробуй распознать ещё, этот вариант неверный</span>
+              </label>
+              <div className="feedback-verdict">
+                <button type="button" className="primary-button" disabled={feedbackBusy} onClick={() => sendFeedback('correct')}>
+                  Верно
+                </button>
+                <button type="button" className="outline-button" disabled={feedbackBusy} onClick={() => sendFeedback('incorrect')}>
+                  Неверно
+                </button>
+              </div>
+              {feedbackNote && <p className="feedback-status">{feedbackNote}</p>}
+              {isAdmin && <p className="feedback-admin-hint">Ваша оценка как администратора принимается сразу, без очереди модерации.</p>}
+            </div>
             <div className="result-actions">
               <button className="text-button" onClick={() => setStep('pick')}>Загрузить другое фото</button>
               <button className="primary-button" onClick={save} disabled={saving}><Plus size={18} /> {saving ? 'Сохраняем…' : 'Добавить в коллекцию'}</button>
@@ -516,7 +620,7 @@ export default function App() {
       </main>
       )}
       <footer><div className="logo"><span className="logo-coin">Н</span><span>Нумизмат<small>История в каждой монете</small></span></div><p>Коллекция хранится в личном кабинете на сервере · Версия 0.2</p></footer>
-      {scannerOpen && page === 'cabinet' && <Scanner onClose={() => setScannerOpen(false)} onAdd={addCoin} />}
+      {scannerOpen && page === 'cabinet' && <Scanner onClose={() => setScannerOpen(false)} onAdd={addCoin} isAdmin={session.role === 'admin'} />}
       {shareOpen && page === 'cabinet' && <ShareDialog open={shareOpen} onClose={() => setShareOpen(false)} />}
     </div>
   )

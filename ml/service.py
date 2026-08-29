@@ -12,13 +12,14 @@ from pathlib import Path
 
 import numpy as np
 import torch
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from PIL import Image, UnidentifiedImageError
 from transformers import CLIPModel, CLIPProcessor
 
 from ml.accounts import init_storage, router as accounts_router
+from ml.feedback import init_feedback_storage, resolve_excluded_catalogs, router as feedback_router
 
 MAX_UPLOAD_BYTES = 15 * 1024 * 1024
 
@@ -38,7 +39,13 @@ class Recognizer:
         self.model = CLIPModel.from_pretrained(clip_source, local_files_only=Path(clip_source).is_dir()).to(self.device).eval()
         self.processor = CLIPProcessor.from_pretrained(clip_source, local_files_only=Path(clip_source).is_dir())
 
-    def predict(self, image: Image.Image, top_k: int = 5) -> list[dict]:
+    def predict(
+        self,
+        image: Image.Image,
+        top_k: int = 5,
+        exclude_catalogs: set[str] | None = None,
+    ) -> list[dict]:
+        excluded = {item.strip() for item in (exclude_catalogs or set()) if item and str(item).strip()}
         inputs = self.processor(images=image.convert("RGB"), return_tensors="pt")
         with torch.inference_mode():
             query = extract_image_features(
@@ -53,7 +60,7 @@ class Recognizer:
         for index_id in ordered:
             record = self.records[int(index_id)]
             catalog_number = record["catalog_number"]
-            if catalog_number in seen:
+            if catalog_number in seen or catalog_number in excluded:
                 continue
             seen.add(catalog_number)
             results.append({
@@ -95,6 +102,7 @@ def _load_recognizer(app: FastAPI, artifact: Path) -> None:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_storage()
+    init_feedback_storage()
     artifact_env = os.getenv("NUMISMAT_MODEL_ARTIFACT")
     artifact = Path(artifact_env) if artifact_env else latest_artifact(Path("ml/artifacts"))
     app.state.recognizer = None
@@ -117,6 +125,7 @@ app.add_middleware(
     allow_credentials=not _cors_wildcard,
 )
 app.include_router(accounts_router)
+app.include_router(feedback_router)
 
 
 def _ready_recognizer() -> Recognizer:
@@ -159,7 +168,11 @@ def health() -> dict:
 
 
 @app.post("/api/v1/recognize")
-async def recognize(file: UploadFile = File(...)) -> dict:
+async def recognize(
+    file: UploadFile = File(...),
+    exclude_catalogs: str | None = Form(default=None),
+    exclude_ids: str | None = Form(default=None),
+) -> dict:
     if file.content_type not in {"image/jpeg", "image/png", "image/webp"}:
         raise HTTPException(415, "Поддерживаются JPG, PNG и WEBP")
     payload = await file.read(MAX_UPLOAD_BYTES + 1)
@@ -172,9 +185,11 @@ async def recognize(file: UploadFile = File(...)) -> dict:
     except (UnidentifiedImageError, OSError):
         raise HTTPException(422, "Не удалось прочитать изображение") from None
     recognizer = _ready_recognizer()
+    excluded = resolve_excluded_catalogs(exclude_catalogs, exclude_ids)
     return {
         "modelVersion": recognizer.card["version"],
-        "results": recognizer.predict(image),
+        "results": recognizer.predict(image, exclude_catalogs=excluded),
+        "excludedCatalogs": sorted(excluded),
         "attribution": "Источник каталожных данных и эталонных изображений: Банк России",
     }
 

@@ -13,14 +13,24 @@ export type RecognitionResult = {
 type RecognitionResponse = {
   modelVersion: string
   results: RecognitionResult[]
+  excludedCatalogs?: string[]
   attribution: string
 }
 
 const API_URL = (import.meta.env.VITE_RECOGNITION_API_URL ?? '').replace(/\/$/, '')
 
-export async function recognizeCoin(file: File): Promise<RecognitionResponse> {
+export async function recognizeCoin(
+  file: File,
+  options?: { excludeCatalogs?: string[]; excludeIds?: number[] },
+): Promise<RecognitionResponse> {
   const body = new FormData()
   body.append('file', file)
+  if (options?.excludeCatalogs?.length) {
+    body.append('exclude_catalogs', options.excludeCatalogs.join(','))
+  }
+  if (options?.excludeIds?.length) {
+    body.append('exclude_ids', options.excludeIds.join(','))
+  }
   const response = await fetch(`${API_URL}/api/v1/recognize`, {
     method: 'POST',
     body,

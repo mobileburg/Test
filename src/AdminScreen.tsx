@@ -1,7 +1,15 @@
 import { useEffect, useState } from 'react'
-import { ArrowLeft, Shield, Users } from 'lucide-react'
+import { ArrowLeft, Check, GraduationCap, Shield, Users, X } from 'lucide-react'
 import { type AdminUser, type Coin, fetchAdminUserCoins, fetchAdminUsers, revokeCoinImages } from './api'
 import { CoinFace } from './CoinFace'
+import {
+  approveFeedback,
+  fetchAdminFeedback,
+  rejectFeedback,
+  revokeFeedbackImages,
+  type FeedbackItem,
+  type FeedbackReviewStatus,
+} from './learning/feedback'
 
 function formatCreated(iso: string) {
   const date = new Date(iso)
@@ -12,7 +20,130 @@ function roleLabel(role: AdminUser['role']) {
   return role === 'admin' ? 'Администратор' : 'Пользователь'
 }
 
+function verdictLabel(verdict: FeedbackItem['verdict']) {
+  return verdict === 'correct' ? 'Верно' : 'Неверно'
+}
+
+function statusLabel(status: FeedbackItem['reviewStatus']) {
+  if (status === 'approved') return 'Одобрено'
+  if (status === 'rejected') return 'Отклонено'
+  return 'На модерации'
+}
+
+function FeedbackQueue() {
+  const [status, setStatus] = useState<FeedbackReviewStatus>('pending')
+  const [items, setItems] = useState<FeedbackItem[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [busyId, setBusyId] = useState<number | null>(null)
+
+  const load = async (nextStatus = status) => {
+    setLoading(true)
+    setError('')
+    try {
+      const list = await fetchAdminFeedback(nextStatus)
+      setItems((prev) => {
+        revokeFeedbackImages(prev)
+        return list
+      })
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Не удалось загрузить очередь обучения')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    void load(status)
+    return () => { revokeFeedbackImages(items) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- загрузка при смене фильтра
+  }, [status])
+
+  const decide = async (item: FeedbackItem, action: 'approve' | 'reject') => {
+    setBusyId(item.id)
+    setError('')
+    try {
+      const updated = action === 'approve' ? await approveFeedback(item.id) : await rejectFeedback(item.id)
+      setItems((prev) => {
+        const next = prev.map((row) => (row.id === item.id ? { ...row, ...updated, photo: row.photo } : row))
+        return status === 'pending' ? next.filter((row) => row.id !== item.id) : next
+      })
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Не удалось обновить оценку')
+    } finally {
+      setBusyId(null)
+    }
+  }
+
+  return (
+    <>
+      <div className="admin-filter">
+        {([
+          ['pending', 'На модерации'],
+          ['approved', 'Одобрено'],
+          ['rejected', 'Отклонено'],
+        ] as const).map(([value, label]) => (
+          <button
+            key={value}
+            type="button"
+            className={status === value ? 'active' : ''}
+            onClick={() => setStatus(value)}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+      {error && <p className="auth-error admin-error">{error}</p>}
+      {loading && <p className="admin-muted">Загружаем очередь обучения…</p>}
+      {!loading && items.length === 0 && (
+        <div className="empty">
+          <GraduationCap size={28} />
+          <h3>{status === 'pending' ? 'Очередь пуста' : 'Записей нет'}</h3>
+          <p>
+            {status === 'pending'
+              ? 'Обычные пользователи оставляют оценки после скана. Одобрите верные — они попадут в следующее обучение.'
+              : 'Смените фильтр, чтобы увидеть другие оценки.'}
+          </p>
+        </div>
+      )}
+      {!loading && items.length > 0 && (
+        <div className="feedback-queue">
+          {items.map((item) => (
+            <article className="feedback-card" key={item.id}>
+              <div className="feedback-thumb">
+                {item.photo ? <img src={item.photo} alt="Фото для обучения" /> : <span>Нет фото</span>}
+              </div>
+              <div className="feedback-body">
+                <p className="feedback-meta">
+                  <strong>{verdictLabel(item.verdict)}</strong>
+                  <span>{statusLabel(item.reviewStatus)}</span>
+                  {item.retry && <span>Повтор без этого класса</span>}
+                </p>
+                <h3>{item.predictedTitle || item.predictedCatalog}</h3>
+                <p>Каталог: {item.predictedCatalog}</p>
+                {item.comment && <p className="feedback-user-comment">{item.comment}</p>}
+                <p className="admin-muted">{item.userEmail} · {formatCreated(item.createdAt)}</p>
+                {item.reviewStatus === 'pending' && (
+                  <div className="feedback-moderation">
+                    <button type="button" className="primary-button" disabled={busyId === item.id} onClick={() => decide(item, 'approve')}>
+                      <Check size={16} /> Одобрить
+                    </button>
+                    <button type="button" className="outline-button" disabled={busyId === item.id} onClick={() => decide(item, 'reject')}>
+                      <X size={16} /> Отклонить
+                    </button>
+                  </div>
+                )}
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
+    </>
+  )
+}
+
 export default function AdminScreen() {
+  const [tab, setTab] = useState<'users' | 'learning'>('users')
   const [users, setUsers] = useState<AdminUser[]>([])
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
@@ -73,20 +204,39 @@ export default function AdminScreen() {
         <div className="section-heading">
           <div>
             <p className="kicker"><span /> Админка</p>
-            <h2>{selected ? 'Коллекция пользователя' : 'Пользователи'}</h2>
+            <h2>
+              {tab === 'learning'
+                ? 'Очередь обучения'
+                : selected
+                  ? 'Коллекция пользователя'
+                  : 'Пользователи'}
+            </h2>
             <p>
-              {selected
-                ? `${selected.email} · ${roleLabel(selected.role)} · ${selected.coinsCount} монет`
-                : 'Список кабинетов и коллекций. Доступно только администратору.'}
+              {tab === 'learning'
+                ? 'Правки обычных пользователей ждут модерации. Оценки администратора уже приняты как истина.'
+                : selected
+                  ? `${selected.email} · ${roleLabel(selected.role)} · ${selected.coinsCount} монет`
+                  : 'Список кабинетов и коллекций. Доступно только администратору.'}
             </p>
           </div>
-          {selected && (
+          {selected && tab === 'users' && (
             <button className="ghost-button" type="button" onClick={backToUsers}>
               <ArrowLeft size={16} /> К списку
             </button>
           )}
         </div>
 
+        <div className="admin-tabs">
+          <button type="button" className={tab === 'users' ? 'active' : ''} onClick={() => setTab('users')}>
+            <Users size={16} /> Пользователи
+          </button>
+          <button type="button" className={tab === 'learning' ? 'active' : ''} onClick={() => { setTab('learning'); setSelected(null) }}>
+            <GraduationCap size={16} /> Очередь обучения
+          </button>
+        </div>
+
+        {tab === 'learning' ? <FeedbackQueue /> : (
+        <>
         {error && <p className="auth-error admin-error">{error}</p>}
 
         {!selected && loading && <p className="admin-muted">Загружаем пользователей…</p>}
@@ -160,6 +310,8 @@ export default function AdminScreen() {
               </article>
             ))}
           </div>
+        )}
+        </>
         )}
       </section>
     </main>

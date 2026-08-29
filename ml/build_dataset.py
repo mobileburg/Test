@@ -49,8 +49,23 @@ def main() -> None:
             "image_license_url": image["license_url"],
         })
 
+    seen_feedback: set[str] = set()
+    try:
+        from ml.feedback import approved_training_rows
+
+        for feedback in approved_training_rows():
+            key = str(feedback.get("id") or feedback.get("image") or "")
+            if key:
+                seen_feedback.add(key)
+            rows.append({**feedback, "source": "Пользователь Нумизмата"})
+    except Exception as error:  # noqa: BLE001 — офлайн-сборка без серверной БД
+        print(f"Серверная очередь фидбека пропущена: {error}")
+
     for feedback in read_jsonl(args.feedback):
         if feedback.get("review_status") != "approved":
+            continue
+        key = str(feedback.get("id") or feedback.get("image") or "")
+        if key and key in seen_feedback:
             continue
         rows.append({**feedback, "source": "Пользователь Нумизмата"})
 
