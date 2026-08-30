@@ -59,3 +59,52 @@ VITE_RECOGNITION_API_URL=http://localhost:8000 npm run dev
 ```bash
 npm run build
 ```
+
+## Восстановление пароля и production
+
+Backend создаёт одноразовую ссылку с криптографически случайным токеном. В SQLite
+сохраняется только SHA-256 токена; по умолчанию ссылка действует 30 минут.
+Успешная смена пароля отзывает все ранее выданные JWT пользователя. Повторный
+запрос всегда отвечает нейтрально, даже если email не зарегистрирован или
+ограничен rate limit.
+
+При старте `init_storage()` безопасно добавляет новую схему к существующей SQLite.
+SQL для контролируемого ручного обновления до запуска новой версии находится в
+`migrations/001_password_reset.sql`: сначала сделайте резервную копию
+`$NUMISMAT_DATA_DIR/app.db`, затем примените файл ровно один раз.
+
+Обязательная production-конфигурация VibeCode:
+
+```bash
+NUMISMAT_ENV=production
+NUMISMAT_DATA_DIR=/opt/data
+NUMISMAT_SECRET_KEY=<длинный случайный постоянный секрет>
+NUMISMAT_PUBLIC_URL=https://numismat.example
+NUMISMAT_COOKIE_SECURE=1
+NUMISMAT_EMAIL_MODE=smtp
+NUMISMAT_SMTP_HOST=smtp.example
+NUMISMAT_SMTP_PORT=587
+NUMISMAT_SMTP_FROM=Numismat <no-reply@example.com>
+NUMISMAT_SMTP_USERNAME=<smtp-user>
+NUMISMAT_SMTP_PASSWORD=<smtp-password>
+NUMISMAT_SMTP_STARTTLS=1
+```
+
+Для SMTP через TLS с подключения задайте `NUMISMAT_SMTP_SSL=1` и обычно порт
+`465`; в этом случае `STARTTLS` не используется. Секреты задаются только в
+защищённых переменных окружения VibeCode. `NUMISMAT_PUBLIC_URL` обязан быть HTTPS:
+из него формируется ссылка `/reset-password?token=...`.
+
+Необязательные настройки: `NUMISMAT_PASSWORD_RESET_TTL_MINUTES` (по умолчанию
+`30`), `NUMISMAT_RESET_REQUESTS_PER_EMAIL` (`3` в час) и
+`NUMISMAT_RESET_REQUESTS_PER_IP` (`10` запросов или `20` подтверждений в час).
+Для локальной разработки можно включить `NUMISMAT_EMAIL_MODE=console`: ссылка
+появится в server log. Этот режим программно запрещён при
+`NUMISMAT_ENV=production`; значение по умолчанию `disabled` не выводит токен.
+
+Перед выкладкой проверьте сохранение `$NUMISMAT_DATA_DIR` на постоянном диске,
+доступ backend к SMTP и сборку frontend с публичным API:
+
+```bash
+VITE_RECOGNITION_API_URL=https://api.example npm run build
+```

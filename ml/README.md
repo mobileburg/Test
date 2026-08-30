@@ -107,6 +107,14 @@ JPG, PNG и WEBP размером до 15 МБ. Опционально: `exclude
 Как назначить admin: первый пользователь в пустой БД, либо `NUMISMAT_ADMIN_EMAIL`,
 либо `python scripts/promote_admin.py email@domain`.
 
+Восстановление пароля: `POST /api/v1/auth/password-reset/request` принимает
+`email` и всегда возвращает нейтральный ответ; `POST
+/api/v1/auth/password-reset/confirm` принимает `token` и `password`. Для
+production задайте `NUMISMAT_ENV=production`, HTTPS-адрес
+`NUMISMAT_PUBLIC_URL`, `NUMISMAT_EMAIL_MODE=smtp` и SMTP-переменные из корневого
+README. Сервис не хранит исходный reset-токен, ограничивает частоту запросов и
+после смены пароля отзывает все активные сессии пользователя.
+
 ## Следующий этап backend
 
 - хранить оригиналы в объектном хранилище, а не в БД;
