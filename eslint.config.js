@@ -19,6 +19,8 @@ export default tseslint.config(
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
+      // Текущие экраны загружают и сбрасывают локальное состояние при смене входных данных.
+      'react-hooks/set-state-in-effect': 'off',
       'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
     },
   },

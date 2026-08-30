@@ -37,7 +37,8 @@ import {
   writeCachedCoins,
 } from './api'
 import AdminScreen from './AdminScreen'
-import AuthScreen, { readPasswordResetToken } from './AuthScreen'
+import AuthScreen from './AuthScreen'
+import { readPasswordResetToken } from './authRouting'
 import CoinDetail from './CoinDetail'
 import { CoinFace, CoinPhotoSlot } from './CoinFace'
 import { ShareDialog, SharedCollectionPage, SharedInbox, readShareToken } from './ShareScreen'

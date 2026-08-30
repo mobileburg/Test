@@ -14,11 +14,6 @@ type AuthScreenProps = {
 
 type AuthMode = 'login' | 'register' | 'forgot' | 'reset'
 
-export function readPasswordResetToken() {
-  if (window.location.pathname !== '/reset-password') return null
-  return new URLSearchParams(window.location.search).get('token')
-}
-
 export default function AuthScreen({ onSuccess, resetToken = null }: AuthScreenProps) {
   const [mode, setMode] = useState<AuthMode>(resetToken ? 'reset' : 'login')
   const [email, setEmail] = useState('')
