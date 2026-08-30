@@ -97,7 +97,8 @@ NUMISMAT_SMTP_STARTTLS=1
 
 Необязательные настройки: `NUMISMAT_PASSWORD_RESET_TTL_MINUTES` (по умолчанию
 `30`), `NUMISMAT_RESET_REQUESTS_PER_EMAIL` (`3` в час) и
-`NUMISMAT_RESET_REQUESTS_PER_IP` (`10` запросов или `20` подтверждений в час).
+`NUMISMAT_RESET_REQUESTS_PER_IP` (`10` запросов в час),
+`NUMISMAT_RESET_ATTEMPTS_PER_IP` (`20` подтверждений в час).
 Для локальной разработки можно включить `NUMISMAT_EMAIL_MODE=console`: ссылка
 появится в server log. Этот режим программно запрещён при
 `NUMISMAT_ENV=production`; значение по умолчанию `disabled` не выводит токен.

@@ -325,9 +325,10 @@ def _rate_limit_reset(
     ip_hash = _private_hash(_request_ip(request))
     email_hash = _private_hash(email) if email else None
     conn.execute("DELETE FROM password_reset_events WHERE created_at < ?", (cutoff,))
-    ip_limit = _env_int(
-        "NUMISMAT_RESET_REQUESTS_PER_IP",
-        PASSWORD_RESET_REQUESTS_PER_IP if kind == "request" else PASSWORD_RESET_ATTEMPTS_PER_IP,
+    ip_limit = (
+        _env_int("NUMISMAT_RESET_REQUESTS_PER_IP", PASSWORD_RESET_REQUESTS_PER_IP)
+        if kind == "request"
+        else _env_int("NUMISMAT_RESET_ATTEMPTS_PER_IP", PASSWORD_RESET_ATTEMPTS_PER_IP)
     )
     ip_count = conn.execute(
         "SELECT COUNT(*) FROM password_reset_events WHERE kind = ? AND ip_hash = ? AND created_at >= ?",
