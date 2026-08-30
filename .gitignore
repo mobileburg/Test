@@ -7,6 +7,7 @@ dist
 vite.config.js
 vite.config.d.ts
 .venv-ml
+.venv-test
 ml/data
 ml/data/uploads
 uploads
