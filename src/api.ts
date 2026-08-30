@@ -207,6 +207,25 @@ export async function loginAccount(email: string, password: string): Promise<Use
   return payload.user
 }
 
+export async function requestPasswordReset(email: string): Promise<string> {
+  const payload = await jsonFetch<{ message: string }>(
+    '/api/v1/auth/password-reset/request',
+    { method: 'POST', body: JSON.stringify({ email }) },
+    'Не удалось отправить запрос. Попробуйте позже',
+  )
+  return payload.message
+}
+
+export async function confirmPasswordReset(token: string, password: string): Promise<string> {
+  const payload = await jsonFetch<{ message: string }>(
+    '/api/v1/auth/password-reset/confirm',
+    { method: 'POST', body: JSON.stringify({ token, password }) },
+    'Не удалось изменить пароль',
+  )
+  clearSession()
+  return payload.message
+}
+
 export async function logoutAccount() {
   try {
     await apiFetch('/api/v1/auth/logout', { method: 'POST' })

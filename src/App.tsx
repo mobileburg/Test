@@ -37,7 +37,7 @@ import {
   writeCachedCoins,
 } from './api'
 import AdminScreen from './AdminScreen'
-import AuthScreen from './AuthScreen'
+import AuthScreen, { readPasswordResetToken } from './AuthScreen'
 import CoinDetail from './CoinDetail'
 import { CoinFace, CoinPhotoSlot } from './CoinFace'
 import { ShareDialog, SharedCollectionPage, SharedInbox, readShareToken } from './ShareScreen'
@@ -310,6 +310,7 @@ function Scanner({
 }
 
 export default function App() {
+  const resetToken = readPasswordResetToken()
   const [session, setSession] = useState<User | null>(readCachedUser)
   const [authReady, setAuthReady] = useState(false)
   const [offline, setOffline] = useState(false)
@@ -458,6 +459,8 @@ export default function App() {
     setShareOpen(false)
     leaveShareUrl()
   }
+
+  if (resetToken) return <AuthScreen onSuccess={handleAuth} resetToken={resetToken} />
 
   if (!authReady) {
     return (

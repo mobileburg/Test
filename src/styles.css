@@ -74,7 +74,9 @@ nav a.active::after { content: ''; position: absolute; bottom: 0; left: 0; right
 .auth-card input:focus { border-color: #597c70; box-shadow: 0 0 0 3px #37695a12; }
 .auth-hint { color: #8b9591; font-size: 11px; }
 .auth-error { margin: 0; color: #8a3b32; background: #f8ece9; border-radius: 6px; padding: 8px 10px; font-size: 12px; }
+.auth-success { margin: 0; color: #275b49; background: #e8f3ed; border-radius: 6px; padding: 9px 10px; font-size: 12px; line-height: 1.5; }
 .auth-submit { width: 100%; min-height: 46px; margin-top: 4px; }
+.auth-link { align-self: center; border: 0; background: transparent; color: #476e61; padding: 3px 8px; font-size: 12px; text-decoration: underline; text-underline-offset: 3px; }
 .coin-delete {
   position: absolute; left: 10px; top: 10px; width: 28px; height: 28px; border: 1px solid #d6d4ca;
   border-radius: 6px; background: #fffdf7dd; color: #8a5b57; display: grid; place-items: center; opacity: 0; transition: .2s;
