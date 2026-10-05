@@ -285,7 +285,7 @@
     scene.background = new THREE.Color("#4a3d2e");
 
     const camera = new THREE.PerspectiveCamera(40, 1, 0.08, 20);
-    camera.position.set(2.05, 1.2, 2.05);
+    camera.position.set(1.58, 0.92, 1.62);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
@@ -295,9 +295,9 @@
 
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
-    controls.target.set(0, H * 0.48, -0.04);
-    controls.minDistance = 1.6;
-    controls.maxDistance = 5;
+    controls.target.set(0, 0.4, -0.05);
+    controls.minDistance = 1.25;
+    controls.maxDistance = 4.5;
     controls.maxPolarAngle = Math.PI * 0.48;
 
     scene.add(new THREE.HemisphereLight(0xfff3dc, 0x5a4632, 0.85));
@@ -532,8 +532,8 @@
       build();
     };
     document.getElementById("btn-reset").onclick = () => {
-      camera.position.set(2.15, 0.82, 1.05);
-      controls.target.set(0, 0.42, -0.08);
+      camera.position.set(1.72, 0.62, 0.78);
+      controls.target.set(0, 0.38, -0.08);
     };
 
     build();
