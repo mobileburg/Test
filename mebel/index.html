@@ -108,6 +108,10 @@
         <img id="mood" alt="Эскиз в интерьере" src="viz-polki.jpg"/>
         <p id="moodcap">Эскиз цвета в этой нише. Точная геометрия и размеры — на чертеже и в модели выше. Скос на фото почти не читается анфас, он задан на виде слева.</p>
       </figure>
+      <figure class="mood" id="mood-doors" hidden>
+        <img alt="Шесть ячеек, три дверки" src="viz-yacheiki-dverki.jpg"/>
+        <p>Три дверки без ручек: левая верхняя, правая верхняя и нижняя центральная. Верхняя середина, нижняя левая и нижняя правая остаются открытыми.</p>
+      </figure>
     </div>
     <aside class="panel">
       <div class="switch">
@@ -423,6 +427,7 @@ function fillPanel() {
   mood.src = src;
   mood.alt = alt;
   document.getElementById("moodcap").textContent = cap;
+  document.getElementById("mood-doors").hidden = variant !== "cells";
 }
 
 function setVariant(id) {
