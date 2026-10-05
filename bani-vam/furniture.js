@@ -103,7 +103,8 @@ function doorLeaf(x, y, width, height, hingeLeft) {
   knob.rotation.x = Math.PI / 2;
   knob.position.set(hingeLeft ? width - .07 : -width + .07, height / 2, -.05);
   pivot.add(knob);
-  pivot.userData.open = hingeLeft ? -1.45 : 1.45;
+  // Обе створки должны уходить к зрителю, а не внутрь корпуса.
+  pivot.userData.open = hingeLeft ? 1.45 : -1.45;
   furniture.add(pivot);
   doors.push(pivot);
 }
