@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Полки и комод из липы — 3D визуализация</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; font-family: "Segoe UI", Roboto, Arial, sans-serif; background: #1d1b19; color: #2b241b; }
+  #scene { position: fixed; inset: 0; }
+  .panel {
+    position: fixed; top: 16px; left: 16px; width: 300px; padding: 18px 20px;
+    background: rgba(255, 250, 240, 0.93); border-radius: 14px; box-shadow: 0 8px 30px rgba(0,0,0,.35);
+    backdrop-filter: blur(6px);
+  }
+  .panel h1 { margin: 0 0 4px; font-size: 19px; }
+  .panel .sub { margin: 0 0 14px; font-size: 13px; color: #7a6a55; }
+  .tabs { display: flex; gap: 6px; margin-bottom: 12px; }
+  .tabs button, .actions button {
+    flex: 1; border: 1px solid #c9b48e; background: #fff; color: #4a3c28; padding: 9px 8px;
+    border-radius: 9px; font-size: 13px; cursor: pointer; transition: .15s;
+  }
+  .tabs button.active { background: #b88a4a; border-color: #b88a4a; color: #fff; font-weight: 600; }
+  .actions { display: flex; gap: 6px; margin: 10px 0 4px; }
+  .actions button:hover, .tabs button:not(.active):hover { background: #f4ead8; }
+  .actions button:disabled { opacity: .4; cursor: default; }
+  ul { margin: 6px 0 0; padding-left: 18px; font-size: 13px; line-height: 1.55; }
+  .hint { margin-top: 12px; font-size: 12px; color: #8a7a64; }
+  .dim {
+    color: #fff; background: rgba(30, 90, 200, 0.92); padding: 2px 7px; border-radius: 6px;
+    font-size: 12px; font-weight: 600; white-space: nowrap; pointer-events: none;
+  }
+  body.shot .panel { display: none; }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<div id="scene"></div>
+
+<div class="panel">
+  <h1>Мебель из липы</h1>
+  <p class="sub">129 × 90 см, глубина 30 см сверху → 22 см снизу</p>
+  <div class="tabs">
+    <button id="tab1" class="active">1. Полки</button>
+    <button id="tab2">2. Комод</button>
+  </div>
+  <div id="desc"></div>
+  <div class="actions">
+    <button id="doors">Открыть дверцы</button>
+    <button id="dims">Скрыть размеры</button>
+  </div>
+  <div class="hint">Мышь: вращение · колесо: масштаб · ПКМ: сдвиг</div>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+
+// Все размеры в сантиметрах
+const W = 129, H = 90, D_TOP = 30, D_BOTTOM = 22, T = 2;
+const depthAt = y => D_BOTTOM + (D_TOP - D_BOTTOM) * (y / H);
+
+const params = new URLSearchParams(location.search);
+if (params.has('shot')) document.body.classList.add('shot');
+
+// ---------- Рендер ----------
+const container = document.getElementById('scene');
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+container.appendChild(renderer.domElement);
+
+const labelRenderer = new CSS2DRenderer();
+labelRenderer.setSize(innerWidth, innerHeight);
+labelRenderer.domElement.style.position = 'fixed';
+labelRenderer.domElement.style.inset = '0';
+labelRenderer.domElement.style.pointerEvents = 'none';
+container.appendChild(labelRenderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x2a2520);
+
+const camera = new THREE.PerspectiveCamera(38, innerWidth / innerHeight, 1, 2000);
+camera.position.set(W / 2 - 85, 125, 270);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.set(W / 2, 42, -12);
+controls.enableDamping = true;
+controls.maxPolarAngle = Math.PI / 2 - 0.02;
+controls.minDistance = 60;
+controls.maxDistance = 600;
+
+scene.add(new THREE.HemisphereLight(0xfff4e0, 0x5a4630, 0.9));
+const sun = new THREE.DirectionalLight(0xfff1dc, 2.2);
+sun.position.set(W / 2 + 120, 220, 180);
+sun.target.position.set(W / 2, 30, -15);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+Object.assign(sun.shadow.camera, { left: -150, right: 150, top: 150, bottom: -150, near: 10, far: 600 });
+sun.shadow.bias = -0.0004;
+sun.shadow.radius = 4;
+scene.add(sun, sun.target);
+const fill = new THREE.PointLight(0xffe6c0, 4000, 0, 2);
+fill.position.set(-40, 140, 120);
+scene.add(fill);
+
+// ---------- Процедурные текстуры ----------
+function rand(seed) { let s = seed; return () => (s = (s * 16807) % 2147483647) / 2147483647; }
+
+// Липа: светлая, кремовая, очень мелкая и спокойная текстура
+function lindenTexture(vertical, seed = 7) {
+  const c = document.createElement('canvas');
+  c.width = 1024; c.height = 1024;
+  const g = c.getContext('2d');
+  const r = rand(seed);
+  g.fillStyle = '#ead6ad';
+  g.fillRect(0, 0, 1024, 1024);
+  for (let i = 0; i < 26; i++) {
+    const y = r() * 1024, h = 20 + r() * 80;
+    g.fillStyle = `rgba(${200 + r() * 30},${165 + r() * 25},${110 + r() * 20},${0.10 + r() * 0.12})`;
+    g.fillRect(0, y, 1024, h);
+  }
+  for (let i = 0; i < 260; i++) {
+    let y = r() * 1024;
+    const amp = 2 + r() * 6, freq = 0.002 + r() * 0.006, ph = r() * 6;
+    g.strokeStyle = `rgba(${150 + r() * 40},${110 + r() * 30},${60 + r() * 25},${0.06 + r() * 0.12})`;
+    g.lineWidth = 0.6 + r() * 1.6;
+    g.beginPath();
+    for (let x = 0; x <= 1024; x += 16) {
+      const yy = y + Math.sin(x * freq + ph) * amp;
+      x === 0 ? g.moveTo(x, yy) : g.lineTo(x, yy);
+    }
+    g.stroke();
+  }
+  for (let i = 0; i < 1800; i++) {
+    g.fillStyle = `rgba(120,85,40,${r() * 0.07})`;
+    g.fillRect(r() * 1024, r() * 1024, 2 + r() * 14, 1);
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.anisotropy = 8;
+  if (vertical) { t.center.set(0.5, 0.5); t.rotation = Math.PI / 2; }
+  return t;
+}
+
+// Вагонка на стене: горизонтальные доски, более тёплый оттенок сосны
+function liningTexture() {
+  const c = document.createElement('canvas');
+  c.width = 1024; c.height = 1024;
+  const g = c.getContext('2d');
+  const r = rand(42);
+  const boards = 9, bh = 1024 / boards;
+  for (let b = 0; b < boards; b++) {
+    const y0 = b * bh;
+    g.fillStyle = `hsl(${30 + r() * 6}, ${50 + r() * 12}%, ${55 + r() * 8}%)`;
+    g.fillRect(0, y0, 1024, bh);
+    for (let i = 0; i < 40; i++) {
+      const y = y0 + r() * bh, amp = 3 + r() * 10, f = 0.003 + r() * 0.01, ph = r() * 6;
+      g.strokeStyle = `rgba(140,85,35,${0.08 + r() * 0.18})`;
+      g.lineWidth = 0.8 + r() * 2;
+      g.beginPath();
+      for (let x = 0; x <= 1024; x += 16) {
+        const yy = Math.min(y0 + bh - 3, Math.max(y0 + 3, y + Math.sin(x * f + ph) * amp));
+        x === 0 ? g.moveTo(x, yy) : g.lineTo(x, yy);
+      }
+      g.stroke();
+    }
+    for (let k = 0; k < 1; k++) {
+      const kx = r() * 1024, ky = y0 + 15 + r() * (bh - 30), kr = 2 + r() * 4;
+      const grd = g.createRadialGradient(kx, ky, 0, kx, ky, kr * 1.8);
+      grd.addColorStop(0, 'rgba(110,65,25,0.45)'); grd.addColorStop(1, 'rgba(90,50,20,0)');
+      g.fillStyle = grd;
+      g.beginPath(); g.ellipse(kx, ky, kr * 2.2, kr, 0, 0, Math.PI * 2); g.fill();
+    }
+    g.fillStyle = 'rgba(60,35,15,0.55)';
+    g.fillRect(0, y0, 1024, 3);
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  return t;
+}
+
+function floorTexture() {
+  const c = document.createElement('canvas');
+  c.width = 1024; c.height = 1024;
+  const g = c.getContext('2d');
+  const r = rand(99);
+  const n = 7, bw = 1024 / n;
+  for (let b = 0; b < n; b++) {
+    g.fillStyle = `hsl(25, ${35 + r() * 10}%, ${24 + r() * 6}%)`;
+    g.fillRect(b * bw, 0, bw, 1024);
+    for (let i = 0; i < 30; i++) {
+      g.strokeStyle = `rgba(20,10,5,${0.1 + r() * 0.2})`;
+      g.lineWidth = 1 + r() * 2;
+      const x = b * bw + r() * bw;
+      g.beginPath(); g.moveTo(x, 0); g.bezierCurveTo(x + 6, 300, x - 6, 700, x, 1024); g.stroke();
+    }
+    g.fillStyle = 'rgba(0,0,0,0.6)';
+    g.fillRect(b * bw, 0, 3, 1024);
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  return t;
+}
+
+const texH = lindenTexture(false, 7), texV = lindenTexture(true, 13);
+texH.repeat.set(1.2, 1.2); texV.repeat.set(1.2, 1.2);
+const matH = new THREE.MeshStandardMaterial({ map: texH, roughness: 0.62, metalness: 0 });
+const matV = new THREE.MeshStandardMaterial({ map: texV, roughness: 0.62, metalness: 0 });
+const matEdge = new THREE.MeshStandardMaterial({ color: 0xe2c99a, roughness: 0.7 });
+
+// ---------- Окружение: пол, наклонная стена, стойка ----------
+const room = new THREE.Group();
+scene.add(room);
+
+const floorTex = floorTexture(); floorTex.repeat.set(3, 3);
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(500, 400), new THREE.MeshStandardMaterial({ map: floorTex, roughness: 0.85 }));
+floor.rotation.x = -Math.PI / 2;
+floor.position.set(W / 2, 0, 60);
+floor.receiveShadow = true;
+room.add(floor);
+
+// Стена «уходит» назад кверху: снизу глубина 22, сверху 30
+const wallTex = liningTexture(); wallTex.repeat.set(3, 2.6);
+const tilt = Math.atan((D_TOP - D_BOTTOM) / H);
+const wall = new THREE.Mesh(new THREE.PlaneGeometry(500, 260), new THREE.MeshStandardMaterial({ map: wallTex, roughness: 0.8 }));
+wall.rotation.x = -tilt;
+const wallH = 260 * Math.cos(tilt) / 2;
+wall.position.set(W / 2, wallH, -D_BOTTOM - 0.3 - Math.tan(tilt) * wallH);
+wall.receiveShadow = true;
+room.add(wall);
+
+const postMat = new THREE.MeshStandardMaterial({ map: liningTexture(), roughness: 0.8 });
+const post = new THREE.Mesh(new THREE.BoxGeometry(12, 230, 36), postMat);
+post.position.set(W + 6 + 0.5, 115, -22);  // корпус выступает на 4 см за стойку проёма
+post.castShadow = post.receiveShadow = true;
+room.add(post);
+
+// выключатель на стойке — ориентир, почему высота 90
+const sw = new THREE.Mesh(new RoundedBoxGeometry(1.5, 8, 5, 2, 0.6), new THREE.MeshStandardMaterial({ color: 0xf2efe8, roughness: 0.4 }));
+sw.position.set(W + 0.3, 108, -10);
+room.add(sw);
+
+// ---------- Конструктор деталей ----------
+function board(w, h, d, x, y, z, parent) {
+  const long = Math.max(w, h, d);
+  const mat = (long === h && h > w) ? matV : matH;
+  const m = new THREE.Mesh(new RoundedBoxGeometry(w, h, d, 2, 0.25), mat);
+  m.position.set(x + w / 2, y + h / 2, z - d / 2);
+  m.castShadow = m.receiveShadow = true;
+  parent.add(m);
+  return m;
+}
+
+// Боковина-трапеция: передняя кромка вертикальная, задняя повторяет стену
+function sidePanel(x, parent) {
+  const s = new THREE.Shape();
+  s.moveTo(0, 0); s.lineTo(D_BOTTOM, 0); s.lineTo(D_TOP, H); s.lineTo(0, H); s.closePath();
+  const geo = new THREE.ExtrudeGeometry(s, { depth: T, bevelEnabled: true, bevelThickness: 0.2, bevelSize: 0.2, bevelSegments: 2 });
+  const uv = geo.attributes.uv;
+  for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) / 100, uv.getY(i) / 100);
+  const m = new THREE.Mesh(geo, matV);
+  m.rotation.y = Math.PI / 2;
+  m.position.set(x, 0, 0);
+  m.castShadow = m.receiveShadow = true;
+  parent.add(m);
+  return m;
+}
+
+// Полка на высоте y: глубина берётся по наклону стены
+function shelf(x0, x1, y, parent, front = 0) {
+  const d = depthAt(y + T / 2) - 0.5 - front;
+  return board(x1 - x0, T, d, x0, y, -front, parent);
+}
+
+function knob(x, y, z, parent) {
+  const g = new THREE.Group();
+  const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.8, 1.6, 20), matEdge);
+  stem.rotation.x = Math.PI / 2; stem.position.z = 0.8;
+  const head = new THREE.Mesh(new THREE.SphereGeometry(1.5, 24, 16), matH);
+  head.scale.z = 0.75; head.position.z = 2.2;
+  stem.castShadow = head.castShadow = true;
+  g.add(stem, head);
+  g.position.set(x, y, z);
+  parent.add(g);
+}
+
+// ---------- Вариант 1: открытые полки ----------
+function buildShelves() {
+  const g = new THREE.Group();
+  sidePanel(0, g);
+  sidePanel(W - T, g);
+  board(W + 1, T, D_TOP + 1, -0.5, H - T, 1, g);             // столешница с напуском 0,5 см
+  const plinth = 6;
+  board(W - 2 * T, plinth, T, T, 0, -2, g);                   // цоколь, утоплен на 2 см
+  const levels = [plinth, 33, 61];                            // низ + 2 промежуточные полки
+  levels.forEach(y => shelf(T, W - T, y, g));
+  // средняя стойка — чтобы полки длиной 125 см не провисали
+  const mid = W / 2 - T / 2;
+  const s = new THREE.Shape();
+  const y0 = plinth + T, y1 = H - T;
+  s.moveTo(0, y0); s.lineTo(depthAt(y0) - 0.5, y0); s.lineTo(depthAt(y1) - 0.5, y1); s.lineTo(0, y1); s.closePath();
+  const geo = new THREE.ExtrudeGeometry(s, { depth: T, bevelEnabled: false });
+  const uv = geo.attributes.uv;
+  for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) / 100, uv.getY(i) / 100);
+  const m = new THREE.Mesh(geo, matV);
+  m.rotation.y = Math.PI / 2; m.position.set(mid, 0, 0);
+  m.castShadow = m.receiveShadow = true;
+  g.add(m);
+  return g;
+}
+
+// ---------- Вариант 2: комод с дверцами ----------
+const doorPivots = [];
+function buildCommode() {
+  const g = new THREE.Group();
+  sidePanel(0, g);
+  sidePanel(W - T, g);
+  board(W + 1, T, D_TOP + 1, -0.5, H - T, 1, g);
+  const plinth = 6;
+  board(W - 2 * T, plinth, T, T, 0, -3, g);
+  const DOOR_T = 1.8, inset = DOOR_T + 0.2;                  // дверцы вкладные, заподлицо с корпусом
+  shelf(T, W - T, plinth, g, inset);
+  // две перегородки → три секции по ~41 см
+  const inner = W - 2 * T, sec = (inner - 2 * T) / 3;
+  const parts = [T + sec, T + 2 * sec + T];
+  for (const px of parts) {
+    const s = new THREE.Shape();
+    const y0 = plinth + T, y1 = H - T;
+    s.moveTo(inset, y0); s.lineTo(depthAt(y0) - 0.5, y0); s.lineTo(depthAt(y1) - 0.5, y1); s.lineTo(inset, y1); s.closePath();
+    const geo = new THREE.ExtrudeGeometry(s, { depth: T, bevelEnabled: false });
+    const uv = geo.attributes.uv;
+    for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) / 100, uv.getY(i) / 100);
+    const m = new THREE.Mesh(geo, matV);
+    m.rotation.y = Math.PI / 2; m.position.set(px, 0, 0);
+    m.castShadow = m.receiveShadow = true;
+    g.add(m);
+  }
+  // по одной внутренней полке в каждой секции
+  const starts = [T, T + sec + T, T + 2 * sec + 2 * T];
+  starts.forEach(sx => shelf(sx, sx + sec, 46, g, inset));
+  // дверцы: рамка + филёнка, петли снаружи, крайние открываются наружу
+  const doorY0 = plinth + T + 0.2, doorH = H - T - 0.2 - doorY0;
+  const gap = 0.3;
+  const doorW = (inner - 2 * gap) / 3;
+  for (let i = 0; i < 3; i++) {
+    const left = T + i * (doorW + gap);
+    const hingeLeft = i !== 2;
+    const pivot = new THREE.Group();
+    pivot.position.set(hingeLeft ? left : left + doorW, doorY0, 0);
+    pivot.userData.dir = hingeLeft ? -1 : 1;
+    g.add(pivot);
+    const door = new THREE.Group();
+    door.position.x = hingeLeft ? 0 : -doorW;
+    pivot.add(door);
+    const fw = 6;
+    board(doorW, fw, DOOR_T, 0, 0, 0, door);
+    board(doorW, fw, DOOR_T, 0, doorH - fw, 0, door);
+    board(fw, doorH - 2 * fw, DOOR_T, 0, fw, 0, door);
+    board(fw, doorH - 2 * fw, DOOR_T, doorW - fw, fw, 0, door);
+    board(doorW - 2 * fw + 0.4, doorH - 2 * fw + 0.4, 1, fw - 0.2, fw - 0.2, -0.5, door);
+    const kx = hingeLeft ? doorW - 4 : 4;
+    knob(kx, doorH / 2 + 8, 0, door);
+    doorPivots.push(pivot);
+  }
+  return g;
+}
+
+const shelves = buildShelves();
+const commode = buildCommode();
+scene.add(shelves, commode);
+
+// ---------- Размеры ----------
+const dimsGroup = new THREE.Group();
+scene.add(dimsGroup);
+const dimMat = new THREE.LineBasicMaterial({ color: 0x2f74ff });
+function dimLine(a, b, text, offset) {
+  const pts = [a, b].map(p => new THREE.Vector3(...p));
+  const ticks = [];
+  const dir = new THREE.Vector3().subVectors(pts[1], pts[0]).normalize();
+  const n = new THREE.Vector3(...offset).normalize().multiplyScalar(2.5);
+  for (const p of pts) ticks.push(p.clone().add(n), p.clone().sub(n));
+  dimsGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), dimMat));
+  dimsGroup.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(ticks), dimMat));
+  const el = document.createElement('div');
+  el.className = 'dim'; el.textContent = text;
+  const lbl = new CSS2DObject(el);
+  lbl.position.copy(pts[0]).lerp(pts[1], 0.5);
+  dimsGroup.add(lbl);
+}
+dimLine([0, H + 6, 4], [W, H + 6, 4], 'Длина 129 см', [0, 1, 0]);
+dimLine([-6, 0, 4], [-6, H, 4], 'Высота 90 см', [1, 0, 0]);
+dimLine([-3, H + 3, 1], [-3, H + 3, -D_TOP], 'Глубина 30 см', [0, 1, 0]);
+dimLine([-3, 1, 2], [-3, 1, -D_BOTTOM], '22 см', [0, 1, 0]);
+
+// ---------- Интерфейс ----------
+const DESC = {
+  1: `<ul>
+    <li>Открытый стеллаж без задней стенки (стоит к стене)</li>
+    <li>3 яруса: нижний + 2 полки (по ~26 см в просвете)</li>
+    <li>Средняя стойка — полки не провиснут</li>
+    <li>Боковины-трапеции повторяют наклон стены</li>
+    <li>Липа, щит 20 мм, масло/воск</li></ul>`,
+  2: `<ul>
+    <li>3 секции по ~41 см, 3 вкладные дверцы</li>
+    <li>Внутри по одной полке в каждой секции</li>
+    <li>Дверцы — рамка с филёнкой, деревянные ручки</li>
+    <li>Цоколь 6 см, столешница с напуском</li>
+    <li>Липа, щит 20 мм, масло/воск</li></ul>`
+};
+let variant = Number(params.get('v') || 1);
+let open = params.has('open'), openT = open ? 1 : 0;
+const tab1 = document.getElementById('tab1'), tab2 = document.getElementById('tab2');
+const doorsBtn = document.getElementById('doors'), dimsBtn = document.getElementById('dims');
+function setVariant(v) {
+  variant = v;
+  shelves.visible = v === 1;
+  commode.visible = v === 2;
+  tab1.classList.toggle('active', v === 1);
+  tab2.classList.toggle('active', v === 2);
+  doorsBtn.disabled = v !== 2;
+  document.getElementById('desc').innerHTML = DESC[v];
+}
+tab1.onclick = () => setVariant(1);
+tab2.onclick = () => setVariant(2);
+doorsBtn.onclick = () => { open = !open; doorsBtn.textContent = open ? 'Закрыть дверцы' : 'Открыть дверцы'; };
+dimsBtn.onclick = () => {
+  dimsGroup.visible = !dimsGroup.visible;
+  labelRenderer.domElement.style.display = dimsGroup.visible ? '' : 'none';
+  dimsBtn.textContent = dimsGroup.visible ? 'Скрыть размеры' : 'Показать размеры';
+};
+if (params.has('nodims')) dimsBtn.onclick();
+if (params.has('cam')) {
+  const [x, y, z] = params.get('cam').split(',').map(Number);
+  camera.position.set(x, y, z);
+}
+setVariant(variant);
+if (open) doorsBtn.textContent = 'Закрыть дверцы';
+
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+  labelRenderer.setSize(innerWidth, innerHeight);
+});
+
+renderer.setAnimationLoop(() => {
+  openT += ((open ? 1 : 0) - openT) * 0.12;
+  const e = openT * openT * (3 - 2 * openT);
+  for (const p of doorPivots) p.rotation.y = p.userData.dir * e * 1.55;
+  controls.update();
+  renderer.render(scene, camera);
+  labelRenderer.render(scene, camera);
+});
+</script>
+</body>
+</html>
