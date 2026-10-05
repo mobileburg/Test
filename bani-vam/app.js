@@ -394,13 +394,15 @@ function setCamera(view) {
   document.querySelectorAll(".view-button").forEach(button => button.classList.toggle("active", button.dataset.view === view));
   const L = state.model.length;
   let pos, target;
+  controls.minDistance = view === "inside" ? .12 : 2.2;
   if (view === "front") { pos = [0, 1.35, L / 2 + 6]; target = [0, 1, 0]; }
   else if (view === "top") { pos = [.01, 8.5, .01]; target = [0, 0, 0]; }
   else if (view === "inside") {
     const [z1, z2] = roomBounds(state.room, state.model.rooms.length, L);
     const roomZ = (z1 + z2) / 2;
-    pos = [.45, 1.25, roomZ + Math.min(.7, (z2 - z1) * .25)];
-    target = [-.55, 1.05, roomZ - .7];
+    const lookDepth = Math.min(.48, (z2 - z1) * .22);
+    pos = [.52, 1.28, roomZ + lookDepth];
+    target = [-.52, 1.04, roomZ - lookDepth];
   } else { pos = [5.5, 3.6, L * .65 + 3.2]; target = [0, 1, 0]; }
   camera.position.set(...pos);
   controls.target.set(...target);

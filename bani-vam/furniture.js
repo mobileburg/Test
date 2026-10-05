@@ -145,9 +145,10 @@ function buildRoom() {
   const floor = new THREE.Mesh(new THREE.PlaneGeometry(6, 5), new THREE.MeshStandardMaterial({ color: 0x8b5938, roughness: .9 }));
   floor.rotation.x = -Math.PI / 2; floor.position.y = 0; floor.receiveShadow = true; room.add(floor);
   for (let i = 0; i < 23; i++) box(.12, 2.6, .045, wallMat, -1.35 + i * .12, 1.3, .34 + Math.abs(i - 11) * .012, room);
-  box(.08, 2.35, .11, dark, -.76, 1.15, .25, room);
-  box(.08, 2.35, .11, dark, .76, 1.15, .25, room);
-  box(1.6, .08, .11, dark, 0, 1.05, .25, room);
+  // Обрамление оставляет вокруг изделия заметный монтажный зазор при любом ракурсе.
+  box(.08, 2.35, .11, dark, -.88, 1.15, .25, room);
+  box(.08, 2.35, .11, dark, .88, 1.15, .25, room);
+  box(1.84, .08, .11, dark, 0, 1.05, .25, room);
   const switchPlate = box(.09, .13, .018, new THREE.MeshStandardMaterial({ color: 0xe9e5da }), .81, 1.13, .16, room);
   switchPlate.rotation.y = .02;
 }
