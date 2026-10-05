@@ -49,7 +49,7 @@
   }
   .hint { margin: 8px 2px 0; color: var(--muted); font-size: 13px; }
   .panel { padding: 18px 18px 8px; }
-  .switch { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+  .switch { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 14px; }
   .switch button { border-radius: 12px; padding: 12px 10px; text-align: left; }
   .switch small { display: block; font-weight: 400; color: inherit; opacity: .8; margin-top: 4px; }
   .dims { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 8px 0 14px; }
@@ -85,7 +85,7 @@
     <div>
       <p class="eyebrow">Первое приближение · под заказ</p>
       <h1>Мебель в нишу</h1>
-      <p class="lead">Два варианта из липы в цвет стены: открытые полки и тумба с дверками. Размеры со скрина, скос глубины уже заложен.</p>
+      <p class="lead">Три варианта из липы в цвет стены: открытые полки, те же полки на шесть ячеек и тумба с дверками. Размеры со скрина, скос глубины уже заложен.</p>
     </div>
     <div class="actions">
       <a class="btn solid" href="chertezhi.pdf">Чертёж А3, PDF</a>
@@ -112,6 +112,7 @@
     <aside class="panel">
       <div class="switch">
         <button type="button" id="b-shelves" class="btn on">Полки<small>три открытые</small></button>
+        <button type="button" id="b-cells" class="btn">6 ячеек<small>без дверок</small></button>
         <button type="button" id="b-cabinet" class="btn">Тумба<small>две дверки</small></button>
       </div>
       <div class="dims">
@@ -143,7 +144,7 @@ const PRESETS = {
   top:   { yaw: -0.35, pitch: 1.02, dist: 2700 },
 };
 
-let variant = qs.get("v") === "cabinet" ? "cabinet" : "shelves";
+let variant = ["cabinet", "cells"].includes(qs.get("v")) ? qs.get("v") : "shelves";
 let viewName = qs.get("view") || "iso";
 let camState = { ...PRESETS[viewName] || PRESETS.iso };
 let dragging = false;
@@ -407,10 +408,21 @@ function fillPanel() {
   ).join("");
   document.getElementById("warn").innerHTML = MODEL.meta.warnings.map((t) => `<li>${t}</li>`).join("");
   document.getElementById("b-shelves").classList.toggle("on", variant === "shelves");
+  document.getElementById("b-cells").classList.toggle("on", variant === "cells");
   document.getElementById("b-cabinet").classList.toggle("on", variant === "cabinet");
+  const moods = {
+    shelves: ["viz-polki.jpg", "Эскиз полок в нише",
+      "Эскиз цвета в этой нише. Точная геометрия и размеры — на чертеже и в модели выше. Скос на фото почти не читается анфас, он задан на виде слева."],
+    cells: ["viz-polki.jpg", "Цвет как у открытых полок",
+      "Цвет тот же, что у открытых полок. Два разделителя и шесть ячеек — на модели и на третьем листе чертежа, без дверок."],
+    cabinet: ["viz-tumba.jpg", "Эскиз тумбы в нише",
+      "Эскиз тумбы с двумя дверками. Ручки на чертеже не сверлятся. Скос глубины смотрите на виде слева."],
+  };
   const mood = document.getElementById("mood");
-  mood.src = variant === "shelves" ? "viz-polki.jpg" : "viz-tumba.jpg";
-  mood.alt = variant === "shelves" ? "Эскиз полок в нише" : "Эскиз тумбы в нише";
+  const [src, alt, cap] = moods[variant];
+  mood.src = src;
+  mood.alt = alt;
+  document.getElementById("moodcap").textContent = cap;
 }
 
 function setVariant(id) {
@@ -425,6 +437,7 @@ function setView(name) {
 }
 
 document.getElementById("b-shelves").onclick = () => setVariant("shelves");
+document.getElementById("b-cells").onclick = () => setVariant("cells");
 document.getElementById("b-cabinet").onclick = () => setVariant("cabinet");
 document.querySelectorAll("[data-view]").forEach((btn) => {
   btn.onclick = () => setView(btn.dataset.view);

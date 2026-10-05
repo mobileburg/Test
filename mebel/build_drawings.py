@@ -73,6 +73,30 @@ def shelf_layout():
 SHELVES, SHELF_SEGMENTS = shelf_layout()
 INNER_W = W - 2 * T
 
+# Вариант 3: два разделителя на всю высоту, три отделения, шесть ячеек.
+N_DIV = 2
+N_BAYS = 3
+CELL_W = (W - (2 + N_DIV) * T) // N_BAYS  # 406
+
+
+def vertical_members():
+    """Четыре вертикали слева направо: боковины и два разделителя."""
+    members = []
+    z = 0
+    for i in range(N_BAYS + 1):
+        members.append((z, z + T))
+        z += T + (CELL_W if i < N_BAYS else 0)
+    return members
+
+
+def bay_spans():
+    verts = vertical_members()
+    return [(verts[i][1], verts[i + 1][0]) for i in range(N_BAYS)]
+
+
+VERTICALS = vertical_members()
+BAYS = bay_spans()
+
 # Тумба: крышка накладная, дверки накладные, корпус утоплен на толщину дверки.
 SIDE_H = H - CAP_T                     # 882
 SIDE_D_BOT = D_BOT - T                 # 202
@@ -102,6 +126,10 @@ def _check():
     assert DOOR_Y0 == 80 and DOOR_Y1 == 880
     assert SHELF_TOP + _clear == SIDE_H
     assert SHELF_UNDERSIDE - BOTTOM_TOP == _clear
+    assert CELL_W == 406
+    assert (2 + N_DIV) * T + N_BAYS * CELL_W == W
+    assert VERTICALS == [(0, 18), (424, 442), (848, 866), (1272, 1290)]
+    assert BAYS == [(18, 424), (442, 848), (866, 1272)]
 
 
 _check()
@@ -284,7 +312,7 @@ def frame(sh: Sheet, title: str, sheet_no: int):
     sh.text(274, FOOT + 16.2, "масло, тон стены", size=2.25, anchor="start")
     sh.text(274, FOOT + 20.6, "образец до отделки", size=2.15, anchor="start", color="#555")
     sh.text(354, FOOT + 6.5, "Лист", size=2.1, anchor="start", color="#666")
-    sh.text(354, FOOT + 12.0, f"{sheet_no}  /  2", size=3.3, anchor="start", weight="700")
+    sh.text(354, FOOT + 12.0, f"{sheet_no}  /  3", size=3.3, anchor="start", weight="700")
     sh.text(354, FOOT + 17.2, "05.10.2026", size=2.4, anchor="start")
     sh.text(354, FOOT + 21.4, "рев. 0", size=2.15, anchor="start", color="#555")
 
@@ -360,7 +388,7 @@ def common_notes():
     ]
 
 
-def draw_side_profile_shelves(sh: Sheet):
+def draw_side_profile_shelves(sh: Sheet, caption="Вид слева, боковина прозрачная"):
     pts = [(sx(x), sy(y)) for x, y in ((0, 0), (D_BOT, 0), (D_TOP, H), (0, H))]
     sh.poly(pts, fill=WOOD, sw=0.55)
     for s in SHELVES:
@@ -386,7 +414,7 @@ def draw_side_profile_shelves(sh: Sheet):
                 str(s["depth"]), size=2.2, anchor="start", halo=True, color="#3a3128")
     sh.text(sx(8), sy(70), "перед", size=2.1, anchor="start", color="#7a7268")
     sh.text(sx(D_BOT) - 1, sy(40), "зад", size=2.1, anchor="end", color="#7a7268")
-    sh.text((sx(0) + sx(D_TOP)) / 2, FL + 16, "Вид слева, боковина прозрачная",
+    sh.text((sx(0) + sx(D_TOP)) / 2, FL + 16, caption,
             size=2.2, anchor="middle", color="#444")
 
 
@@ -576,13 +604,91 @@ def sheet_cabinet() -> Sheet:
     return sh
 
 
+def draw_front_cells(sh: Sheet):
+    sh.text(FX, 16, "Вид спереди", size=2.8, anchor="start", weight="700")
+    for z0, z1 in VERTICALS:
+        sh.rect(fz(z0), fy(H), (z1 - z0) * S, H * S, fill=WOOD, sw=0.4)
+    for s in SHELVES:
+        for a, b in BAYS:
+            sh.rect(fz(a), fy(s["top"]), (b - a) * S, T * S, fill=WOOD2, sw=0.32)
+    for y0, y1, label in SHELF_SEGMENTS:
+        sh.dim_v(fy(y1), fy(y0), FX - 12, label, obj_x=FX)
+    sh.dim_v(fy(H), fy(0), FX - 24, "900", obj_x=FX)
+    for a, b in BAYS:
+        sh.dim_h(fz(a), fz(b), FL + 8, str(CELL_W), obj_y=FL)
+    sh.dim_h(fz(0), fz(W), FL + 17, "1290", obj_y=FL)
+    for z0, z1 in VERTICALS:
+        sh.text(fz((z0 + z1) / 2), FL + 3.8, "18", size=2.0, anchor="middle", halo=True, rotate=-90)
+    mid = (BAYS[1][0] + BAYS[1][1]) / 2
+    sh.text(fz(mid), fy(230), "просвет 423", size=2.15, color="#555", halo=True)
+    sh.text(fz(mid), fy(670), "просвет 423", size=2.15, color="#555", halo=True)
+
+
+def draw_top_cells(sh: Sheet):
+    sh.text(TX, TY - 3.2, "Вид сверху  ·  перед сверху", size=2.5, anchor="start", weight="700")
+    for z0, z1 in VERTICALS:
+        sh.rect(tz(z0), td(0), (z1 - z0) * S, D_TOP * S, fill=WOOD, sw=0.3)
+    top = SHELVES[-1]
+    for a, b in BAYS:
+        sh.rect(tz(a), td(0), (b - a) * S, top["depth"] * S, fill=WOOD2, sw=0.3)
+    for s in SHELVES[:-1]:
+        for a, b in BAYS:
+            sh.line(tz(a), td(s["depth"]), tz(b), td(s["depth"]), sw=0.2, color="#6a6258", dash="1.6,1")
+        sh.text(tz(BAYS[-1][1]) - 1.2, td(s["depth"]) - 0.8, str(s["depth"]),
+                size=2.1, anchor="end", color="#4a433c", halo=True)
+    sh.line(tz(0), td(PROTRUSION), tz(W), td(PROTRUSION), sw=0.25, color=BLUE, dash="1.8,1.1")
+    sh.text(tz(8), td(PROTRUSION) + 3.1, "40 — проём двери", size=2.15, anchor="start", color=BLUE)
+    sh.dim_v(td(0), td(D_TOP), TX - 24, "300", obj_x=TX)
+    sh.text(tz(4), td(6), "перед", size=2.0, anchor="start", color="#7a7268")
+    sh.text(tz(4), td(D_TOP) - 1.5, "зад", size=2.0, anchor="start", color="#7a7268")
+
+
+def cell_rows():
+    rows = [
+        ("1", "Боковина, трапеция", "2", f"900 × 220…300 × {T}"),
+        ("2", "Разделитель, трапеция", "2", f"900 × 220…300 × {T}"),
+    ]
+    labels = ("Полка нижняя", "Полка средняя", "Полка верхняя")
+    for i, s in enumerate(SHELVES):
+        rows.append((str(i + 3), f"{labels[i]}, верх {s['top']}", str(N_BAYS),
+                     f"{CELL_W} × {s['depth']} × {T}"))
+    return rows
+
+
+def sheet_cells() -> Sheet:
+    sh = Sheet("c")
+    frame(sh, "ВАРИАНТ 3  ·  ПОЛКИ, 6 ЯЧЕЕК", 3)
+    draw_front_cells(sh)
+    draw_side_profile_shelves(sh, "Вид слева: боковина и разделители")
+    draw_top_cells(sh)
+    note_box(sh, common_notes() + [
+        "",
+        "*6 ЯЧЕЕК",
+        "Два ряда, три",
+        "отделения. Без",
+        "дверок.",
+        "Разделители — 2 шт",
+        "на всю высоту,",
+        "тот же скос,",
+        "что у боковин.",
+        "Полки вкладные:",
+        "406 мм, по 3 шт",
+        "на каждый ярус.",
+        "Просветы по 423.",
+    ])
+    y = table(sh, SX, 198, 130, cell_rows())
+    sh.text(SX, min(y + 4.2, 262), "Разделители пилить по тому же скосу, что и боковины.",
+            size=2.15, anchor="start", color="#444")
+    return sh
+
+
 def write_svg(name: str, sh: Sheet) -> None:
     (OUT / name).write_text(sh.svg(), encoding="utf-8")
 
 
 def write_html() -> None:
     parts = []
-    for name in ("variant-1-stellazh.svg", "variant-2-tumba.svg"):
+    for name in ("variant-1-stellazh.svg", "variant-2-tumba.svg", "variant-3-yacheiki.svg"):
         svg = (OUT / name).read_text(encoding="utf-8")
         svg = svg.split("?>", 1)[-1].strip()
         parts.append(f'<section class="sheet">{svg}</section>')
@@ -665,6 +771,20 @@ def build_model() -> dict:
         box("Дверка левая", 0, T - 0.6, DOOR_Y0, DOOR_Y1, 0, DOOR_W, "door", "z"),
         box("Дверка правая", 0, T - 0.6, DOOR_Y0, DOOR_Y1, DOOR_W + DOOR_GAP, W, "door", "z"),
     ]
+    profile = [[0, 0], [D_BOT, 0], [D_TOP, H], [0, H]]
+    names = ("Боковина левая", "Разделитель левый", "Разделитель правый", "Боковина правая")
+    cells_parts = [
+        prism(names[i], profile, z0, z1, "side", "y", [0])
+        for i, (z0, z1) in enumerate(VERTICALS)
+    ]
+    for s in SHELVES:
+        skip = ["nz", "pz"] + (["ny"] if s["underside"] == 0 else [])
+        role = "top" if s["top"] == H else "shelf"
+        for n, (a, b) in enumerate(BAYS, start=1):
+            cells_parts.append(
+                box(f"Полка {s['name']} {n}", 0, s["depth"], s["underside"], s["top"], a, b,
+                    role, "z", skip)
+            )
     warnings = [
         "Глубина 300 мм сверху и 220 мм снизу уже включает выступ 40 мм за проём двери.",
         "Скос прямой — первое приближение полукруглой стены. Окончательно подогнать по месту.",
@@ -692,6 +812,14 @@ def build_model() -> dict:
             "cutlist": [{"pos": a, "name": b, "qty": c, "size": d} for a, b, c, d in cabinet_rows()],
             "parts": cabinet_parts,
         },
+        "cells": {
+            "id": "cells",
+            "title": "Шесть ячеек",
+            "subtitle": "Три отделения, без дверок",
+            "blurb": "Те же три полки, что в открытом стеллаже, плюс два вертикальных разделителя. Получается два ряда по три ячейки. Полки вкладные, просвет отделения 406 мм. Дверок нет.",
+            "cutlist": [{"pos": a, "name": b, "qty": c, "size": d} for a, b, c, d in cell_rows()],
+            "parts": cells_parts,
+        },
     }
 
 
@@ -704,7 +832,7 @@ def write_model(model: dict) -> None:
 
 def write_csv(model: dict) -> None:
     lines = ["\ufeffВариант;Поз.;Наименование;Кол.;Размер, мм"]
-    for key in ("shelves", "cabinet"):
+    for key in ("shelves", "cabinet", "cells"):
         title = model[key]["title"]
         for row in model[key]["cutlist"]:
             lines.append(f"{title};{row['pos']};{row['name']};{row['qty']};{row['size']}")
@@ -714,6 +842,7 @@ def write_csv(model: dict) -> None:
 def main() -> None:
     write_svg("variant-1-stellazh.svg", sheet_shelves())
     write_svg("variant-2-tumba.svg", sheet_cabinet())
+    write_svg("variant-3-yacheiki.svg", sheet_cells())
     write_html()
     model = build_model()
     write_model(model)
