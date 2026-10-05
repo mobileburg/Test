@@ -130,7 +130,7 @@ function buildFurniture() {
     if (state.variant === "commode") {
       for (let c = 0; c < 3; c++) {
         const x = -W / 2 + T + col * (c + .5);
-        doorLeaf(x, H - .025, col, H - PLINTH - .04, c % 2 === 0);
+        doorLeaf(x, H - .025, col, H - PLINTH - .04, true);
       }
     }
   }
