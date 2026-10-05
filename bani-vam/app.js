@@ -267,19 +267,19 @@ function addBench(z1, z2, x = -.77) {
 }
 
 function addStove(z) {
-  box(.42, .72, .48, mats.metal, .42, .38, z);
-  box(.16, 1.85, .16, mats.metal, .42, 1.49, z);
+  box(.42, .72, .48, mats.metal, .68, .38, z);
+  box(.16, 1.85, .16, mats.metal, .68, 1.49, z);
   const stoneGeo = new THREE.DodecahedronGeometry(.08, 0);
   for (let i = 0; i < 12; i++) {
     const stone = new THREE.Mesh(stoneGeo, mats.stone);
-    stone.position.set(.27 + Math.random() * .3, .79 + Math.random() * .17, z - .15 + Math.random() * .3);
+    stone.position.set(.53 + Math.random() * .3, .79 + Math.random() * .17, z - .15 + Math.random() * .3);
     stone.scale.setScalar(.7 + Math.random() * .6);
     bathGroup.add(stone);
   }
   const guard = new THREE.Group();
-  for (let i = 0; i < 6; i++) box(.035, .78, .035, mats.lightWood, .08 + i * .13, .42, z + .39, guard);
-  box(.75, .04, .04, mats.lightWood, .4, .78, z + .39, guard);
-  box(.75, .04, .04, mats.lightWood, .4, .15, z + .39, guard);
+  for (let i = 0; i < 5; i++) box(.035, .78, .035, mats.lightWood, .48 + i * .13, .42, z + .39, guard);
+  box(.62, .04, .04, mats.lightWood, .74, .78, z + .39, guard);
+  box(.62, .04, .04, mats.lightWood, .74, .15, z + .39, guard);
   bathGroup.add(guard);
 }
 
@@ -395,14 +395,16 @@ function setCamera(view) {
   const L = state.model.length;
   let pos, target;
   controls.minDistance = view === "inside" ? .12 : 2.2;
+  camera.fov = view === "inside" ? 58 : 38;
+  camera.updateProjectionMatrix();
   if (view === "front") { pos = [0, 1.35, L / 2 + 6]; target = [0, 1, 0]; }
   else if (view === "top") { pos = [.01, 8.5, .01]; target = [0, 0, 0]; }
   else if (view === "inside") {
     const [z1, z2] = roomBounds(state.room, state.model.rooms.length, L);
     const inset = Math.min(.32, (z2 - z1) * .2);
     // Продольный взгляд не упирается в боковую стену даже в короткой помывочной.
-    pos = [-.24, 1.34, z2 - inset];
-    target = [.18, 1.04, z1 + inset];
+    pos = [.7, 1.34, z2 - inset];
+    target = [-.62, 1.04, z1 + inset];
   } else { pos = [5.5, 3.6, L * .65 + 3.2]; target = [0, 1, 0]; }
   camera.position.set(...pos);
   controls.target.set(...target);
