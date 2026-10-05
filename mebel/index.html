@@ -108,9 +108,13 @@
         <img id="mood" alt="Эскиз в интерьере" src="viz-polki.jpg"/>
         <p id="moodcap">Эскиз цвета в этой нише. Точная геометрия и размеры — на чертеже и в модели выше. Скос на фото почти не читается анфас, он задан на виде слева.</p>
       </figure>
+      <figure class="mood" id="mood-front" hidden>
+        <img alt="Шесть ячеек с дверками, вид спереди" src="viz-yacheiki-front.jpg"/>
+        <p>Вид спереди, чтобы сравнивать варианты. Ручка справа на дверке: ножка около 1 см в диаметре и 3–4 см высотой. Дверки на левой верхней, правой верхней и нижней центральной ячейках.</p>
+      </figure>
       <figure class="mood" id="mood-doors" hidden>
-        <img alt="Шесть ячеек со скосом и ручками справа" src="viz-yacheiki-skos-ruchki.jpg"/>
-        <p>Ручка справа на дверке, не по центру: тонкая ножка около 1 см в диаметре и 3–4 см высотой. Дверки на левой верхней, правой верхней и нижней центральной ячейках. Сбоку видно, что верх глубже низа: 30 см против 22 см.</p>
+        <img alt="Шесть ячеек со скосом, вид сбоку" src="viz-yacheiki-skos-ruchki.jpg"/>
+        <p>Тот же вариант сбоку: верх уходит в стену на 30 см, низ только на 22 см. Передняя кромка вертикальная, задняя идёт наискось.</p>
       </figure>
     </div>
     <aside class="panel">
@@ -427,7 +431,9 @@ function fillPanel() {
   mood.src = src;
   mood.alt = alt;
   document.getElementById("moodcap").textContent = cap;
-  document.getElementById("mood-doors").hidden = variant !== "cells";
+  const hideExtra = variant !== "cells";
+  document.getElementById("mood-front").hidden = hideExtra;
+  document.getElementById("mood-doors").hidden = hideExtra;
 }
 
 function setVariant(id) {
