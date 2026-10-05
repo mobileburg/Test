@@ -35,6 +35,9 @@
   }
   .seg button:hover { background: rgba(255,255,255,0.1); }
   .seg button.active { background: var(--accent); color: #221a0c; border-color: var(--accent); font-weight: 600; }
+  .handle-line { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 4px 0; font-size: 13px; }
+  .handle-line .seg { flex: 0 0 150px; }
+  .handle-line .seg button { padding: 6px 8px; font-size: 12px; }
   .row { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 13px; padding: 5px 0; }
   input[type=range] { flex: 1; accent-color: var(--accent); }
   input[type=checkbox] { accent-color: var(--accent); width: 16px; height: 16px; }
@@ -82,6 +85,18 @@
   <div class="group" id="door-group">
     <label class="title">Дверки</label>
     <div class="row"><span>Открыть</span><input id="doors" type="range" min="0" max="1" step="0.01" value="0"></div>
+  </div>
+
+  <div class="group" id="handle-group">
+    <label class="title">Ручка на дверке</label>
+    <div class="handle-line"><span>Левая верхняя</span><div class="seg" data-handle="0"><button data-side="L">Слева</button><button data-side="R">Справа</button></div></div>
+    <div class="handle-line"><span>Правая верхняя</span><div class="seg" data-handle="1"><button data-side="L">Слева</button><button data-side="R">Справа</button></div></div>
+    <div class="handle-line"><span>Нижняя середина</span><div class="seg" data-handle="2"><button data-side="L">Слева</button><button data-side="R">Справа</button></div></div>
+  </div>
+
+  <div class="group" id="shoe-group">
+    <div class="row"><span>Низ под обувь</span><input id="shoe" type="checkbox"></div>
+    <div class="hint">Планка убирается, нижняя полка поднимается на 14 см. Кроссовки стоят на полу под ней. Глубина у пола 22 см, поэтому носок около 26 см чуть выходит за фасад. Ячейки над полкой немного ниже.</div>
   </div>
 
   <div class="group">
@@ -133,11 +148,14 @@ const T = 0.018;       // толщина щита
 const BACK_T = 0.006;  // задняя стенка (фанера/вагонка)
 const PLINTH = 0.06;   // высота цоколя (просвет снизу)
 const DOOR_GAP = 0.003;
+const SHOE_H = 0.14;   // просвет под кроссовки, до нижней пласти полки
 
 const params = {
   variant: 'shelves',
   shelves: 3,
   doors: 0,
+  handles: ['R', 'R', 'R'],
+  shoe: false,
   dims: true,
   room: true,
   back: true,
@@ -148,9 +166,14 @@ const q = new URLSearchParams(location.search);
 if (q.get('variant')) params.variant = q.get('variant');
 if (q.get('shelves')) params.shelves = +q.get('shelves');
 if (q.get('doors')) params.doors = +q.get('doors');
+if (q.get('handles')) {
+  const h = q.get('handles').toUpperCase().replace(/[^LR]/g, '');
+  if (h.length >= 3) params.handles = [h[0], h[1], h[2]];
+}
 if (q.get('dims')) params.dims = q.get('dims') !== '0';
 if (q.get('room')) params.room = q.get('room') !== '0';
 if (q.get('back')) params.back = q.get('back') !== '0';
+if (q.get('shoe')) params.shoe = q.get('shoe') !== '0';
 if (q.get('view')) params.view = q.get('view');
 if (q.get('ui') === '0') document.body.classList.add('noui');
 
@@ -360,36 +383,95 @@ function bayBoard(y, x0, x1, insetFront) {
   return m;
 }
 
-function cellDoor(x, y, w, h) {
+function cellDoor(x, y, w, h, side) {
   const g = new THREE.Group();
   const leaf = box(w, h, T, matV);
-  leaf.position.set(w / 2, h / 2, T / 2);
-  g.add(leaf);
-  const handle = peg(w - 0.045, h / 2);
-  handle.position.z = T;
-  g.add(handle);
-  g.position.set(x, y, 0);
+  const proud = 0.001;
+  const right = side !== 'L';
+  if (right) {
+    leaf.position.set(w / 2, h / 2, T / 2 + proud);
+    const handle = peg(w - 0.045, h / 2);
+    handle.position.z = T + proud;
+    g.add(leaf, handle);
+    g.position.set(x, y, 0);
+    g.userData.swing = -1;
+  } else {
+    leaf.position.set(-w / 2, h / 2, T / 2 + proud);
+    const handle = peg(-w + 0.045, h / 2);
+    handle.position.z = T + proud;
+    g.add(leaf, handle);
+    g.position.set(x + w, y, 0);
+    g.userData.swing = 1;
+  }
   return g;
+}
+
+function sneaker(color) {
+  const upper = new THREE.MeshStandardMaterial({ color, roughness: 0.62 });
+  const soleM = new THREE.MeshStandardMaterial({ color: 0x1c1c1c, roughness: 0.92 });
+  const midM = new THREE.MeshStandardMaterial({ color: 0xf3f3ef, roughness: 0.45 });
+  const g = new THREE.Group();
+  // локальная ось Z: пятка к −Z (к стене), носок к +Z (к фасаду)
+  const sole = new THREE.Mesh(new THREE.BoxGeometry(0.096, 0.016, 0.26), soleM);
+  sole.position.y = 0.008;
+  const mid = new THREE.Mesh(new THREE.BoxGeometry(0.088, 0.010, 0.252), midM);
+  mid.position.y = 0.020;
+  const toe = new THREE.Mesh(new THREE.BoxGeometry(0.084, 0.036, 0.100), upper);
+  toe.position.set(0, 0.042, 0.072);
+  const vamp = new THREE.Mesh(new THREE.BoxGeometry(0.082, 0.026, 0.090), upper);
+  vamp.position.set(0, 0.036, -0.004);
+  const quarter = new THREE.Mesh(new THREE.BoxGeometry(0.084, 0.052, 0.078), upper);
+  quarter.position.set(0, 0.050, -0.082);
+  const collar = new THREE.Mesh(new THREE.BoxGeometry(0.068, 0.010, 0.036), midM);
+  collar.position.set(0, 0.074, -0.096);
+  const lace = new THREE.Mesh(new THREE.BoxGeometry(0.010, 0.005, 0.064), soleM);
+  lace.position.set(0, 0.052, 0.012);
+  g.add(sole, mid, toe, vamp, quarter, collar, lace);
+  return g;
+}
+
+function addShoes() {
+  const len = 0.26;
+  // задник у стены, носок выходит за фасад: 26 см при глубине у пола 22 см
+  const zCenter = backZ(0) + BACK_T + 0.012 + len / 2;
+  const specs = [
+    [0.15, 0xf7f7f4, 0.05],
+    [0.30, 0xe6e2d8, -0.04],
+    [0.645, 0xf4f1ea, 0.02],
+    [0.99, 0xf7f7f4, -0.06],
+    [1.15, 0xddd8ce, 0.07],
+  ];
+  for (const [x, color, yaw] of specs) {
+    const g = sneaker(color);
+    g.position.set(x, 0, zCenter);
+    g.rotation.y = yaw;
+    g.traverse((o) => { if (o.isMesh) o.castShadow = o.receiveShadow = true; });
+    furniture.add(g);
+  }
 }
 
 function buildCells() {
   const bay = (W - 4 * T) / 3;
   const bayX = [T, T + bay + T, T + 2 * (bay + T)];
   const divX = [T + bay, T + bay + T + bay];
-  const yBottom = PLINTH;
+  const yBottom = params.shoe ? SHOE_H : PLINTH;
   const yTop = H - T;
   const innerBottom = yBottom + T;
   const clear = (yTop - innerBottom - T) / 2;
   const yShelf = innerBottom + clear;
-  const inset = params.variant === 'cells-doors' ? 0.02 : 0.008;
+  const inset = params.variant === 'cells-doors' ? 0.004 : 0.008;
 
   furniture.add(sidePanel(0));
   furniture.add(sidePanel(W - T));
   furniture.add(horizontal(yTop, 0, 0, true));
   furniture.add(horizontal(yBottom, 0, 0, true));
-  const plinth = box(W - 2 * T, PLINTH, T, matH);
-  plinth.position.set(W / 2, PLINTH / 2, -0.03 - T / 2);
-  furniture.add(plinth);
+  if (!params.shoe) {
+    const plinth = box(W - 2 * T, PLINTH, T, matH);
+    plinth.position.set(W / 2, PLINTH / 2, -0.03 - T / 2);
+    furniture.add(plinth);
+  } else {
+    addShoes();
+  }
 
   for (const x of divX) furniture.add(dividerPanel(x, innerBottom, yTop));
   for (const x of bayX) furniture.add(bayBoard(yShelf, x, x + bay, inset));
@@ -404,17 +486,19 @@ function buildCells() {
   }
 
   const openH = clear;
-  const doorW = bay - DOOR_GAP * 2;
-  const doorH = openH - DOOR_GAP * 2;
+  // Накладные дверки заходят на полку и стойки на 8 мм, щели проёма не видно.
+  const lap = 0.008;
+  const doorW = bay + lap * 2;
+  const doorH = openH + lap * 2;
   if (params.variant === 'cells-doors') {
     const specs = [
       [bayX[0], yShelf + T],
       [bayX[2], yShelf + T],
       [bayX[1], innerBottom],
     ];
-    for (const [x, y] of specs) {
-      doors.push(cellDoor(x + DOOR_GAP, y + DOOR_GAP, doorW, doorH));
-    }
+    specs.forEach(([x, y], i) => {
+      doors.push(cellDoor(x - lap, y - lap, doorW, doorH, params.handles[i]));
+    });
     for (const d of doors) furniture.add(d);
     applyDoors();
   }
@@ -422,8 +506,9 @@ function buildCells() {
   const mm = (v) => Math.round(v * 1000);
   document.getElementById('shelf-info').innerHTML =
     `<b>6 ячеек:</b> 3 отделения по ${mm(bay)} мм, два ряда по ${mm(openH)} мм` +
+    (params.shoe ? `<br><b>Под обувь:</b> ${mm(SHOE_H)} мм от пола до полки. Кроссовок 260 мм при глубине у пола 220 мм — носок чуть выходит за фасад.` : '') +
     (params.variant === 'cells-doors'
-      ? '<br>Дверки: левая верхняя, правая верхняя, нижняя центральная. Ручка справа.'
+      ? '<br>Дверки: левая верхняя, правая верхняя, нижняя центральная. Сторона ручки выбирается у каждой.'
       : '');
 }
 
@@ -439,12 +524,15 @@ function buildFurniture() {
   furniture.add(sidePanel(W - T));
   // крышка — между боковинами
   furniture.add(horizontal(H - T, 0, 0, true));
-  // дно над цоколем
-  furniture.add(horizontal(PLINTH, 0, 0, true));
-  // цокольная планка
-  const plinth = box(W - 2 * T, PLINTH, T, matH);
-  plinth.position.set(W / 2, PLINTH / 2, -0.03 - T / 2);
-  furniture.add(plinth);
+  const yBase = params.shoe ? SHOE_H : PLINTH;
+  furniture.add(horizontal(yBase, 0, 0, true));
+  if (!params.shoe) {
+    const plinth = box(W - 2 * T, PLINTH, T, matH);
+    plinth.position.set(W / 2, PLINTH / 2, -0.03 - T / 2);
+    furniture.add(plinth);
+  } else {
+    addShoes();
+  }
 
   // задняя стенка — наклонная плоскость по скосу
   if (params.back) {
@@ -457,7 +545,7 @@ function buildFurniture() {
   }
 
   // полки — равномерно между дном и крышкой
-  const innerBottom = PLINTH + T;
+  const innerBottom = yBase + T;
   const innerTop = H - T;
   const n = params.shelves;
   const step = (innerTop - innerBottom) / (n + 1);
@@ -469,13 +557,14 @@ function buildFurniture() {
     furniture.add(horizontal(y, params.variant === 'cabinet' ? 0.02 : 0.01, 0, true));
   }
   document.getElementById('shelf-info').innerHTML =
-    `<b>Полок:</b> ${n}, просвет между полками ≈ ${Math.round((step - T) * 100)} см`;
+    `<b>Полок:</b> ${n}, просвет между полками ≈ ${Math.round((step - T) * 100)} см` +
+    (params.shoe ? `<br><b>Под обувь:</b> ${Math.round(SHOE_H * 1000)} мм от пола до полки` : '');
 
   // дверки
   if (params.variant === 'cabinet') {
-    const doorH = H - T - PLINTH - DOOR_GAP * 2;     // от дна до крышки (накладные)
+    const y0 = yBase + (params.shoe ? T : 0) + DOOR_GAP;
+    const doorH = H - T - y0 - DOOR_GAP;
     const doorW = (W - 2 * T - DOOR_GAP * 3) / 2;
-    const y0 = PLINTH + DOOR_GAP;
     // левая дверь — петли слева
     const doorL = new THREE.Group();
     const dl = box(doorW, doorH, T, matV);
@@ -615,12 +704,18 @@ function syncUI() {
   document.querySelectorAll('#variant button').forEach(b => b.classList.toggle('active', b.dataset.v === params.variant));
   document.querySelectorAll('#shelves button').forEach(b => b.classList.toggle('active', +b.dataset.n === params.shelves));
   document.getElementById('shelf-group').style.display = cells ? 'none' : '';
-  document.getElementById('door-group').style.display =
-    (params.variant === 'cabinet' || params.variant === 'cells-doors') ? '' : 'none';
+  const withDoors = params.variant === 'cabinet' || params.variant === 'cells-doors';
+  document.getElementById('door-group').style.display = withDoors ? '' : 'none';
+  document.getElementById('handle-group').style.display = params.variant === 'cells-doors' ? '' : 'none';
+  document.querySelectorAll('#handle-group [data-handle]').forEach(seg => {
+    const i = +seg.dataset.handle;
+    seg.querySelectorAll('button').forEach(b => b.classList.toggle('active', b.dataset.side === params.handles[i]));
+  });
   document.getElementById('doors').value = params.doors;
   document.getElementById('dims').checked = params.dims;
   document.getElementById('room').checked = params.room;
   document.getElementById('back').checked = params.back;
+  document.getElementById('shoe').checked = params.shoe;
   const titles = {
     shelves: 'Вариант 1 — открытые полки',
     cabinet: 'Вариант 2 — комод с дверками',
@@ -638,9 +733,14 @@ document.querySelectorAll('#variant button').forEach(b => b.onclick = () => { pa
 document.querySelectorAll('#shelves button').forEach(b => b.onclick = () => { params.shelves = +b.dataset.n; rebuild(); });
 document.querySelectorAll('#views button').forEach(b => b.onclick = () => setView(b.dataset.view));
 document.getElementById('doors').oninput = e => { params.doors = +e.target.value; applyDoors(); };
+document.querySelectorAll('#handle-group button').forEach(b => b.onclick = () => {
+  params.handles[+b.parentElement.dataset.handle] = b.dataset.side;
+  rebuild();
+});
 document.getElementById('dims').onchange = e => { params.dims = e.target.checked; buildDims(); };
 document.getElementById('room').onchange = e => { params.room = e.target.checked; buildRoom(); };
 document.getElementById('back').onchange = e => { params.back = e.target.checked; rebuild(); };
+document.getElementById('shoe').onchange = e => { params.shoe = e.target.checked; rebuild(); };
 
 addEventListener('resize', () => {
   camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
