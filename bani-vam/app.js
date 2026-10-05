@@ -401,8 +401,8 @@ function setCamera(view) {
     const [z1, z2] = roomBounds(state.room, state.model.rooms.length, L);
     const inset = Math.min(.32, (z2 - z1) * .2);
     // Продольный взгляд не упирается в боковую стену даже в короткой помывочной.
-    pos = [.62, 1.34, z2 - inset];
-    target = [-.1, 1.04, z1 + inset];
+    pos = [-.24, 1.34, z2 - inset];
+    target = [.18, 1.04, z1 + inset];
   } else { pos = [5.5, 3.6, L * .65 + 3.2]; target = [0, 1, 0]; }
   camera.position.set(...pos);
   controls.target.set(...target);
