@@ -100,7 +100,7 @@
     }
     button.active, button.primary { background: #C4A06A; color: #2A2118; }
     button:hover { filter: brightness(1.08); }
-    #canvas-host { height: min(68vh, 640px); position: relative; background: #3d3226; }
+    #canvas-host { height: min(46vh, 420px); min-height: 340px; position: relative; background: #3d3226; }
     #canvas-host canvas { width: 100%; height: 100%; display: block; }
     .hint {
       position: absolute; left: 14px; bottom: 12px;
@@ -285,7 +285,7 @@
     scene.background = new THREE.Color("#4a3d2e");
 
     const camera = new THREE.PerspectiveCamera(40, 1, 0.08, 20);
-    camera.position.set(1.7, 1.05, 1.7);
+    camera.position.set(2.05, 1.2, 2.05);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
@@ -295,9 +295,9 @@
 
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
-    controls.target.set(0, H * 0.42, -0.06);
-    controls.minDistance = 1.15;
-    controls.maxDistance = 4.2;
+    controls.target.set(0, H * 0.48, -0.04);
+    controls.minDistance = 1.6;
+    controls.maxDistance = 5;
     controls.maxPolarAngle = Math.PI * 0.48;
 
     scene.add(new THREE.HemisphereLight(0xfff3dc, 0x5a4632, 0.85));
@@ -532,8 +532,8 @@
       build();
     };
     document.getElementById("btn-reset").onclick = () => {
-      camera.position.set(1.55, 0.52, 0.42);
-      controls.target.set(0, 0.38, -0.1);
+      camera.position.set(2.15, 0.82, 1.05);
+      controls.target.set(0, 0.42, -0.08);
     };
 
     build();
