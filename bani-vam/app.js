@@ -416,6 +416,8 @@ function updateUrl() {
   url.searchParams.set("model", state.model.id);
   url.searchParams.set("entrance", state.entrance);
   url.searchParams.set("view", state.view);
+  if (state.view === "inside") url.searchParams.set("room", state.room);
+  else url.searchParams.delete("room");
   state.doors ? url.searchParams.set("doors", "open") : url.searchParams.delete("doors");
   history.replaceState(null, "", url);
 }
@@ -426,6 +428,8 @@ function loadUrl() {
   if (model) state.model = model;
   if (["end", "side"].includes(params.get("entrance"))) state.entrance = params.get("entrance");
   if (["iso", "front", "top", "inside"].includes(params.get("view"))) state.view = params.get("view");
+  const room = Number(params.get("room"));
+  if (Number.isInteger(room) && room >= 0 && room < state.model.rooms.length) state.room = room;
   state.doors = params.get("doors") === "open";
   document.querySelector("#doorsToggle").checked = state.doors;
   document.querySelectorAll("[data-entrance]").forEach(button => button.classList.toggle("active", button.dataset.entrance === state.entrance));

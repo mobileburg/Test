@@ -197,6 +197,13 @@ document.querySelector("#furnitureRoom").addEventListener("click", event => {
 });
 
 let doorT = 0;
+const params = new URLSearchParams(location.search);
+if (["cells", "shelves", "commode"].includes(params.get("variant"))) state.variant = params.get("variant");
+state.doors = params.get("doors") === "open";
+document.querySelectorAll("[data-variant]").forEach(button => button.classList.toggle("active", button.dataset.variant === state.variant));
+document.querySelector("#furnitureDoors").classList.toggle("active", state.doors);
+document.querySelector("#furnitureDoors").textContent = state.doors ? "Закрыть дверцы" : "Открыть дверцы";
+
 function resize() {
   const width = stage.clientWidth, height = stage.clientHeight;
   if (!width || !height) return;
