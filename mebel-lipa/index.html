@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Тумба из липы 129×90 — 3D-визуализация (полки / комод с дверками)</title>
+<title>Тумба из липы 129×90 — полки, комод, шесть ячеек</title>
 <style>
   :root {
     --bg: #1b1a17;
@@ -59,17 +59,19 @@
 
 <div id="ui">
   <h1>Тумба из липы в предбанник</h1>
-  <div class="sub">Два варианта в одних габаритах: 129 × 90 см, глубина 30 см сверху → 22 см внизу (скос под полукруглую стенку).</div>
+  <div class="sub">129 × 90 см, глубина 30 см сверху → 22 см внизу. Открытые полки, комод и шесть ячеек — с дверками и без.</div>
 
   <div class="group">
     <label class="title">Вариант</label>
     <div class="seg" id="variant">
       <button data-v="shelves">Открытые полки</button>
       <button data-v="cabinet">Комод с дверками</button>
+      <button data-v="cells">6 ячеек</button>
+      <button data-v="cells-doors">6 ячеек, 3 дверки</button>
     </div>
   </div>
 
-  <div class="group">
+  <div class="group" id="shelf-group">
     <label class="title">Полки внутри</label>
     <div class="seg" id="shelves">
       <button data-n="2">2 полки</button>
@@ -318,11 +320,120 @@ function knob(x, y) {
   return g;
 }
 
-let doorL, doorR;
+let doors = [];
+
+function peg(x, y) {
+  // ножка Ø10 мм, вылет 35 мм, шарик на конце — как точёная ручка на дверке
+  const g = new THREE.Group();
+  const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.005, 0.005, 0.032, 16), matV);
+  stem.rotation.x = Math.PI / 2;
+  stem.position.z = 0.016;
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.0065, 16, 12), matH);
+  head.position.z = 0.034;
+  stem.castShadow = head.castShadow = true;
+  g.add(stem, head);
+  g.position.set(x, y, 0);
+  return g;
+}
+
+function dividerPanel(x, y0, y1) {
+  const shape = new THREE.Shape();
+  shape.moveTo(0, y0);
+  shape.lineTo(0, y1);
+  shape.lineTo(backZ(y1), y1);
+  shape.lineTo(backZ(y0), y0);
+  shape.closePath();
+  const geo = new THREE.ExtrudeGeometry(shape, { depth: T, bevelEnabled: false });
+  geo.rotateY(-Math.PI / 2);
+  const m = new THREE.Mesh(geo, matV);
+  m.position.x = x + T;
+  m.castShadow = m.receiveShadow = true;
+  return m;
+}
+
+function bayBoard(y, x0, x1, insetFront) {
+  const zb = backZ(y) + (params.back ? BACK_T : 0);
+  const depth = -zb - insetFront;
+  const w = x1 - x0;
+  const m = box(w, T, depth, matH);
+  m.position.set((x0 + x1) / 2, y + T / 2, zb + depth / 2);
+  return m;
+}
+
+function cellDoor(x, y, w, h) {
+  const g = new THREE.Group();
+  const leaf = box(w, h, T, matV);
+  leaf.position.set(w / 2, h / 2, T / 2);
+  g.add(leaf);
+  const handle = peg(w - 0.045, h / 2);
+  handle.position.z = T;
+  g.add(handle);
+  g.position.set(x, y, 0);
+  return g;
+}
+
+function buildCells() {
+  const bay = (W - 4 * T) / 3;
+  const bayX = [T, T + bay + T, T + 2 * (bay + T)];
+  const divX = [T + bay, T + bay + T + bay];
+  const yBottom = PLINTH;
+  const yTop = H - T;
+  const innerBottom = yBottom + T;
+  const clear = (yTop - innerBottom - T) / 2;
+  const yShelf = innerBottom + clear;
+  const inset = params.variant === 'cells-doors' ? 0.02 : 0.008;
+
+  furniture.add(sidePanel(0));
+  furniture.add(sidePanel(W - T));
+  furniture.add(horizontal(yTop, 0, 0, true));
+  furniture.add(horizontal(yBottom, 0, 0, true));
+  const plinth = box(W - 2 * T, PLINTH, T, matH);
+  plinth.position.set(W / 2, PLINTH / 2, -0.03 - T / 2);
+  furniture.add(plinth);
+
+  for (const x of divX) furniture.add(dividerPanel(x, innerBottom, yTop));
+  for (const x of bayX) furniture.add(bayBoard(yShelf, x, x + bay, inset));
+
+  if (params.back) {
+    const len = Math.hypot(H, D_TOP - D_BOT);
+    const back = box(W - 2 * T, len, BACK_T, matBack);
+    const ang = Math.atan2(D_TOP - D_BOT, H);
+    back.position.set(W / 2, H / 2, (backZ(0) + backZ(H)) / 2 + BACK_T / 2);
+    back.rotation.x = -ang;
+    furniture.add(back);
+  }
+
+  const openH = clear;
+  const doorW = bay - DOOR_GAP * 2;
+  const doorH = openH - DOOR_GAP * 2;
+  if (params.variant === 'cells-doors') {
+    const specs = [
+      [bayX[0], yShelf + T],
+      [bayX[2], yShelf + T],
+      [bayX[1], innerBottom],
+    ];
+    for (const [x, y] of specs) {
+      doors.push(cellDoor(x + DOOR_GAP, y + DOOR_GAP, doorW, doorH));
+    }
+    for (const d of doors) furniture.add(d);
+    applyDoors();
+  }
+
+  const mm = (v) => Math.round(v * 1000);
+  document.getElementById('shelf-info').innerHTML =
+    `<b>6 ячеек:</b> 3 отделения по ${mm(bay)} мм, два ряда по ${mm(openH)} мм` +
+    (params.variant === 'cells-doors'
+      ? '<br>Дверки: левая верхняя, правая верхняя, нижняя центральная. Ручка справа.'
+      : '');
+}
 
 function buildFurniture() {
   furniture.clear();
-  doorL = doorR = null;
+  doors = [];
+  if (params.variant === 'cells' || params.variant === 'cells-doors') {
+    buildCells();
+    return;
+  }
 
   furniture.add(sidePanel(0));
   furniture.add(sidePanel(W - T));
@@ -366,29 +477,30 @@ function buildFurniture() {
     const doorW = (W - 2 * T - DOOR_GAP * 3) / 2;
     const y0 = PLINTH + DOOR_GAP;
     // левая дверь — петли слева
-    doorL = new THREE.Group();
+    const doorL = new THREE.Group();
     const dl = box(doorW, doorH, T, matV);
     dl.position.set(doorW / 2, doorH / 2, T / 2);
     doorL.add(dl);
     doorL.add(knob(doorW - 0.05, doorH / 2 + 0.0, 0).translateZ(T));
     doorL.position.set(T + DOOR_GAP, y0, 0);
+    doorL.userData.swing = -1;
     // правая дверь — петли справа
-    doorR = new THREE.Group();
+    const doorR = new THREE.Group();
     const dr = box(doorW, doorH, T, matV);
     dr.position.set(-doorW / 2, doorH / 2, T / 2);
     doorR.add(dr);
     doorR.add(knob(-doorW + 0.05, doorH / 2, 0).translateZ(T));
     doorR.position.set(W - T - DOOR_GAP, y0, 0);
+    doorR.userData.swing = 1;
+    doors.push(doorL, doorR);
     furniture.add(doorL, doorR);
     applyDoors();
   }
 }
 
 function applyDoors() {
-  if (!doorL) return;
   const a = params.doors * Math.PI * 0.55; // до ~100°
-  doorL.rotation.y = -a;
-  doorR.rotation.y = a;
+  for (const d of doors) d.rotation.y = (d.userData.swing || -1) * a;
 }
 
 // ---------- комната ----------
@@ -485,7 +597,7 @@ function buildDims() {
 const VIEWS = {
   iso:   { pos: new THREE.Vector3(W / 2 + 1.7, 1.35, 2.1) },
   front: { pos: new THREE.Vector3(W / 2, H / 2 + 0.1, 2.9) },
-  side:  { pos: new THREE.Vector3(W + 2.1, H / 2 + 0.25, 0.45) },
+  side:  { pos: new THREE.Vector3(W + 2.35, H / 2 + 0.18, -0.08) },
   top:   { pos: new THREE.Vector3(W / 2 + 0.01, 2.8, 0.25) },
 };
 function setView(v) {
@@ -499,17 +611,26 @@ function setView(v) {
 
 // ---------- UI ----------
 function syncUI() {
+  const cells = params.variant === 'cells' || params.variant === 'cells-doors';
   document.querySelectorAll('#variant button').forEach(b => b.classList.toggle('active', b.dataset.v === params.variant));
   document.querySelectorAll('#shelves button').forEach(b => b.classList.toggle('active', +b.dataset.n === params.shelves));
-  document.getElementById('door-group').style.display = params.variant === 'cabinet' ? '' : 'none';
+  document.getElementById('shelf-group').style.display = cells ? 'none' : '';
+  document.getElementById('door-group').style.display =
+    (params.variant === 'cabinet' || params.variant === 'cells-doors') ? '' : 'none';
   document.getElementById('doors').value = params.doors;
   document.getElementById('dims').checked = params.dims;
   document.getElementById('room').checked = params.room;
   document.getElementById('back').checked = params.back;
-  document.getElementById('badge-title').textContent =
-    params.variant === 'cabinet' ? 'Вариант 2 — комод с дверками' : 'Вариант 1 — открытые полки';
-  document.getElementById('badge-sub').textContent =
-    `${params.shelves} полки · 129 × 90 · глубина 30→22 см · липа`;
+  const titles = {
+    shelves: 'Вариант 1 — открытые полки',
+    cabinet: 'Вариант 2 — комод с дверками',
+    cells: 'Вариант 3 — шесть ячеек',
+    'cells-doors': 'Вариант 4 — шесть ячеек, три дверки',
+  };
+  document.getElementById('badge-title').textContent = titles[params.variant] || titles.shelves;
+  document.getElementById('badge-sub').textContent = cells
+    ? '3 отделения × 2 ряда · 129 × 90 · глубина 30→22 см · липа'
+    : `${params.shelves} полки · 129 × 90 · глубина 30→22 см · липа`;
 }
 function rebuild() { buildFurniture(); buildDims(); syncUI(); }
 
