@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Мебель в нишу — липа</title>
+<link rel="stylesheet" href=""/>
+<style>
+  :root {
+    --bg: #e6dccb;
+    --paper: #fbf7f0;
+    --ink: #2a241c;
+    --muted: #6d6458;
+    --line: #ddd2c2;
+    --wood: #6b4e2e;
+    --wood-2: #8a6844;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--ink); }
+  body {
+    font-family: "Liberation Sans", "DejaVu Sans", Arial, sans-serif;
+    min-height: 100vh;
+  }
+  h1, h2, .serif { font-family: "Liberation Serif", "DejaVu Serif", Georgia, serif; font-weight: 400; }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 28px 22px 64px; }
+  header { display: flex; justify-content: space-between; gap: 24px; align-items: flex-end; margin-bottom: 22px; }
+  .eyebrow { margin: 0 0 6px; letter-spacing: .14em; text-transform: uppercase; font-size: 11px; color: var(--muted); }
+  h1 { margin: 0; font-size: 40px; letter-spacing: -0.03em; }
+  .lead { margin: 8px 0 0; max-width: 46ch; color: var(--muted); line-height: 1.45; }
+  .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  a.btn, button.btn {
+    appearance: none; border: 1px solid var(--wood); background: transparent; color: var(--wood);
+    text-decoration: none; border-radius: 999px; padding: 10px 16px; font: 600 14px/1 "Liberation Sans", sans-serif;
+    cursor: pointer;
+  }
+  a.btn.solid, button.btn.solid { background: var(--wood); color: #fbf7f0; }
+  button.btn.on { background: var(--wood); color: #fbf7f0; }
+  .layout { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(280px, .8fr); gap: 18px; }
+  .stage, .panel, .mood {
+    background: var(--paper); border: 1px solid var(--line); border-radius: 18px;
+  }
+  .stage { padding: 12px 12px 14px; min-height: 560px; display: flex; flex-direction: column; }
+  canvas { width: 100%; height: 520px; border-radius: 12px; display: block; touch-action: none; cursor: grab; background: #e4d9c6; }
+  canvas:active { cursor: grabbing; }
+  .views { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+  .views button, .check {
+    border: 1px solid var(--line); background: #fff; border-radius: 999px; padding: 7px 12px;
+    font: 600 13px/1 "Liberation Sans", sans-serif; color: var(--ink); cursor: pointer;
+  }
+  .hint { margin: 8px 2px 0; color: var(--muted); font-size: 13px; }
+  .panel { padding: 18px 18px 8px; }
+  .switch { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+  .switch button { border-radius: 12px; padding: 12px 10px; text-align: left; }
+  .switch small { display: block; font-weight: 400; color: inherit; opacity: .8; margin-top: 4px; }
+  .dims { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 8px 0 14px; }
+  .dims div { background: #f3ecdf; border-radius: 12px; padding: 10px 12px; }
+  .dims b { display: block; font-size: 20px; font-variant-numeric: tabular-nums; }
+  .dims span { color: var(--muted); font-size: 12px; }
+  .blurb { margin: 0 0 12px; line-height: 1.45; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 12px; }
+  th, td { text-align: left; padding: 6px 4px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: 11px; letter-spacing: .04em; text-transform: uppercase; }
+  .warn { margin: 0; padding: 0 0 8px 16px; color: #4e463c; }
+  .warn li { margin: 0 0 8px; line-height: 1.4; }
+  .mood { margin-top: 18px; overflow: hidden; }
+  .mood img { width: 100%; display: block; }
+  .mood p { margin: 0; padding: 12px 16px 14px; color: var(--muted); font-size: 13px; line-height: 1.45; }
+  body.shot { background: #e4d9c6; }
+  body.shot .wrap { max-width: none; padding: 0; }
+  body.shot header, body.shot .panel, body.shot .mood, body.shot .views, body.shot .hint, body.shot .actions { display: none; }
+  body.shot .layout { display: block; }
+  body.shot .stage { border: 0; border-radius: 0; padding: 0; min-height: 0; background: transparent; }
+  body.shot canvas { height: 100vh; border-radius: 0; }
+  @media (max-width: 860px) {
+    .layout { grid-template-columns: 1fr; }
+    h1 { font-size: 32px; }
+    header { flex-direction: column; align-items: flex-start; }
+    canvas { height: 420px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <p class="eyebrow">Первое приближение · под заказ</p>
+      <h1>Мебель в нишу</h1>
+      <p class="lead">Два варианта из липы в цвет стены: открытые полки и тумба с дверками. Размеры со скрина, скос глубины уже заложен.</p>
+    </div>
+    <div class="actions">
+      <a class="btn solid" href="chertezhi.pdf">Чертёж А3, PDF</a>
+      <a class="btn" href="drawings.html">Открыть листы</a>
+    </div>
+  </header>
+  <div class="layout">
+    <div>
+      <div class="stage">
+        <canvas id="c"></canvas>
+        <div class="views">
+          <button type="button" data-view="iso">С угла</button>
+          <button type="button" data-view="front">Спереди</button>
+          <button type="button" data-view="left">Слева</button>
+          <button type="button" data-view="top">Сверху</button>
+        </div>
+        <p class="hint">Крутите модель мышью, колёсико приближает. На виде слева виден скос: сверху глубже, снизу уже.</p>
+      </div>
+      <figure class="mood">
+        <img id="mood" alt="Эскиз в интерьере" src="viz-polki.jpg"/>
+        <p id="moodcap">Эскиз цвета в этой нише. Точная геометрия и размеры — на чертеже и в модели выше. Скос на фото почти не читается анфас, он задан на виде слева.</p>
+      </figure>
+    </div>
+    <aside class="panel">
+      <div class="switch">
+        <button type="button" id="b-shelves" class="btn on">Полки<small>три открытые</small></button>
+        <button type="button" id="b-cabinet" class="btn">Тумба<small>две дверки</small></button>
+      </div>
+      <div class="dims">
+        <div><b>1290</b><span>длина, мм</span></div>
+        <div><b>900</b><span>высота, мм</span></div>
+        <div><b>300</b><span>глубина сверху</span></div>
+        <div><b>220</b><span>глубина снизу</span></div>
+      </div>
+      <p class="blurb" id="blurb"></p>
+      <table>
+        <thead><tr><th>Поз.</th><th>Деталь</th><th>Кол.</th><th>Размер</th></tr></thead>
+        <tbody id="cut"></tbody>
+      </table>
+      <ul class="warn" id="warn"></ul>
+    </aside>
+  </div>
+</div>
+<script src="model.js"></script>
+<script>
+const MODEL = window.MODEL;
+const qs = new URLSearchParams(location.search);
+const canvas = document.getElementById("c");
+const ctx2d = canvas.getContext("2d", { alpha: false });
+
+const PRESETS = {
+  iso:   { yaw: -0.72, pitch: 0.38, dist: 2550 },
+  front: { yaw: 0.0, pitch: 0.05, dist: 2400 },
+  left:  { yaw: -1.25, pitch: 0.22, dist: 2300 },
+  top:   { yaw: -0.35, pitch: 1.02, dist: 2700 },
+};
+
+let variant = qs.get("v") === "cabinet" ? "cabinet" : "shelves";
+let viewName = qs.get("view") || "iso";
+let camState = { ...PRESETS[viewName] || PRESETS.iso };
+let dragging = false;
+let lastX = 0, lastY = 0;
+let wheelT = 0;
+
+function sub(a, b) { return { x: a.x - b.x, y: a.y - b.y, z: a.z - b.z }; }
+function dot(a, b) { return a.x * b.x + a.y * b.y + a.z * b.z; }
+function cross(a, b) {
+  return { x: a.y * b.z - a.z * b.y, y: a.z * b.x - a.x * b.z, z: a.x * b.y - a.y * b.x };
+}
+function norm(a) {
+  const l = Math.hypot(a.x, a.y, a.z) || 1;
+  return { x: a.x / l, y: a.y / l, z: a.z / l };
+}
+
+function target() {
+  const m = MODEL.meta;
+  return { x: 150, y: m.H * 0.46, z: m.W * 0.5 };
+}
+function cameraPos() {
+  const t = target();
+  const cp = Math.cos(camState.pitch), sp = Math.sin(camState.pitch);
+  const cy = Math.cos(camState.yaw), sy = Math.sin(camState.yaw);
+  return {
+    x: t.x + camState.dist * (-cp * cy),
+    y: t.y + camState.dist * sp,
+    z: t.z + camState.dist * (cp * sy),
+  };
+}
+
+function project(p, cam, tgt, w, h) {
+  const forward = norm(sub(tgt, cam));
+  let right = cross(forward, { x: 0, y: 1, z: 0 });
+  const rl = Math.hypot(right.x, right.y, right.z);
+  if (rl < 1e-4) right = { x: 1, y: 0, z: 0 };
+  else right = { x: right.x / rl, y: right.y / rl, z: right.z / rl };
+  const up = cross(right, forward);
+  const v = sub(p, cam);
+  const cx = dot(v, right);
+  const cy = dot(v, up);
+  const cz = dot(v, forward);
+  if (cz < 8) return null;
+  const f = h * 0.72 / cz;
+  return { x: w / 2 + cx * f, y: h / 2 - cy * f, z: cz, g: p.g || 0 };
+}
+
+function lit(verts, base, cam) {
+  const n0 = cross(sub(verts[1], verts[0]), sub(verts[2], verts[0]));
+  let n = norm(n0);
+  const c = {
+    x: (verts[0].x + verts[1].x + verts[2].x) / 3,
+    y: (verts[0].y + verts[1].y + verts[2].y) / 3,
+    z: (verts[0].z + verts[1].z + verts[2].z) / 3,
+  };
+  const toCam = norm(sub(cam, c));
+  if (dot(n, toCam) < 0) n = { x: -n.x, y: -n.y, z: -n.z };
+  const light = norm({ x: -0.4, y: 0.86, z: 0.28 });
+  const nd = Math.max(0, dot(n, light));
+  const wrap = Math.min(1.12, 0.42 + 0.18 * (n.y * 0.5 + 0.5) + 0.55 * nd);
+  return [base[0] * wrap, base[1] * wrap, base[2] * wrap];
+}
+
+function edgeFn(ax, ay, bx, by, px, py) {
+  return (px - ax) * (by - ay) - (py - ay) * (bx - ax);
+}
+
+function fillTri(buf, depth, w, h, a, b, c, rgb, edgePx, edgeMask) {
+  let area = edgeFn(a.x, a.y, b.x, b.y, c.x, c.y);
+  if (area < 0) {
+    const t = b; b = c; c = t; area = -area;
+  }
+  if (area < 0.8) return;
+  const minx = Math.max(0, Math.floor(Math.min(a.x, b.x, c.x)));
+  const maxx = Math.min(w - 1, Math.ceil(Math.max(a.x, b.x, c.x)));
+  const miny = Math.max(0, Math.floor(Math.min(a.y, b.y, c.y)));
+  const maxy = Math.min(h - 1, Math.ceil(Math.max(a.y, b.y, c.y)));
+  const izA = 1 / a.z, izB = 1 / b.z, izC = 1 / c.z;
+  const lenAB = Math.hypot(b.x - a.x, b.y - a.y) || 1;
+  const lenBC = Math.hypot(c.x - b.x, c.y - b.y) || 1;
+  const lenCA = Math.hypot(a.x - c.x, a.y - c.y) || 1;
+  for (let y = miny; y <= maxy; y++) {
+    const py = y + 0.5;
+    for (let x = minx; x <= maxx; x++) {
+      const px = x + 0.5;
+      const w0 = edgeFn(b.x, b.y, c.x, c.y, px, py) / area;
+      const w1 = edgeFn(c.x, c.y, a.x, a.y, px, py) / area;
+      const w2 = edgeFn(a.x, a.y, b.x, b.y, px, py) / area;
+      if (w0 < -0.001 || w1 < -0.001 || w2 < -0.001) continue;
+      const iz = w0 * izA + w1 * izB + w2 * izC;
+      const z = 1 / iz;
+      const i = y * w + x;
+      if (z >= depth[i]) continue;
+      depth[i] = z;
+      const g = (w0 * a.g * izA + w1 * b.g * izB + w2 * c.g * izC) / iz;
+      const m = ((g % 22) + 22) % 22;
+      const seam = m < 0.7 ? 0.8 : 1;
+      const grain = (0.93 + 0.07 * Math.sin(g * 0.85)) * seam;
+      const dAB = Math.abs(edgeFn(a.x, a.y, b.x, b.y, px, py)) / lenAB;
+      const dBC = Math.abs(edgeFn(b.x, b.y, c.x, c.y, px, py)) / lenBC;
+      const dCA = Math.abs(edgeFn(c.x, c.y, a.x, a.y, px, py)) / lenCA;
+      const mask = edgeMask == null ? 7 : edgeMask;
+      const onEdge =
+        ((mask & 1) && dAB < edgePx) ||
+        ((mask & 2) && dBC < edgePx) ||
+        ((mask & 4) && dCA < edgePx);
+      const edge = onEdge ? 0.62 : 1;
+      const o = i * 4;
+      buf[o] = Math.max(0, Math.min(255, rgb[0] * grain * edge));
+      buf[o + 1] = Math.max(0, Math.min(255, rgb[1] * grain * edge));
+      buf[o + 2] = Math.max(0, Math.min(255, rgb[2] * grain * edge));
+      buf[o + 3] = 255;
+    }
+  }
+}
+
+function grainOf(p, axis, scale, phase) {
+  const v = axis === "x" ? p.x : axis === "y" ? p.y : p.z;
+  return v * scale + phase;
+}
+
+function quad(faces, verts, color, axis, scale, phase) {
+  const g = verts.map((p) => grainOf(p, axis, scale, phase));
+  const withG = verts.map((p, i) => ({ ...p, g: g[i] }));
+  // 1 = ребро 0–1, 2 = 1–2, 4 = 2–0. Диагональ квада не обводим.
+  faces.push([withG[0], withG[1], withG[2], color, 1 | 2]);
+  faces.push([withG[0], withG[2], withG[3], color, 2 | 4]);
+}
+
+function sceneFaces() {
+  const m = MODEL.meta;
+  const faces = [];
+  const phaseOf = (name) => (name.length * 17) % 30;
+
+  // пол
+  quad(faces, [
+    { x: -420, y: 0, z: -280 },
+    { x: 780, y: 0, z: -280 },
+    { x: 780, y: 0, z: m.W + 360 },
+    { x: -420, y: 0, z: m.W + 360 },
+  ], [168, 132, 86], "z", 0.05, 0);
+
+  // стена по скосу, на 6 мм за мебелью
+  const wallX = (y) => m.Dbot + (m.Dtop - m.Dbot) * y / m.H + 6;
+  const yTop = 1480;
+  quad(faces, [
+    { x: wallX(0), y: 0, z: -160 },
+    { x: wallX(0), y: 0, z: m.W + 220 },
+    { x: wallX(yTop), y: yTop, z: m.W + 220 },
+    { x: wallX(yTop), y: yTop, z: -160 },
+  ], [214, 186, 132], "y", 0.1, 3);
+
+  // выключатель справа, выше 900
+  const sz = m.W + 70;
+  quad(faces, [
+    { x: 30, y: 990, z: sz }, { x: 30, y: 1085, z: sz },
+    { x: 30, y: 1085, z: sz + 52 }, { x: 30, y: 990, z: sz + 52 },
+  ], [244, 244, 242], "y", 0.01, 0);
+  quad(faces, [
+    { x: 28, y: 1012, z: sz + 12 }, { x: 28, y: 1064, z: sz + 12 },
+    { x: 28, y: 1064, z: sz + 40 }, { x: 28, y: 1012, z: sz + 40 },
+  ], [70, 78, 84], "y", 0.01, 0);
+
+  const parts = MODEL[variant].parts;
+  for (const part of parts) {
+    const phase = phaseOf(part.name);
+    if (part.type === "box") {
+      const { x0, x1, y0, y1, z0, z1 } = part;
+      const skip = new Set(part.skip || []);
+      const facesBox = [
+        ["nx", [{ x: x0, y: y0, z: z0 }, { x: x0, y: y0, z: z1 }, { x: x0, y: y1, z: z1 }, { x: x0, y: y1, z: z0 }]],
+        ["px", [{ x: x1, y: y0, z: z1 }, { x: x1, y: y0, z: z0 }, { x: x1, y: y1, z: z0 }, { x: x1, y: y1, z: z1 }]],
+        ["ny", [{ x: x0, y: y0, z: z0 }, { x: x1, y: y0, z: z0 }, { x: x1, y: y0, z: z1 }, { x: x0, y: y0, z: z1 }]],
+        ["py", [{ x: x0, y: y1, z: z1 }, { x: x1, y: y1, z: z1 }, { x: x1, y: y1, z: z0 }, { x: x0, y: y1, z: z0 }]],
+        ["nz", [{ x: x0, y: y0, z: z0 }, { x: x0, y: y1, z: z0 }, { x: x1, y: y1, z: z0 }, { x: x1, y: y0, z: z0 }]],
+        ["pz", [{ x: x1, y: y0, z: z1 }, { x: x1, y: y1, z: z1 }, { x: x0, y: y1, z: z1 }, { x: x0, y: y0, z: z1 }]],
+      ];
+      for (const [id, v] of facesBox) {
+        if (skip.has(id)) continue;
+        quad(faces, v, part.color, part.grain, part.gscale, phase);
+      }
+    } else {
+      const prof = part.profile;
+      const n = prof.length;
+      const skipE = new Set(part.skipEdges || []);
+      for (let i = 0; i < n; i++) {
+        if (skipE.has(i)) continue;
+        const a = prof[i], b = prof[(i + 1) % n];
+        quad(faces, [
+          { x: a[0], y: a[1], z: part.z0 },
+          { x: b[0], y: b[1], z: part.z0 },
+          { x: b[0], y: b[1], z: part.z1 },
+          { x: a[0], y: a[1], z: part.z1 },
+        ], part.color, part.grain, part.gscale, phase);
+      }
+      const cap = (z, rev) => {
+        const pts = prof.map((p) => ({ x: p[0], y: p[1], z }));
+        if (rev) pts.reverse();
+        if (pts.length === 4) quad(faces, pts, part.color, part.grain, part.gscale, phase);
+      };
+      cap(part.z0, true);
+      cap(part.z1, false);
+    }
+  }
+  return faces;
+}
+
+function render(scale) {
+  const cssW = Math.max(2, canvas.clientWidth);
+  const cssH = Math.max(2, canvas.clientHeight);
+  const w = Math.round(cssW * scale);
+  const h = Math.round(cssH * scale);
+  canvas.width = w;
+  canvas.height = h;
+  const buf = new Uint8ClampedArray(w * h * 4);
+  const depth = new Float32Array(w * h);
+  depth.fill(1e9);
+  for (let y = 0; y < h; y++) {
+    const t = y / h;
+    const r = 232 - t * 18;
+    const g = 220 - t * 22;
+    const b = 204 - t * 26;
+    for (let x = 0; x < w; x++) {
+      const o = (y * w + x) * 4;
+      buf[o] = r; buf[o + 1] = g; buf[o + 2] = b; buf[o + 3] = 255;
+    }
+  }
+  const cam = cameraPos();
+  const tgt = target();
+  const edgePx = 1.35 * scale;
+  const faces = sceneFaces();
+  for (const face of faces) {
+    let proj;
+    if (face[3] && face[3].length === 3) {
+      const rgb = lit([face[0], face[1], face[2]], face[3], cam);
+      proj = [face[0], face[1], face[2]].map((p) => project(p, cam, tgt, w, h));
+      if (proj[0] && proj[1] && proj[2]) {
+        fillTri(buf, depth, w, h, proj[0], proj[1], proj[2], rgb, edgePx, face[4]);
+      }
+      continue;
+    }
+  }
+  const img = new ImageData(buf, w, h);
+  ctx2d.putImageData(img, 0, 0);
+  if (qs.get("shot")) document.body.dataset.ready = "1";
+}
+
+function renderSoon(scale) {
+  if (canvas.clientWidth < 2) {
+    requestAnimationFrame(() => renderSoon(scale));
+    return;
+  }
+  render(scale);
+}
+
+function fillPanel() {
+  const v = MODEL[variant];
+  document.getElementById("blurb").textContent = v.blurb;
+  document.getElementById("cut").innerHTML = v.cutlist.map((r) =>
+    `<tr><td>${r.pos}</td><td>${r.name}</td><td>${r.qty}</td><td>${r.size}</td></tr>`
+  ).join("");
+  document.getElementById("warn").innerHTML = MODEL.meta.warnings.map((t) => `<li>${t}</li>`).join("");
+  document.getElementById("b-shelves").classList.toggle("on", variant === "shelves");
+  document.getElementById("b-cabinet").classList.toggle("on", variant === "cabinet");
+  const mood = document.getElementById("mood");
+  mood.src = variant === "shelves" ? "viz-polki.jpg" : "viz-tumba.jpg";
+  mood.alt = variant === "shelves" ? "Эскиз полок в нише" : "Эскиз тумбы в нише";
+}
+
+function setVariant(id) {
+  variant = id;
+  fillPanel();
+  renderSoon(qs.get("shot") ? 2 : 1.5);
+}
+function setView(name) {
+  viewName = name;
+  camState = { ...PRESETS[name] };
+  renderSoon(qs.get("shot") ? 2 : 1.5);
+}
+
+document.getElementById("b-shelves").onclick = () => setVariant("shelves");
+document.getElementById("b-cabinet").onclick = () => setVariant("cabinet");
+document.querySelectorAll("[data-view]").forEach((btn) => {
+  btn.onclick = () => setView(btn.dataset.view);
+});
+
+canvas.addEventListener("pointerdown", (e) => {
+  dragging = true;
+  lastX = e.clientX; lastY = e.clientY;
+  canvas.setPointerCapture(e.pointerId);
+});
+canvas.addEventListener("pointermove", (e) => {
+  if (!dragging) return;
+  camState.yaw += (e.clientX - lastX) * 0.007;
+  camState.pitch += (e.clientY - lastY) * 0.005;
+  camState.pitch = Math.max(-0.05, Math.min(1.15, camState.pitch));
+  lastX = e.clientX; lastY = e.clientY;
+  render(1);
+});
+canvas.addEventListener("pointerup", () => { dragging = false; render(1.5); });
+canvas.addEventListener("wheel", (e) => {
+  e.preventDefault();
+  camState.dist = Math.max(900, Math.min(5200, camState.dist * Math.exp(e.deltaY * 0.001)));
+  render(1);
+  clearTimeout(wheelT);
+  wheelT = setTimeout(() => render(1.5), 140);
+}, { passive: false });
+
+if (qs.get("shot")) document.body.classList.add("shot");
+fillPanel();
+window.addEventListener("load", () => renderSoon(qs.get("shot") ? 2 : 1.5));
+renderSoon(qs.get("shot") ? 2 : 1.5);
+window.addEventListener("resize", () => renderSoon(1.5));
+</script>
+</body>
+</html>
