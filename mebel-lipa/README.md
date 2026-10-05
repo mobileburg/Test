@@ -25,10 +25,12 @@
 
 ## Онлайн
 
-- Постоянная ссылка (GitHub Pages, публикуется workflow `.github/workflows/pages.yml` после слияния в `main`):
-  https://mobileburg.github.io/Test/mebel-lipa/
-- Ссылка на текущую ветку без публикации (через CDN githack):
-  https://raw.githack.com/mobileburg/Test/cursor/mebel-lipa-3d-d57c/mebel-lipa/index.html
+- Постоянная ссылка (GitHub Pages): https://mobileburg.github.io/Test/mebel-lipa/
+  Публикуется workflow `.github/workflows/pages.yml`. Один раз нужно включить Pages в настройках репозитория
+  (Settings → Pages → Source: **GitHub Actions**), после этого деплой идёт автоматически при пуше в `main`.
+- Без публикации, напрямую из ветки (при открытии один раз подтвердить переход):
+  - https://raw.githack.com/mobileburg/Test/cursor/mebel-lipa-3d-d57c/mebel-lipa/index.html
+  - https://xn9wnj.csb.app/ (копия на CodeSandbox)
 
 ## Просмотр локально
 
