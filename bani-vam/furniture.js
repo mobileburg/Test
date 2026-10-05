@@ -92,7 +92,7 @@ function divider(x, y1 = PLINTH, y2 = H - T) {
   box(T, y2 - y1, depth, edge, x, mid, depth / 2);
 }
 
-function doorLeaf(x, y, width, height, hingeLeft) {
+function doorLeaf(x, y, width, height, hingeLeft, openAngle) {
   const pivot = new THREE.Group();
   const hingeX = x + (hingeLeft ? -width / 2 : width / 2);
   pivot.position.set(hingeX, y - height / 2, -.018);
@@ -103,8 +103,7 @@ function doorLeaf(x, y, width, height, hingeLeft) {
   knob.rotation.x = Math.PI / 2;
   knob.position.set(hingeLeft ? width - .07 : -width + .07, height / 2, -.05);
   pivot.add(knob);
-  // Обе створки должны уходить к зрителю, а не внутрь корпуса.
-  pivot.userData.open = hingeLeft ? 1.45 : -1.45;
+  pivot.userData.open = openAngle;
   furniture.add(pivot);
   doors.push(pivot);
 }
@@ -130,7 +129,12 @@ function buildFurniture() {
     if (state.variant === "commode") {
       for (let c = 0; c < 3; c++) {
         const x = -W / 2 + T + col * (c + .5);
-        doorLeaf(x, H - .025, col, H - PLINTH - .04, true);
+        const openings = [
+          { hingeLeft: true, angle: 1.3 },
+          { hingeLeft: false, angle: -.82 },
+          { hingeLeft: true, angle: .56 }
+        ];
+        doorLeaf(x, H - .025, col, H - PLINTH - .04, openings[c].hingeLeft, openings[c].angle);
       }
     }
   }
