@@ -23,7 +23,14 @@
 | `reference.jpg` | Исходное фото с замерами |
 | `render.sh` | Пакетный рендер ракурсов через headless Chrome |
 
-## Просмотр
+## Онлайн
+
+- Постоянная ссылка (GitHub Pages, публикуется workflow `.github/workflows/pages.yml` после слияния в `main`):
+  https://mobileburg.github.io/Test/mebel-lipa/
+- Ссылка на текущую ветку без публикации (через CDN githack):
+  https://raw.githack.com/mobileburg/Test/cursor/mebel-lipa-3d-d57c/mebel-lipa/index.html
+
+## Просмотр локально
 
 ```bash
 cd mebel-lipa

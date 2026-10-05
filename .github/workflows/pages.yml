@@ -1,0 +1,47 @@
+# Публикация статики репозитория на GitHub Pages.
+# После первого успешного запуска страница доступна по адресу
+#   https://mobileburg.github.io/Test/mebel-lipa/
+name: GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+        with:
+          enablement: true
+      - name: Собрать артефакт сайта
+        run: |
+          mkdir -p _site
+          cp -r mebel-lipa presentation _site/
+          cat > _site/index.html <<'EOF'
+          <!DOCTYPE html><html lang="ru"><head><meta charset="utf-8"><title>mobileburg/Test</title>
+          <style>body{font-family:sans-serif;max-width:640px;margin:60px auto;padding:0 20px;line-height:1.6}</style></head>
+          <body><h1>Проекты</h1><ul>
+          <li><a href="mebel-lipa/">Тумба из липы 129×90 — интерактивная 3D-модель</a></li>
+          <li><a href="presentation/">Презентация Битрикс24 для B2B</a></li>
+          </ul></body></html>
+          EOF
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@v4
