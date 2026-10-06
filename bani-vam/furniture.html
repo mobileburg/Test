@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Интерактивная визуализация мебели из липы для бани">
+  <title>Мебель из липы — интерактивная визуализация</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Prata&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./styles.css">
+  <script type="importmap">
+    {"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}
+  </script>
+</head>
+<body class="furniture-page">
+  <header class="site-header">
+    <a class="brand" href="./index.html"><span class="brand-mark">БВ</span><span><b>БАНИВАМ</b><small>производство бань</small></span></a>
+    <nav><a href="./index.html#catalog">Модели бань</a><a href="./index.html#viewer">3D-конфигуратор</a><a href="#" class="active">Мебель в 3D</a></nav>
+    <a class="header-phone" href="tel:+79122361974">+7 (912) 236-19-74</a>
+  </header>
+  <main class="furniture-main">
+    <aside class="furniture-panel">
+      <a class="back-link" href="./index.html">← Вернуться к каталогу</a>
+      <h1>Мебель<br>из липы</h1>
+      <p>Точная визуализация для ниши с переменной глубиной. Выберите конструкцию, покрутите модель и откройте дверцы.</p>
+      <div class="variant-list">
+        <button class="variant-button active" data-variant="cells"><i>01</i><b>Шесть ячеек</b><small>Открытое хранение · 3 × 2</small></button>
+        <button class="variant-button" data-variant="shelves"><i>02</i><b>Открытые полки</b><small>Три широких яруса</small></button>
+        <button class="variant-button" data-variant="commode"><i>03</i><b>Комод с дверцами</b><small>Три секции · внутренние полки</small></button>
+      </div>
+      <div class="measure-grid">
+        <div><b>1290</b><span>ширина, мм</span></div>
+        <div><b>900</b><span>высота, мм</span></div>
+        <div><b>220–300</b><span>глубина, мм</span></div>
+      </div>
+      <div class="furniture-actions">
+        <button id="furnitureDoors" class="small-button">Открыть дверцы</button>
+        <button id="furnitureSide" class="small-button">Показать скос</button>
+        <button id="furnitureRoom" class="small-button active">В интерьере</button>
+      </div>
+      <div class="furniture-note"><b>Почему это полезно:</b><br>клиент понимает пропорции до изготовления, сравнивает варианты и видит, как изделие встанет в конкретную нишу.</div>
+    </aside>
+    <section class="furniture-stage">
+      <div id="furnitureStage" aria-label="Интерактивная модель мебели из липы"></div>
+      <div class="stage-badge"><i></i><span>Интерактив · реальные размеры</span></div>
+      <div class="furniture-caption"><b id="furnitureTitle">Шесть ячеек</b><span id="furnitureSubtitle">Открытое хранение · 3 × 2</span></div>
+      <div class="stage-help">Вращайте мышью или пальцем · колесо — масштаб</div>
+    </section>
+  </main>
+  <script type="module" src="./furniture.js?v=6"></script>
+</body>
+</html>
