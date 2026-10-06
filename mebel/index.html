@@ -49,7 +49,7 @@
   }
   .hint { margin: 8px 2px 0; color: var(--muted); font-size: 13px; }
   .panel { padding: 18px 18px 8px; }
-  .switch { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+  .switch { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
   .switch button { border-radius: 12px; padding: 12px 10px; text-align: left; }
   .switch small { display: block; font-weight: 400; color: inherit; opacity: .8; margin-top: 4px; }
   .dims { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 8px 0 14px; }
@@ -85,7 +85,7 @@
     <div>
       <p class="eyebrow">Первое приближение · под заказ</p>
       <h1>Мебель в нишу</h1>
-      <p class="lead">Три варианта из липы в цвет стены: открытые полки, те же полки на шесть ячеек и тумба с дверками. Размеры со скрина, скос глубины уже заложен.</p>
+      <p class="lead">Четыре варианта из липы в цвет стены: открытые полки, шесть ячеек, тумба с дверками и шесть ячеек с низом под обувь. Размеры со скрина, скос глубины уже заложен.</p>
     </div>
     <div class="actions">
       <a class="btn solid" href="chertezhi.pdf">Чертёж А3, PDF</a>
@@ -122,6 +122,7 @@
         <button type="button" id="b-shelves" class="btn on">Полки<small>три открытые</small></button>
         <button type="button" id="b-cells" class="btn">6 ячеек<small>без дверок</small></button>
         <button type="button" id="b-cabinet" class="btn">Тумба<small>две дверки</small></button>
+        <button type="button" id="b-shoe" class="btn">Под обувь<small>6 ячеек, без дверок</small></button>
       </div>
       <div class="dims">
         <div><b>1290</b><span>длина, мм</span></div>
@@ -152,7 +153,7 @@ const PRESETS = {
   top:   { yaw: -0.35, pitch: 1.02, dist: 2700 },
 };
 
-let variant = ["cabinet", "cells"].includes(qs.get("v")) ? qs.get("v") : "shelves";
+let variant = ["cabinet", "cells", "shoe"].includes(qs.get("v")) ? qs.get("v") : "shelves";
 let viewName = qs.get("view") || "iso";
 let camState = { ...PRESETS[viewName] || PRESETS.iso };
 let dragging = false;
@@ -418,6 +419,7 @@ function fillPanel() {
   document.getElementById("b-shelves").classList.toggle("on", variant === "shelves");
   document.getElementById("b-cells").classList.toggle("on", variant === "cells");
   document.getElementById("b-cabinet").classList.toggle("on", variant === "cabinet");
+  document.getElementById("b-shoe").classList.toggle("on", variant === "shoe");
   const moods = {
     shelves: ["viz-polki.jpg", "Эскиз полок в нише",
       "Эскиз цвета в этой нише. Точная геометрия и размеры — на чертеже и в модели выше. Скос на фото почти не читается анфас, он задан на виде слева."],
@@ -425,6 +427,8 @@ function fillPanel() {
       "Эскиз шести ячеек в этой нише: два разделителя, три отделения, без дверок. Размеры и скос — на чертеже и в модели выше."],
     cabinet: ["viz-tumba.jpg", "Эскиз тумбы в нише",
       "Эскиз тумбы с двумя дверками. Ручки на чертеже не сверлятся. Скос глубины смотрите на виде слева."],
+    shoe: ["viz-niz-obuv-otkryto.jpg", "Шесть ячеек без дверок, низ под обувь",
+      "Нижняя полка поднята, планки нет. Под ней на полу стоят кроссовки, разделители начинаются на полке. Дверок нет. Глубина у пола 22 см, носок немного выходит за фасад."],
   };
   const mood = document.getElementById("mood");
   const [src, alt, cap] = moods[variant];
@@ -450,6 +454,7 @@ function setView(name) {
 document.getElementById("b-shelves").onclick = () => setVariant("shelves");
 document.getElementById("b-cells").onclick = () => setVariant("cells");
 document.getElementById("b-cabinet").onclick = () => setVariant("cabinet");
+document.getElementById("b-shoe").onclick = () => setVariant("shoe");
 document.querySelectorAll("[data-view]").forEach((btn) => {
   btn.onclick = () => setView(btn.dataset.view);
 });
