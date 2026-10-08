@@ -122,10 +122,10 @@
         <button type="button" id="b-shelves" class="btn on">Полки<small>три открытые</small></button>
         <button type="button" id="b-cells" class="btn">6 ячеек<small>без дверок</small></button>
         <button type="button" id="b-cabinet" class="btn">Тумба<small>две дверки</small></button>
-        <button type="button" id="b-shoe" class="btn">Под обувь<small>6 ячеек, без дверок</small></button>
+        <button type="button" id="b-shoe" class="btn">Под обувь<small>1270, щит 27</small></button>
       </div>
       <div class="dims">
-        <div><b>1290</b><span>длина, мм</span></div>
+        <div><b id="dim-length">1290</b><span>длина, мм</span></div>
         <div><b>900</b><span>высота, мм</span></div>
         <div><b>300</b><span>глубина сверху</span></div>
         <div><b>220</b><span>глубина снизу</span></div>
@@ -420,6 +420,7 @@ function fillPanel() {
   document.getElementById("b-cells").classList.toggle("on", variant === "cells");
   document.getElementById("b-cabinet").classList.toggle("on", variant === "cabinet");
   document.getElementById("b-shoe").classList.toggle("on", variant === "shoe");
+  document.getElementById("dim-length").textContent = variant === "shoe" ? "1270" : "1290";
   const moods = {
     shelves: ["viz-polki.jpg", "Эскиз полок в нише",
       "Эскиз цвета в этой нише. Точная геометрия и размеры — на чертеже и в модели выше. Скос на фото почти не читается анфас, он задан на виде слева."],

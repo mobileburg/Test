@@ -79,10 +79,15 @@ N_BAYS = 3
 CELL_W = (W - (2 + N_DIV) * T) // N_BAYS  # 406
 SHEET_COUNT = 4
 
-# Вариант 4: те же шесть ячеек без дверок, нижняя полка поднята под обувь.
-# 140 + 18 + 353 + 18 + 353 + 18 = 900
+# Вариант 4: ширина 1270, щит 27, столешница 45. Высота 900.
+# 140 + 27 + 330 + 27 + 331 + 45 = 900
+# Пролёт 1270 − 4×27 = 1162 не делится на 3: отделения 387, 388, 387.
+SHOE_W = 1270
+SHOE_T = 27
+SHOE_CAP = 45
 SHOE_CLEAR = 140
-SHOE_OPEN = (H - SHOE_CLEAR - 3 * T) // 2  # 353
+SHOE_OPEN_LO = 330
+SHOE_OPEN_HI = 331
 
 
 def vertical_members():
@@ -104,33 +109,50 @@ VERTICALS = vertical_members()
 BAYS = bay_spans()
 
 
-def shoe_layout():
-    """Нижняя полка поднята, два просвета над ней делятся поровну."""
-    levels = []
-    y = SHOE_CLEAR
-    for name in ("нижняя", "средняя", "верхняя"):
-        underside = y
-        top = y + T
-        levels.append({
-            "name": name,
-            "underside": underside,
-            "top": top,
-            "depth": cut_depth(underside, 0),
-        })
-        y = top + (SHOE_OPEN if name != "верхняя" else 0)
-    if levels[-1]["top"] != H:
-        raise SystemExit(f"Полки под обувь не сходятся в {H}: верх {levels[-1]['top']}")
-    return levels
+def shoe_verticals():
+    members = []
+    z = 0
+    for bay in (SHOE_BAY_LO, SHOE_BAY_MID, SHOE_BAY_HI):
+        members.append((z, z + SHOE_T))
+        z += SHOE_T + bay
+    members.append((z, z + SHOE_T))
+    return members
 
 
-SHOE_SHELVES = shoe_layout()
-SHOE_BOTTOM, SHOE_MIDDLE, SHOE_TOP = SHOE_SHELVES
-# Разделители стоят на нижней полке и упираются в верхнюю.
-DIV_Y0 = SHOE_BOTTOM["top"]          # 158
-DIV_Y1 = SHOE_TOP["underside"]       # 882
-DIV_H = DIV_Y1 - DIV_Y0              # 724
-DIV_D_BOT = int(math.floor(depth_at(DIV_Y0) + 1e-9))  # 234
-DIV_D_TOP = int(math.floor(depth_at(DIV_Y1) + 1e-9))  # 298
+def shoe_bays():
+    verts = shoe_verticals()
+    return [(verts[i][1], verts[i + 1][0]) for i in range(3)]
+
+
+_shoe_span = SHOE_W - 4 * SHOE_T
+SHOE_BAY_LO = _shoe_span // 3
+SHOE_BAY_MID = _shoe_span // 3 + _shoe_span % 3
+SHOE_BAY_HI = _shoe_span // 3
+SHOE_VERTS = shoe_verticals()
+SHOE_BAYS = shoe_bays()
+SHOE_INNER = SHOE_W - 2 * SHOE_T
+
+# Нижняя и средняя полки из щита 27. Столешница 45 лежит на боковинах.
+SHOE_BOTTOM = {
+    "name": "нижняя",
+    "underside": SHOE_CLEAR,
+    "top": SHOE_CLEAR + SHOE_T,
+    "depth": cut_depth(SHOE_CLEAR, 0),
+}
+SHOE_MIDDLE = {
+    "name": "средняя",
+    "underside": SHOE_BOTTOM["top"] + SHOE_OPEN_LO,
+    "top": SHOE_BOTTOM["top"] + SHOE_OPEN_LO + SHOE_T,
+    "depth": cut_depth(SHOE_BOTTOM["top"] + SHOE_OPEN_LO, 0),
+}
+SHOE_CAP_Y = SHOE_MIDDLE["top"] + SHOE_OPEN_HI
+SHOE_SIDE_H = SHOE_CAP_Y
+SHOE_SIDE_D_TOP = int(math.floor(depth_at(SHOE_SIDE_H) + 1e-9))
+DIV_Y0 = SHOE_BOTTOM["top"]
+DIV_Y1 = SHOE_CAP_Y
+DIV_H = DIV_Y1 - DIV_Y0
+DIV_D_BOT = int(math.floor(depth_at(DIV_Y0) + 1e-9))
+DIV_D_TOP = SHOE_SIDE_D_TOP
 
 # Тумба: крышка накладная, дверки накладные, корпус утоплен на толщину дверки.
 SIDE_H = H - CAP_T                     # 882
@@ -165,12 +187,15 @@ def _check():
     assert (2 + N_DIV) * T + N_BAYS * CELL_W == W
     assert VERTICALS == [(0, 18), (424, 442), (848, 866), (1272, 1290)]
     assert BAYS == [(18, 424), (442, 848), (866, 1272)]
-    assert SHOE_OPEN == 353
-    assert SHOE_CLEAR + 3 * T + 2 * SHOE_OPEN == H
-    assert [s["underside"] for s in SHOE_SHELVES] == [140, 511, 882]
-    assert [s["top"] for s in SHOE_SHELVES] == [158, 529, 900]
-    assert [s["depth"] for s in SHOE_SHELVES] == [232, 265, 298]
-    assert DIV_H == 724 and DIV_D_BOT == 234 and DIV_D_TOP == 298
+    assert SHOE_CLEAR + SHOE_T + SHOE_OPEN_LO + SHOE_T + SHOE_OPEN_HI + SHOE_CAP == H
+    assert SHOE_BAY_LO + SHOE_BAY_MID + SHOE_BAY_HI + 4 * SHOE_T == SHOE_W
+    assert SHOE_BAYS == [(27, 414), (441, 829), (856, 1243)]
+    assert SHOE_VERTS == [(0, 27), (414, 441), (829, 856), (1243, 1270)]
+    assert SHOE_BOTTOM["top"] == 167 and SHOE_BOTTOM["depth"] == 232
+    assert SHOE_MIDDLE["underside"] == 497 and SHOE_MIDDLE["top"] == 524 and SHOE_MIDDLE["depth"] == 264
+    assert SHOE_CAP_Y == 855 and SHOE_SIDE_D_TOP == 296
+    assert DIV_H == 688 and DIV_D_BOT == 234 and DIV_D_TOP == 296
+    assert SHOE_INNER == 1216
 
 
 _check()
@@ -336,7 +361,9 @@ def td(depth: float) -> float:
     return TY + depth * S
 
 
-def frame(sh: Sheet, title: str, sheet_no: int, date: str = "05.10.2026"):
+def frame(sh: Sheet, title: str, sheet_no: int, date: str = "05.10.2026",
+         fine: str = "Первое приближение: заказчик уточняет размеры. Толщина щита 18 мм — принятая.",
+         rev: str = "рев. 0"):
     sh.rect(8, 8, 404, 282, fill="#fff", sw=0.55, color="#222")
     sh.line(8, FOOT, 412, FOOT, sw=0.35)
     sh.line(268, FOOT, 268, 290, sw=0.2, color="#888")
@@ -344,8 +371,7 @@ def frame(sh: Sheet, title: str, sheet_no: int, date: str = "05.10.2026"):
     sh.text(12, FOOT + 6.2, title, size=3.5, anchor="start", weight="700")
     sh.text(12, FOOT + 11.2, "Чертёж для производства  ·  масштаб 1:6  ·  размеры в миллиметрах",
             size=2.25, anchor="start", color="#333")
-    sh.text(12, FOOT + 16.0, "Первое приближение: заказчик уточняет размеры. Толщина щита 18 мм — принятая.",
-            size=2.25, anchor="start", color="#333")
+    sh.text(12, FOOT + 16.0, fine, size=2.25, anchor="start", color="#333")
     sh.text(12, FOOT + 20.6, "Кромки шлифовать, без кромки ПВХ. Крепёж скрытый, шканты Ø8×30.",
             size=2.25, anchor="start", color="#333")
     sh.text(274, FOOT + 6.5, "Материал", size=2.1, anchor="start", color="#666")
@@ -355,7 +381,7 @@ def frame(sh: Sheet, title: str, sheet_no: int, date: str = "05.10.2026"):
     sh.text(354, FOOT + 6.5, "Лист", size=2.1, anchor="start", color="#666")
     sh.text(354, FOOT + 12.0, f"{sheet_no}  /  {SHEET_COUNT}", size=3.3, anchor="start", weight="700")
     sh.text(354, FOOT + 17.2, date, size=2.4, anchor="start")
-    sh.text(354, FOOT + 21.4, "рев. 0", size=2.15, anchor="start", color="#555")
+    sh.text(354, FOOT + 21.4, rev, size=2.15, anchor="start", color="#555")
 
 
 def note_box(sh: Sheet, lines: list[str]) -> None:
@@ -724,44 +750,61 @@ def sheet_cells() -> Sheet:
 
 
 def shoe_segments():
-    rows = []
-    y = 0
-    rows.append((0, SHOE_CLEAR, str(SHOE_CLEAR)))
-    for s in SHOE_SHELVES:
-        rows.append((s["underside"], s["top"], str(T)))
-        if s["name"] != "верхняя":
-            rows.append((s["top"], s["top"] + SHOE_OPEN, str(SHOE_OPEN)))
-    return rows
+    b = SHOE_BOTTOM
+    m = SHOE_MIDDLE
+    return [
+        (0, SHOE_CLEAR, str(SHOE_CLEAR)),
+        (b["underside"], b["top"], str(SHOE_T)),
+        (b["top"], m["underside"], str(SHOE_OPEN_LO)),
+        (m["underside"], m["top"], str(SHOE_T)),
+        (m["top"], SHOE_CAP_Y, str(SHOE_OPEN_HI)),
+        (SHOE_CAP_Y, H, str(SHOE_CAP)),
+    ]
 
 
 def draw_front_shoe(sh: Sheet):
     sh.text(FX, 16, "Вид спереди", size=2.8, anchor="start", weight="700")
-    for z0, z1 in (VERTICALS[0], VERTICALS[-1]):
-        sh.rect(fz(z0), fy(H), (z1 - z0) * S, H * S, fill=WOOD, sw=0.4)
-    for z0, z1 in VERTICALS[1:-1]:
+    sh.rect(fz(0), fy(H), SHOE_W * S, SHOE_CAP * S, fill="#e7d3a4", sw=0.45)
+    for z0, z1 in (SHOE_VERTS[0], SHOE_VERTS[-1]):
+        sh.rect(fz(z0), fy(SHOE_SIDE_H), (z1 - z0) * S, SHOE_SIDE_H * S, fill=WOOD, sw=0.4)
+    for z0, z1 in SHOE_VERTS[1:-1]:
         sh.rect(fz(z0), fy(DIV_Y1), (z1 - z0) * S, DIV_H * S, fill=WOOD, sw=0.4)
-    sh.rect(fz(T), fy(SHOE_BOTTOM["top"]), INNER_W * S, T * S, fill=WOOD2, sw=0.32)
-    for a, b in BAYS:
-        sh.rect(fz(a), fy(SHOE_MIDDLE["top"]), (b - a) * S, T * S, fill=WOOD2, sw=0.32)
-    sh.rect(fz(T), fy(SHOE_TOP["top"]), INNER_W * S, T * S, fill=WOOD2, sw=0.32)
+    sh.rect(fz(SHOE_T), fy(SHOE_BOTTOM["top"]), SHOE_INNER * S, SHOE_T * S, fill=WOOD2, sw=0.32)
+    for a, b in SHOE_BAYS:
+        sh.rect(fz(a), fy(SHOE_MIDDLE["top"]), (b - a) * S, SHOE_T * S, fill=WOOD2, sw=0.32)
     for y0, y1, label in shoe_segments():
         sh.dim_v(fy(y1), fy(y0), FX - 12, label, obj_x=FX)
     sh.dim_v(fy(H), fy(0), FX - 24, "900", obj_x=FX)
-    for a, b in BAYS:
-        sh.dim_h(fz(a), fz(b), FL + 8, str(CELL_W), obj_y=FL)
-    sh.dim_h(fz(0), fz(W), FL + 17, "1290", obj_y=FL)
-    for z0, z1 in VERTICALS:
-        sh.text(fz((z0 + z1) / 2), FL + 3.8, "18", size=2.0, anchor="middle", halo=True, rotate=-90)
-    mid = (BAYS[1][0] + BAYS[1][1]) / 2
+    for (a, b), width in zip(SHOE_BAYS, (SHOE_BAY_LO, SHOE_BAY_MID, SHOE_BAY_HI)):
+        sh.dim_h(fz(a), fz(b), FL + 8, str(width), obj_y=FL)
+    sh.dim_h(fz(0), fz(SHOE_W), FL + 17, str(SHOE_W), obj_y=FL)
+    for z0, z1 in SHOE_VERTS:
+        sh.text(fz((z0 + z1) / 2), FL + 3.8, str(SHOE_T), size=2.0, anchor="middle", halo=True, rotate=-90)
+    mid = (SHOE_BAYS[1][0] + SHOE_BAYS[1][1]) / 2
     sh.text(fz(mid), fy(SHOE_CLEAR / 2), "обувь на полу", size=2.15, color="#555", halo=True)
-    sh.text(fz(mid), fy(SHOE_BOTTOM["top"] + SHOE_OPEN / 2), "просвет 353", size=2.15, color="#555", halo=True)
-    sh.text(fz(mid), fy(SHOE_MIDDLE["top"] + SHOE_OPEN / 2), "просвет 353", size=2.15, color="#555", halo=True)
+    sh.text(fz(mid), fy((SHOE_BOTTOM["top"] + SHOE_MIDDLE["underside"]) / 2), f"просвет {SHOE_OPEN_LO}",
+            size=2.15, color="#555", halo=True)
+    sh.text(fz(mid), fy((SHOE_MIDDLE["top"] + SHOE_CAP_Y) / 2), f"просвет {SHOE_OPEN_HI}",
+            size=2.15, color="#555", halo=True)
+    sh.text(fz(SHOE_W) - 2, fy(H) - 2.4, "столешница 45", size=2.15, anchor="end", halo=True)
 
 
 def draw_side_shoe(sh: Sheet):
-    pts = [(sx(x), sy(y)) for x, y in ((0, 0), (D_BOT, 0), (D_TOP, H), (0, H))]
-    sh.poly(pts, fill=WOOD, sw=0.55)
-    for s in SHOE_SHELVES:
+    side = [
+        (sx(0), sy(0)),
+        (sx(D_BOT), sy(0)),
+        (sx(SHOE_SIDE_D_TOP), sy(SHOE_SIDE_H)),
+        (sx(0), sy(SHOE_SIDE_H)),
+    ]
+    sh.poly(side, fill=WOOD, sw=0.45)
+    cap = [
+        (sx(0), sy(SHOE_CAP_Y)),
+        (sx(D_TOP), sy(SHOE_CAP_Y)),
+        (sx(D_TOP), sy(H)),
+        (sx(0), sy(H)),
+    ]
+    sh.poly(cap, fill="#e7d3a4", sw=0.45)
+    for s in (SHOE_BOTTOM, SHOE_MIDDLE):
         poly = [
             (sx(0), sy(s["underside"])),
             (sx(s["depth"]), sy(s["underside"])),
@@ -776,27 +819,27 @@ def draw_side_shoe(sh: Sheet):
         (sx(0), sy(DIV_Y1)),
     ]
     sh.poly(div, fill="none", sw=0.22, color="#6a6258", dash="1.4,0.9")
-    sh.poly(pts, fill="none", sw=0.55)
-    sh.line(sx(PROTRUSION), sy(0), sx(PROTRUSION), sy(H), sw=0.25, color=BLUE, dash="1.8,1.1")
-    sh.dim_h(sx(0), sx(PROTRUSION), sy(120), "40", blue=True)
-    sh.text(sx(PROTRUSION) + 1.5, sy(150), "проём", size=2.15, anchor="start", color=BLUE, rotate=-90)
+    sh.line(sx(PROTRUSION), sy(30), sx(PROTRUSION), sy(H - 30), sw=0.25, color=BLUE, dash="1.8,1.1")
+    sh.dim_h(sx(0), sx(PROTRUSION), sy(80), "40", blue=True)
+    sh.text(sx(PROTRUSION) + 1.5, sy(110), "проём", size=2.15, anchor="start", color=BLUE, rotate=-90)
     sh.dim_h(sx(0), sx(D_TOP), sy(H) - 7, "300", obj_y=sy(H))
     sh.dim_h(sx(0), sx(D_BOT), FL + 8, "220", obj_y=FL)
-    sh.text((sx(0) + sx(D_TOP)) / 2, FL + 16, "Вид слева: боковина", size=2.2, anchor="middle", color="#444")
-    sh.text(sx(40), sy(SHOE_BOTTOM["top"] + 16), f"низ {SHOE_BOTTOM['depth']}", size=2.05, anchor="start", halo=True)
-    sh.text(sx(40), sy(SHOE_MIDDLE["top"] + 16), f"середина {SHOE_MIDDLE['depth']}", size=2.05, anchor="start", halo=True)
+    sh.text((sx(0) + sx(D_TOP)) / 2, FL + 16, "Вид слева", size=2.2, anchor="middle", color="#444")
+    sh.text(sx(36), sy(SHOE_BOTTOM["top"] + 22), f"низ {SHOE_BOTTOM['depth']}", size=2.05, anchor="start", halo=True)
+    sh.text(sx(36), sy(SHOE_MIDDLE["top"] + 22), f"середина {SHOE_MIDDLE['depth']}", size=2.05, anchor="start", halo=True)
+    sh.text(sx(8), sy(SHOE_CAP_Y + SHOE_CAP / 2), "45", size=2.15, anchor="start", halo=True)
 
 
 def draw_top_shoe(sh: Sheet):
-    sh.text(TX, TY - 3.2, "Вид сверху  ·  перед сверху", size=2.5, anchor="start", weight="700")
-    sh.rect(tz(0), td(0), T * S, D_TOP * S, fill=WOOD, sw=0.3)
-    sh.rect(tz(W - T), td(0), T * S, D_TOP * S, fill=WOOD, sw=0.3)
-    sh.rect(tz(T), td(0), INNER_W * S, SHOE_TOP["depth"] * S, fill=WOOD2, sw=0.3)
-    for s in (SHOE_MIDDLE, SHOE_BOTTOM):
-        sh.line(tz(T), td(s["depth"]), tz(W - T), td(s["depth"]), sw=0.2, color="#6a6258", dash="1.6,1")
-        sh.text(tz(W - T) - 1.2, td(s["depth"]) - 0.8, str(s["depth"]),
+    sh.text(TX, TY - 3.2, "Вид сверху  ·  по столешнице, перед сверху", size=2.5, anchor="start", weight="700")
+    sh.rect(tz(0), td(0), SHOE_W * S, D_TOP * S, fill="#e7d3a4", sw=0.4)
+    sh.line(tz(SHOE_T), td(0), tz(SHOE_T), td(SHOE_SIDE_D_TOP), sw=0.18, color="#6a6258", dash="1.4,1")
+    sh.line(tz(SHOE_W - SHOE_T), td(0), tz(SHOE_W - SHOE_T), td(SHOE_SIDE_D_TOP), sw=0.18, color="#6a6258", dash="1.4,1")
+    for s, label in ((SHOE_MIDDLE, str(SHOE_MIDDLE["depth"])), (SHOE_BOTTOM, str(SHOE_BOTTOM["depth"]))):
+        sh.line(tz(SHOE_T), td(s["depth"]), tz(SHOE_W - SHOE_T), td(s["depth"]), sw=0.2, color="#6a6258", dash="1.6,1")
+        sh.text(tz(SHOE_W - SHOE_T) - 1.2, td(s["depth"]) - 0.8, label,
                 size=2.1, anchor="end", color="#4a433c", halo=True)
-    sh.line(tz(0), td(PROTRUSION), tz(W), td(PROTRUSION), sw=0.25, color=BLUE, dash="1.8,1.1")
+    sh.line(tz(0), td(PROTRUSION), tz(SHOE_W), td(PROTRUSION), sw=0.25, color=BLUE, dash="1.8,1.1")
     sh.text(tz(8), td(PROTRUSION) + 3.1, "40 — проём двери", size=2.15, anchor="start", color=BLUE)
     sh.dim_v(td(0), td(D_TOP), TX - 24, "300", obj_x=TX)
     sh.text(tz(4), td(6), "перед", size=2.0, anchor="start", color="#7a7268")
@@ -805,39 +848,59 @@ def draw_top_shoe(sh: Sheet):
 
 def shoe_rows():
     return [
-        ("1", "Боковина, трапеция", "2", f"900 × 220…300 × {T}"),
-        ("2", f"Полка нижняя, верх {SHOE_BOTTOM['top']}", "1", f"{INNER_W} × {SHOE_BOTTOM['depth']} × {T}"),
-        ("3", "Разделитель, от полки до верха", "2", f"{DIV_H} × {DIV_D_BOT}…{DIV_D_TOP} × {T}"),
-        ("4", f"Полка средняя, верх {SHOE_MIDDLE['top']}", str(N_BAYS), f"{CELL_W} × {SHOE_MIDDLE['depth']} × {T}"),
-        ("5", f"Полка верхняя, верх {SHOE_TOP['top']}", "1", f"{INNER_W} × {SHOE_TOP['depth']} × {T}"),
+        ("1", "Боковина, трапеция", "2", f"{SHOE_SIDE_H} × 220…{SHOE_SIDE_D_TOP} × {SHOE_T}"),
+        ("2", "Столешница накладная", "1", f"{SHOE_W} × {D_TOP} × {SHOE_CAP}"),
+        ("3", f"Полка нижняя, верх {SHOE_BOTTOM['top']}", "1", f"{SHOE_INNER} × {SHOE_BOTTOM['depth']} × {SHOE_T}"),
+        ("4", "Разделитель, на нижней полке", "2", f"{DIV_H} × {DIV_D_BOT}…{DIV_D_TOP} × {SHOE_T}"),
+        ("5", f"Полка средняя, край, верх {SHOE_MIDDLE['top']}", "2", f"{SHOE_BAY_LO} × {SHOE_MIDDLE['depth']} × {SHOE_T}"),
+        ("6", f"Полка средняя, центр, верх {SHOE_MIDDLE['top']}", "1", f"{SHOE_BAY_MID} × {SHOE_MIDDLE['depth']} × {SHOE_T}"),
     ]
 
 
 def sheet_shoe() -> Sheet:
     sh = Sheet("d")
-    frame(sh, "ВАРИАНТ 4  ·  6 ЯЧЕЕК, НИЗ ПОД ОБУВЬ", 4, date="06.10.2026")
+    frame(
+        sh, "ВАРИАНТ 4  ·  6 ЯЧЕЕК, НИЗ ПОД ОБУВЬ", 4, date="08.10.2026",
+        fine="Ширина 1270 мм. Щит 27 мм, столешница 45 мм. Листы 1–3 остаются 1290 × 18.",
+        rev="рев. 1",
+    )
     draw_front_shoe(sh)
     draw_side_shoe(sh)
     draw_top_shoe(sh)
-    note_box(sh, common_notes() + [
+    note_box(sh, [
+        "*ГАБАРИТ",
+        "1270 × 900 мм",
+        "глубина верх 300",
+        "глубина низ 220",
+        "",
+        "*МАТЕРИАЛ",
+        "щит 27 мм",
+        "столешница 45 мм",
+        "накладная, на",
+        "боковины.",
+        "",
+        "*ВЫСТУП 40 мм",
+        "уже входит в 300",
+        "и в 220.",
         "",
         "*БЕЗ ДВЕРОК",
-        "Планки снизу нет.",
-        "Полка, верх 158:",
-        "до пола 140 мм.",
-        "Разделители стоят",
-        "на этой полке,",
-        "под ней пролёт",
-        "свободный, 1254.",
-        "Ячейки над полкой",
-        "по 353 мм.",
-        "Глубина у пола 220,",
-        "кроссовок ~260 мм",
+        "До полки 140 мм.",
+        "Пролёт под ней",
+        "1216 мм.",
+        "Ячейки 387, 388",
+        "и 387: 1162",
+        "не делится на 3.",
+        "Просветы 330 и 331,",
+        "чтобы сойтись",
+        "в 900 при крышке 45.",
+        "Кроссовок ~260 мм",
         "выходит носком.",
+        "Зад крышки подрезать:",
+        "низ крышки на 296.",
     ])
     y = table(sh, SX, 198, 130, shoe_rows())
-    sh.text(SX, min(y + 4.2, 262), "Задний скос разделителя тот же, что у боковины. Свес с полки около 2 мм — в подгонку.",
-            size=2.05, anchor="start", color="#444")
+    sh.text(SX, min(y + 4.2, 262), "Разделитель 234…296 стоит на полке 232. Свес сзади около 2 мм — в подгонку по стене.",
+            size=2.0, anchor="start", color="#444")
     return sh
 
 
@@ -944,20 +1007,21 @@ def build_model() -> dict:
                 box(f"Полка {s['name']} {n}", 0, s["depth"], s["underside"], s["top"], a, b,
                     role, "z", skip)
             )
+    side_profile = [[0, 0], [D_BOT, 0], [SHOE_SIDE_D_TOP, SHOE_SIDE_H], [0, SHOE_SIDE_H]]
     div_profile = [[0, DIV_Y0], [DIV_D_BOT, DIV_Y0], [DIV_D_TOP, DIV_Y1], [0, DIV_Y1]]
     shoe_parts = [
-        prism("Боковина левая", profile, 0, T, "side", "y", [0]),
-        prism("Боковина правая", profile, W - T, W, "side", "y", [0]),
+        prism("Боковина левая", side_profile, 0, SHOE_T, "side", "y", [0]),
+        prism("Боковина правая", side_profile, SHOE_W - SHOE_T, SHOE_W, "side", "y", [0]),
+        box("Столешница", 0, D_TOP, SHOE_CAP_Y, H, 0, SHOE_W, "top", "z", ["ny"]),
         box("Полка нижняя", 0, SHOE_BOTTOM["depth"], SHOE_BOTTOM["underside"], SHOE_BOTTOM["top"],
-            T, W - T, "bottom", "z", ["nz", "pz"]),
-        prism("Разделитель левый", div_profile, VERTICALS[1][0], VERTICALS[1][1], "side", "y", [0]),
-        prism("Разделитель правый", div_profile, VERTICALS[2][0], VERTICALS[2][1], "side", "y", [0]),
-        box("Полка верхняя", 0, SHOE_TOP["depth"], SHOE_TOP["underside"], SHOE_TOP["top"],
-            T, W - T, "top", "z", ["nz", "pz"]),
+            SHOE_T, SHOE_W - SHOE_T, "bottom", "z", ["nz", "pz"]),
+        prism("Разделитель левый", div_profile, SHOE_VERTS[1][0], SHOE_VERTS[1][1], "side", "y", [0]),
+        prism("Разделитель правый", div_profile, SHOE_VERTS[2][0], SHOE_VERTS[2][1], "side", "y", [0]),
     ]
-    for n, (a, b) in enumerate(BAYS, start=1):
+    bay_names = ("левая", "центральная", "правая")
+    for name, (a, b) in zip(bay_names, SHOE_BAYS):
         shoe_parts.append(
-            box(f"Полка средняя {n}", 0, SHOE_MIDDLE["depth"], SHOE_MIDDLE["underside"], SHOE_MIDDLE["top"],
+            box(f"Полка средняя {name}", 0, SHOE_MIDDLE["depth"], SHOE_MIDDLE["underside"], SHOE_MIDDLE["top"],
                 a, b, "shelf", "z", ["nz", "pz"])
         )
     warnings = [
@@ -999,7 +1063,7 @@ def build_model() -> dict:
             "id": "shoe",
             "title": "Шесть ячеек, низ под обувь",
             "subtitle": "Без дверок, полка поднята",
-            "blurb": "Нижняя полка поднята: от пола до полки 140 мм, планки нет. Разделители стоят на этой полке, под ней свободный пролёт на всю длину. Два ряда ячеек по 353 мм. Дверок нет. Глубина у пола 220 мм, кроссовок около 260 мм выходит носком за фасад.",
+            "blurb": "Ширина 1270 мм. Щит 27 мм, столешница накладная 45 мм. Нижняя полка поднята: 140 мм до полки, планки нет, разделители стоят на ней. Отделения 387, 388 и 387 мм, просветы 330 и 331 мм. Дверок нет. Глубина у пола 220 мм, кроссовок около 260 мм выходит носком.",
             "cutlist": [{"pos": a, "name": b, "qty": c, "size": d} for a, b, c, d in shoe_rows()],
             "parts": shoe_parts,
         },
