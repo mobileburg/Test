@@ -123,6 +123,7 @@
         <button type="button" id="b-cells" class="btn">6 ячеек<small>без дверок</small></button>
         <button type="button" id="b-cabinet" class="btn">Тумба<small>две дверки</small></button>
         <button type="button" id="b-shoe" class="btn">Под обувь<small>1270, щит 27</small></button>
+        <button type="button" id="b-lip" class="btn">Вынос 40<small>столешница вперёд</small></button>
       </div>
       <div class="dims">
         <div><b id="dim-length">1290</b><span>длина, мм</span></div>
@@ -153,7 +154,7 @@ const PRESETS = {
   top:   { yaw: -0.35, pitch: 1.02, dist: 2700 },
 };
 
-let variant = ["cabinet", "cells", "shoe"].includes(qs.get("v")) ? qs.get("v") : "shelves";
+let variant = ["cabinet", "cells", "shoe", "lip"].includes(qs.get("v")) ? qs.get("v") : "shelves";
 let viewName = qs.get("view") || "iso";
 let camState = { ...PRESETS[viewName] || PRESETS.iso };
 let dragging = false;
@@ -420,7 +421,8 @@ function fillPanel() {
   document.getElementById("b-cells").classList.toggle("on", variant === "cells");
   document.getElementById("b-cabinet").classList.toggle("on", variant === "cabinet");
   document.getElementById("b-shoe").classList.toggle("on", variant === "shoe");
-  document.getElementById("dim-length").textContent = variant === "shoe" ? "1270" : "1290";
+  document.getElementById("b-lip").classList.toggle("on", variant === "lip");
+  document.getElementById("dim-length").textContent = variant === "shoe" || variant === "lip" ? "1270" : "1290";
   const moods = {
     shelves: ["viz-polki.jpg", "Эскиз полок в нише",
       "Эскиз цвета в этой нише. Точная геометрия и размеры — на чертеже и в модели выше. Скос на фото почти не читается анфас, он задан на виде слева."],
@@ -430,6 +432,8 @@ function fillPanel() {
       "Эскиз тумбы с двумя дверками. Ручки на чертеже не сверлятся. Скос глубины смотрите на виде слева."],
     shoe: ["viz-niz-obuv-otkryto.jpg", "Шесть ячеек без дверок, низ под обувь",
       "Нижняя полка поднята, планки нет. Под ней на полу стоят кроссовки, разделители начинаются на полке. Дверок нет. Глубина у пола 22 см, носок немного выходит за фасад."],
+    lip: ["viz-niz-obuv-vynos.jpg", "Столешница с выносом 40 мм",
+      "Та же тумба, столешница выступает на 4 см вперёд фасада. Корпус на месте: сверху 30 см, снизу 22 см."],
   };
   const mood = document.getElementById("mood");
   const [src, alt, cap] = moods[variant];
@@ -456,6 +460,7 @@ document.getElementById("b-shelves").onclick = () => setVariant("shelves");
 document.getElementById("b-cells").onclick = () => setVariant("cells");
 document.getElementById("b-cabinet").onclick = () => setVariant("cabinet");
 document.getElementById("b-shoe").onclick = () => setVariant("shoe");
+document.getElementById("b-lip").onclick = () => setVariant("lip");
 document.querySelectorAll("[data-view]").forEach((btn) => {
   btn.onclick = () => setView(btn.dataset.view);
 });

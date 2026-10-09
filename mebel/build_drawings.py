@@ -77,7 +77,8 @@ INNER_W = W - 2 * T
 N_DIV = 2
 N_BAYS = 3
 CELL_W = (W - (2 + N_DIV) * T) // N_BAYS  # 406
-SHEET_COUNT = 4
+SHEET_COUNT = 5
+SHOE_LIP = 40  # вынос столешницы вперёд, отдельно от выступа проёма
 
 # Вариант 4: ширина 1270, щит 27, столешница 45. Высота 900.
 # 140 + 27 + 330 + 27 + 331 + 45 = 900
@@ -762,7 +763,7 @@ def shoe_segments():
     ]
 
 
-def draw_front_shoe(sh: Sheet):
+def draw_front_shoe(sh: Sheet, lip: int = 0):
     sh.text(FX, 16, "Вид спереди", size=2.8, anchor="start", weight="700")
     sh.rect(fz(0), fy(H), SHOE_W * S, SHOE_CAP * S, fill="#e7d3a4", sw=0.45)
     for z0, z1 in (SHOE_VERTS[0], SHOE_VERTS[-1]):
@@ -786,10 +787,11 @@ def draw_front_shoe(sh: Sheet):
             size=2.15, color="#555", halo=True)
     sh.text(fz(mid), fy((SHOE_MIDDLE["top"] + SHOE_CAP_Y) / 2), f"просвет {SHOE_OPEN_HI}",
             size=2.15, color="#555", halo=True)
-    sh.text(fz(SHOE_W) - 2, fy(H) - 2.4, "столешница 45", size=2.15, anchor="end", halo=True)
+    cap_note = "столешница 45" if not lip else "столешница 45, вынос 40"
+    sh.text(fz(SHOE_W) - 2, fy(H) - 2.4, cap_note, size=2.15, anchor="end", halo=True)
 
 
-def draw_side_shoe(sh: Sheet):
+def draw_side_shoe(sh: Sheet, lip: int = 0):
     side = [
         (sx(0), sy(0)),
         (sx(D_BOT), sy(0)),
@@ -798,10 +800,10 @@ def draw_side_shoe(sh: Sheet):
     ]
     sh.poly(side, fill=WOOD, sw=0.45)
     cap = [
-        (sx(0), sy(SHOE_CAP_Y)),
+        (sx(-lip), sy(SHOE_CAP_Y)),
         (sx(D_TOP), sy(SHOE_CAP_Y)),
         (sx(D_TOP), sy(H)),
-        (sx(0), sy(H)),
+        (sx(-lip), sy(H)),
     ]
     sh.poly(cap, fill="#e7d3a4", sw=0.45)
     for s in (SHOE_BOTTOM, SHOE_MIDDLE):
@@ -823,6 +825,9 @@ def draw_side_shoe(sh: Sheet):
     sh.dim_h(sx(0), sx(PROTRUSION), sy(80), "40", blue=True)
     sh.text(sx(PROTRUSION) + 1.5, sy(110), "проём", size=2.15, anchor="start", color=BLUE, rotate=-90)
     sh.dim_h(sx(0), sx(D_TOP), sy(H) - 7, "300", obj_y=sy(H))
+    if lip:
+        sh.dim_h(sx(-lip), sx(0), sy(SHOE_CAP_Y) - 4, str(lip), obj_y=sy(SHOE_CAP_Y))
+        sh.text(sx(-lip / 2), sy(SHOE_CAP_Y) - 8.2, "вынос", size=2.05, anchor="middle", halo=True)
     sh.dim_h(sx(0), sx(D_BOT), FL + 8, "220", obj_y=FL)
     sh.text((sx(0) + sx(D_TOP)) / 2, FL + 16, "Вид слева", size=2.2, anchor="middle", color="#444")
     sh.text(sx(36), sy(SHOE_BOTTOM["top"] + 22), f"низ {SHOE_BOTTOM['depth']}", size=2.05, anchor="start", halo=True)
@@ -830,9 +835,12 @@ def draw_side_shoe(sh: Sheet):
     sh.text(sx(8), sy(SHOE_CAP_Y + SHOE_CAP / 2), "45", size=2.15, anchor="start", halo=True)
 
 
-def draw_top_shoe(sh: Sheet):
-    sh.text(TX, TY - 3.2, "Вид сверху  ·  по столешнице, перед сверху", size=2.5, anchor="start", weight="700")
-    sh.rect(tz(0), td(0), SHOE_W * S, D_TOP * S, fill="#e7d3a4", sw=0.4)
+def draw_top_shoe(sh: Sheet, lip: int = 0):
+    sh.text(TX, td(-lip) - 3.4, "Вид сверху  ·  по столешнице, перед сверху", size=2.5, anchor="start", weight="700")
+    sh.rect(tz(0), td(-lip), SHOE_W * S, (D_TOP + lip) * S, fill="#e7d3a4", sw=0.4)
+    if lip:
+        sh.line(tz(0), td(0), tz(SHOE_W), td(0), sw=0.22, color="#6a6258", dash="1.4,0.9")
+        sh.text(tz(SHOE_W) - 1.2, td(-lip / 2), "вынос 40", size=2.05, anchor="end", halo=True)
     sh.line(tz(SHOE_T), td(0), tz(SHOE_T), td(SHOE_SIDE_D_TOP), sw=0.18, color="#6a6258", dash="1.4,1")
     sh.line(tz(SHOE_W - SHOE_T), td(0), tz(SHOE_W - SHOE_T), td(SHOE_SIDE_D_TOP), sw=0.18, color="#6a6258", dash="1.4,1")
     for s, label in ((SHOE_MIDDLE, str(SHOE_MIDDLE["depth"])), (SHOE_BOTTOM, str(SHOE_BOTTOM["depth"]))):
@@ -841,15 +849,16 @@ def draw_top_shoe(sh: Sheet):
                 size=2.1, anchor="end", color="#4a433c", halo=True)
     sh.line(tz(0), td(PROTRUSION), tz(SHOE_W), td(PROTRUSION), sw=0.25, color=BLUE, dash="1.8,1.1")
     sh.text(tz(8), td(PROTRUSION) + 3.1, "40 — проём двери", size=2.15, anchor="start", color=BLUE)
-    sh.dim_v(td(0), td(D_TOP), TX - 24, "300", obj_x=TX)
-    sh.text(tz(4), td(6), "перед", size=2.0, anchor="start", color="#7a7268")
+    sh.dim_v(td(-lip), td(D_TOP), TX - 24, str(D_TOP + lip), obj_x=TX)
+    sh.text(tz(4), td(6 if not lip else -lip + 4), "перед", size=2.0, anchor="start", color="#7a7268")
     sh.text(tz(4), td(D_TOP) - 1.5, "зад", size=2.0, anchor="start", color="#7a7268")
 
 
-def shoe_rows():
+def shoe_rows(lip: int = 0):
+    cap_name = "Столешница накладная" if not lip else f"Столешница, вынос {lip}"
     return [
         ("1", "Боковина, трапеция", "2", f"{SHOE_SIDE_H} × 220…{SHOE_SIDE_D_TOP} × {SHOE_T}"),
-        ("2", "Столешница накладная", "1", f"{SHOE_W} × {D_TOP} × {SHOE_CAP}"),
+        ("2", cap_name, "1", f"{SHOE_W} × {D_TOP + lip} × {SHOE_CAP}"),
         ("3", f"Полка нижняя, верх {SHOE_BOTTOM['top']}", "1", f"{SHOE_INNER} × {SHOE_BOTTOM['depth']} × {SHOE_T}"),
         ("4", "Разделитель, на нижней полке", "2", f"{DIV_H} × {DIV_D_BOT}…{DIV_D_TOP} × {SHOE_T}"),
         ("5", f"Полка средняя, край, верх {SHOE_MIDDLE['top']}", "2", f"{SHOE_BAY_LO} × {SHOE_MIDDLE['depth']} × {SHOE_T}"),
@@ -904,13 +913,58 @@ def sheet_shoe() -> Sheet:
     return sh
 
 
+def sheet_lip() -> Sheet:
+    sh = Sheet("e")
+    frame(
+        sh, "ВАРИАНТ 5  ·  СТОЛЕШНИЦА С ВЫНОСОМ 40", 5, date="09.10.2026",
+        fine="Как лист 4, но столешница выходит на 40 мм вперёд фасада. Это не выступ проёма двери.",
+        rev="рев. 0",
+    )
+    draw_front_shoe(sh, SHOE_LIP)
+    draw_side_shoe(sh, SHOE_LIP)
+    draw_top_shoe(sh, SHOE_LIP)
+    note_box(sh, [
+        "*ГАБАРИТ",
+        "1270 × 900 мм",
+        "корпус верх 300",
+        "корпус низ 220",
+        "",
+        "*ВЫНОС 40 мм",
+        "Столешница",
+        "1270 × 340 × 45.",
+        "40 мм впереди",
+        "фасада корпуса.",
+        "Зад крышки тот же,",
+        "на стене.",
+        "Это не те 40 мм",
+        "проёма двери:",
+        "проём уже внутри",
+        "глубины 300 и 220.",
+        "",
+        "*КАК ЛИСТ 4",
+        "Щит 27 мм.",
+        "До полки 140 мм.",
+        "Ячейки 387, 388,",
+        "387. Просветы",
+        "330 и 331.",
+        "Дверок нет.",
+    ])
+    y = table(sh, SX, 198, 130, shoe_rows(SHOE_LIP))
+    sh.text(SX, min(y + 4.2, 262), "Корпус не сдвигается. Вперёд выходит только столешница.",
+            size=2.05, anchor="start", color="#444")
+    return sh
+
+
 def write_svg(name: str, sh: Sheet) -> None:
     (OUT / name).write_text(sh.svg(), encoding="utf-8")
 
 
 def write_html() -> None:
     parts = []
-    for name in ("variant-1-stellazh.svg", "variant-2-tumba.svg", "variant-3-yacheiki.svg", "variant-4-obuv.svg"):
+    for name in (
+        "variant-1-stellazh.svg", "variant-2-tumba.svg", "variant-3-yacheiki.svg",
+        "variant-4-obuv.svg", "variant-5-vynos.svg",
+    ):
         svg = (OUT / name).read_text(encoding="utf-8")
         svg = svg.split("?>", 1)[-1].strip()
         parts.append(f'<section class="sheet">{svg}</section>')
@@ -1007,23 +1061,27 @@ def build_model() -> dict:
                 box(f"Полка {s['name']} {n}", 0, s["depth"], s["underside"], s["top"], a, b,
                     role, "z", skip)
             )
-    side_profile = [[0, 0], [D_BOT, 0], [SHOE_SIDE_D_TOP, SHOE_SIDE_H], [0, SHOE_SIDE_H]]
-    div_profile = [[0, DIV_Y0], [DIV_D_BOT, DIV_Y0], [DIV_D_TOP, DIV_Y1], [0, DIV_Y1]]
-    shoe_parts = [
-        prism("Боковина левая", side_profile, 0, SHOE_T, "side", "y", [0]),
-        prism("Боковина правая", side_profile, SHOE_W - SHOE_T, SHOE_W, "side", "y", [0]),
-        box("Столешница", 0, D_TOP, SHOE_CAP_Y, H, 0, SHOE_W, "top", "z", ["ny"]),
-        box("Полка нижняя", 0, SHOE_BOTTOM["depth"], SHOE_BOTTOM["underside"], SHOE_BOTTOM["top"],
-            SHOE_T, SHOE_W - SHOE_T, "bottom", "z", ["nz", "pz"]),
-        prism("Разделитель левый", div_profile, SHOE_VERTS[1][0], SHOE_VERTS[1][1], "side", "y", [0]),
-        prism("Разделитель правый", div_profile, SHOE_VERTS[2][0], SHOE_VERTS[2][1], "side", "y", [0]),
-    ]
-    bay_names = ("левая", "центральная", "правая")
-    for name, (a, b) in zip(bay_names, SHOE_BAYS):
-        shoe_parts.append(
-            box(f"Полка средняя {name}", 0, SHOE_MIDDLE["depth"], SHOE_MIDDLE["underside"], SHOE_MIDDLE["top"],
-                a, b, "shelf", "z", ["nz", "pz"])
-        )
+    def shoe_parts_for(lip: int):
+        side_profile = [[0, 0], [D_BOT, 0], [SHOE_SIDE_D_TOP, SHOE_SIDE_H], [0, SHOE_SIDE_H]]
+        div_profile = [[0, DIV_Y0], [DIV_D_BOT, DIV_Y0], [DIV_D_TOP, DIV_Y1], [0, DIV_Y1]]
+        parts = [
+            prism("Боковина левая", side_profile, 0, SHOE_T, "side", "y", [0]),
+            prism("Боковина правая", side_profile, SHOE_W - SHOE_T, SHOE_W, "side", "y", [0]),
+            box("Столешница", -lip, D_TOP, SHOE_CAP_Y, H, 0, SHOE_W, "top", "z", ["ny"]),
+            box("Полка нижняя", 0, SHOE_BOTTOM["depth"], SHOE_BOTTOM["underside"], SHOE_BOTTOM["top"],
+                SHOE_T, SHOE_W - SHOE_T, "bottom", "z", ["nz", "pz"]),
+            prism("Разделитель левый", div_profile, SHOE_VERTS[1][0], SHOE_VERTS[1][1], "side", "y", [0]),
+            prism("Разделитель правый", div_profile, SHOE_VERTS[2][0], SHOE_VERTS[2][1], "side", "y", [0]),
+        ]
+        for name, (a, b) in zip(("левая", "центральная", "правая"), SHOE_BAYS):
+            parts.append(
+                box(f"Полка средняя {name}", 0, SHOE_MIDDLE["depth"], SHOE_MIDDLE["underside"], SHOE_MIDDLE["top"],
+                    a, b, "shelf", "z", ["nz", "pz"])
+            )
+        return parts
+
+    shoe_parts = shoe_parts_for(0)
+    lip_parts = shoe_parts_for(SHOE_LIP)
     warnings = [
         "Глубина 300 мм сверху и 220 мм снизу уже включает выступ 40 мм за проём двери.",
         "Скос прямой — первое приближение полукруглой стены. Окончательно подогнать по месту.",
@@ -1067,6 +1125,14 @@ def build_model() -> dict:
             "cutlist": [{"pos": a, "name": b, "qty": c, "size": d} for a, b, c, d in shoe_rows()],
             "parts": shoe_parts,
         },
+        "lip": {
+            "id": "lip",
+            "title": "Столешница с выносом",
+            "subtitle": "40 мм вперёд фасада",
+            "blurb": "Тот же вариант, что низ под обувь: ширина 1270 мм, щит 27 мм, столешница 45 мм. Столешница выходит на 40 мм вперёд фасада корпуса, заготовка 1270 × 340 × 45. Эти 40 мм не те, что уже входят в глубину как выступ проёма двери. Корпус остаётся 300 мм сверху и 220 мм снизу.",
+            "cutlist": [{"pos": a, "name": b, "qty": c, "size": d} for a, b, c, d in shoe_rows(SHOE_LIP)],
+            "parts": lip_parts,
+        },
     }
 
 
@@ -1079,7 +1145,7 @@ def write_model(model: dict) -> None:
 
 def write_csv(model: dict) -> None:
     lines = ["\ufeffВариант;Поз.;Наименование;Кол.;Размер, мм"]
-    for key in ("shelves", "cabinet", "cells", "shoe"):
+    for key in ("shelves", "cabinet", "cells", "shoe", "lip"):
         title = model[key]["title"]
         for row in model[key]["cutlist"]:
             lines.append(f"{title};{row['pos']};{row['name']};{row['qty']};{row['size']}")
@@ -1091,6 +1157,7 @@ def main() -> None:
     write_svg("variant-2-tumba.svg", sheet_cabinet())
     write_svg("variant-3-yacheiki.svg", sheet_cells())
     write_svg("variant-4-obuv.svg", sheet_shoe())
+    write_svg("variant-5-vynos.svg", sheet_lip())
     write_html()
     model = build_model()
     write_model(model)
