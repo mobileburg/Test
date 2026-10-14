@@ -59,6 +59,8 @@
     60% { transform: translateX(-5px); }
     80% { transform: translateX(5px); }
   }
+  .game-board { user-select: none; -webkit-user-select: none; }
+  .mol-wrap, .mol-wrap svg { pointer-events: none; -webkit-user-drag: none; }
   .mol-wrap svg { display: block; width: 100%; height: auto; max-height: 240px; }
   .game-board.win .mol-wrap svg { max-height: 340px; }
   .game-board.win .drops, .game-board.win .tray { display: none; }
@@ -81,7 +83,7 @@
   .atom.OH { background: #c43c3c; color: #fff; width: 58px; border-radius: 28px; }
   .atom.used { opacity: 0.28; pointer-events: none; }
   .atom.selected { outline: 3px solid #1a1a1a; outline-offset: 3px; }
-  .ghost { position: fixed; z-index: 50; pointer-events: none; margin: 0; }
+  .atom.ghost { position: fixed !important; z-index: 50; pointer-events: none; margin: 0; outline: none; }
   .game-status { min-height: 52px; margin: 12px 0 0; padding: 10px 12px; background: #fff; border: 1px solid #e5e5e5; }
   .game-status.ok { background: #eef8f1; border-color: #2f8f4e; }
   .game-status.bad { background: #fff1ef; border-color: #c43c3c; }
@@ -411,9 +413,10 @@
       if (state.selected === idx) el.classList.add("selected");
       el.addEventListener("click", (e) => {
         e.stopPropagation();
+        if (el.dataset.dragged === "1") { el.dataset.dragged = ""; return; }
         if (el.classList.contains("used") || state.status !== "play") return;
         state.selected = (state.selected === idx) ? null : idx;
-        document.querySelectorAll(".atom").forEach((a) => a.classList.toggle("selected", Number(a.dataset.idx) === state.selected));
+        document.querySelectorAll("#tray .atom").forEach((a) => a.classList.toggle("selected", Number(a.dataset.idx) === state.selected));
         document.querySelectorAll(".drop").forEach((d) => d.classList.toggle("ready", state.selected !== null));
       });
       bindDrag(el, kind);
@@ -436,6 +439,7 @@
 
   function evaluate() {
     if (!state.slots.a || !state.slots.b || state.status !== "play") return;
+    clearDragBits();
     const ok = isCorrect(state.mol, state.rx, state.slots.a, state.slots.b);
     const prod = PRODUCTS[state.mol + "|" + state.rx];
     const key = state.mol + "|" + state.rx;
@@ -550,11 +554,13 @@
   }
 
   function resetRound() {
+    clearDragBits();
     state.slots = { a: null, b: null };
     state.selected = null;
     state.status = "play";
     $("board").className = "game-board";
     $("boom-layer").innerHTML = "";
+    clearDragBits();
     renderPicks();
     drawMolecule();
     paintDrop("a");
@@ -588,23 +594,31 @@
     $("collection-meta").textContent = "Собрано веществ: " + n + " из " + keys.length;
   }
 
+  function clearDragBits() {
+    document.querySelectorAll(".ghost").forEach((g) => g.remove());
+    document.querySelectorAll(".drop").forEach((d) => d.classList.remove("over"));
+  }
+
   function bindDrag(el, kind) {
     let sx = 0, sy = 0, moved = false, ghost = null, pointer = null;
     el.addEventListener("pointerdown", (e) => {
       if (el.classList.contains("used") || state.status !== "play") return;
-      e.preventDefault();
+      if (e.pointerType === "mouse" && e.button !== 0) return;
+      clearDragBits();
       pointer = e.pointerId;
-      el.setPointerCapture(pointer);
+      try { el.setPointerCapture(pointer); } catch (err) {}
       sx = e.clientX; sy = e.clientY; moved = false;
-      ghost = el.cloneNode(true);
-      ghost.className = el.className + " ghost";
-      ghost.style.left = (e.clientX - 26) + "px";
-      ghost.style.top = (e.clientY - 26) + "px";
-      document.body.appendChild(ghost);
     });
     el.addEventListener("pointermove", (e) => {
-      if (!ghost) return;
-      if (Math.abs(e.clientX - sx) + Math.abs(e.clientY - sy) > 8) moved = true;
+      if (pointer === null) return;
+      if (!moved && Math.abs(e.clientX - sx) + Math.abs(e.clientY - sy) < 8) return;
+      moved = true;
+      el.dataset.dragged = "1";
+      if (!ghost) {
+        ghost = el.cloneNode(true);
+        ghost.className = "atom " + kind + " ghost";
+        document.body.appendChild(ghost);
+      }
       ghost.style.left = (e.clientX - 26) + "px";
       ghost.style.top = (e.clientY - 26) + "px";
       document.querySelectorAll(".drop").forEach((d) => {
@@ -613,23 +627,26 @@
       });
     });
     function end(e) {
-      if (!ghost) return;
-      ghost.remove();
+      if (pointer === null) return;
+      const hadGhost = !!ghost;
+      clearDragBits();
       ghost = null;
-      let target = null;
-      document.querySelectorAll(".drop").forEach((d) => {
-        const r = d.getBoundingClientRect();
-        if (e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom) target = d.dataset.slot;
-        d.classList.remove("over");
-      });
-      if (target) place(target, kind);
-      if (pointer !== null) {
-        try { el.releasePointerCapture(pointer); } catch (err) {}
-        pointer = null;
+      if (hadGhost && e && e.clientX != null) {
+        let target = null;
+        document.querySelectorAll(".drop").forEach((d) => {
+          const r = d.getBoundingClientRect();
+          if (e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom) target = d.dataset.slot;
+        });
+        if (target) place(target, kind);
       }
+      try { el.releasePointerCapture(pointer); } catch (err) {}
+      pointer = null;
     }
     el.addEventListener("pointerup", end);
     el.addEventListener("pointercancel", end);
+    el.addEventListener("lostpointercapture", () => {
+      if (pointer !== null) end({ clientX: -999, clientY: -999 });
+    });
   }
 
   ["a", "b"].forEach((slot) => {
@@ -659,6 +676,8 @@
   });
   if (location.hash === "#theory") openTheory();
 
+  document.addEventListener("pointerup", clearDragBits);
+  document.addEventListener("pointercancel", clearDragBits);
   resetRound();
   renderCollection();
 })();
