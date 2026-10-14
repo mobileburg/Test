@@ -46,6 +46,20 @@
   .game-pick-row span.label { min-width: 92px; color: #555; font-size: 0.92rem; }
   .chip { border: 1px solid #ccc; background: #fff; color: #1a1a1a; padding: 7px 12px; font: 600 0.92rem system-ui, sans-serif; cursor: pointer; }
   .chip[aria-pressed="true"] { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
+  .chip.done,
+  .chip:disabled {
+    background: #eef8f1;
+    color: #2f8f4e;
+    border-color: #8fbf9d;
+    cursor: not-allowed;
+    opacity: 1;
+  }
+  .chip.done[aria-pressed="true"],
+  .chip:disabled[aria-pressed="true"] {
+    background: #2f8f4e;
+    color: #fff;
+    border-color: #2f8f4e;
+  }
   .game-board { position: relative; border: 1px solid #ddd; background: #fafafa; padding: 12px; overflow: hidden; }
   .game-board.win { outline: 3px solid #2f8f4e; background: #f3faf5; }
   .game-board.boom { border: 4px solid #c43c3c; outline: 6px solid rgba(196,60,60,0.35); background: #fff4f2; animation: board-shake 0.55s; }
@@ -84,6 +98,7 @@
   .atom.used { opacity: 0.28; pointer-events: none; }
   .atom.selected { outline: 3px solid #1a1a1a; outline-offset: 3px; }
   .atom.ghost { position: fixed !important; z-index: 50; pointer-events: none; margin: 0; outline: none; }
+  .atom.ghost[hidden] { display: none !important; }
   .game-status { min-height: 52px; margin: 12px 0 0; padding: 10px 12px; background: #fff; border: 1px solid #e5e5e5; }
   .game-status.ok { background: #eef8f1; border-color: #2f8f4e; }
   .game-status.bad { background: #fff1ef; border-color: #c43c3c; }
@@ -116,7 +131,7 @@
 </style>
 <section id="game">
   <h2>Собери реакцию</h2>
-  <p class="game-lead">Выбери молекулу и реакцию. Возьми атомы снизу и положи их в клетки «углерод 1» и «углерод 2» — это два конца двойной связи. Можно перетащить или нажать атом, затем клетку. Верно — зелёная рамка и название продукта. Неверно — взрыв. Готовые схемы можно открыть в подсказках ниже.</p>
+  <p class="game-lead">Выбери молекулу и реакцию. Возьми атомы снизу и положи их в клетки «углерод 1» и «углерод 2» — это два конца двойной связи. Можно перетащить или нажать атом, затем клетку. Верно — зелёная рамка и название продукта. Неверно — взрыв. Собранную пару молекула + реакция больше нельзя выбрать сверху. Готовые схемы можно открыть в подсказках ниже.</p>
   <div class="game-pick">
     <div class="game-pick-row" id="mol-pick"><span class="label">Молекула</span></div>
     <div class="game-pick-row" id="rx-pick"><span class="label">Реакция</span></div>
@@ -210,21 +225,53 @@
     d.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
+  function comboKey(mol, rx) {
+    return mol + "|" + rx;
+  }
+  function isDone(mol, rx) {
+    return !!state.done[comboKey(mol, rx)];
+  }
+  function openCombos() {
+    const open = [];
+    Object.keys(MOLECULES).forEach((m) => {
+      Object.keys(REACTIONS).forEach((r) => {
+        if (!isDone(m, r)) open.push([m, r]);
+      });
+    });
+    return open;
+  }
+  function pickOpenCombo() {
+    const open = openCombos();
+    if (!open.length) return null;
+    return open[Math.floor(Math.random() * open.length)];
+  }
+
   function renderPicks() {
-    const fill = (box, dict, current, setter) => {
+    const fill = (box, dict, current, kind) => {
       box.querySelectorAll("button").forEach((b) => b.remove());
       Object.keys(dict).forEach((id) => {
+        const comboDone = kind === "mol" ? isDone(id, state.rx) : isDone(state.mol, id);
         const b = document.createElement("button");
         b.type = "button";
-        b.className = "chip";
-        b.textContent = dict[id].name;
+        b.className = "chip" + (comboDone ? " done" : "");
+        b.textContent = (comboDone ? "✓ " : "") + dict[id].name;
         b.setAttribute("aria-pressed", id === current ? "true" : "false");
-        b.addEventListener("click", () => setter(id));
+        if (comboDone) {
+          b.disabled = true;
+          b.setAttribute("aria-disabled", "true");
+          b.title = "Эта комбинация уже собрана";
+        } else {
+          b.addEventListener("click", () => {
+            if (kind === "mol") state.mol = id;
+            else state.rx = id;
+            resetRound();
+          });
+        }
         box.appendChild(b);
       });
     };
-    fill($("mol-pick"), MOLECULES, state.mol, (id) => { state.mol = id; resetRound(); });
-    fill($("rx-pick"), REACTIONS, state.rx, (id) => { state.rx = id; resetRound(); });
+    fill($("mol-pick"), MOLECULES, state.mol, "mol");
+    fill($("rx-pick"), REACTIONS, state.rx, "rx");
   }
 
   function carbonPoints(n, originX, originY, step) {
@@ -450,6 +497,7 @@
       state.done[key] = true;
       if (!state.firstOk[key]) state.firstOk[key] = state.tries[key];
       drawMolecule();
+      renderPicks();
       setStatus("ok", "Получилось: " + prod.name + " (" + prod.formula + "). Новые атомы на схеме справа подсвечены — двойная связь раскрылась.");
       renderCollection();
     } else {
@@ -554,6 +602,22 @@
   }
 
   function resetRound() {
+    if (isDone(state.mol, state.rx)) {
+      const next = pickOpenCombo();
+      if (next) {
+        state.mol = next[0];
+        state.rx = next[1];
+      } else {
+        clearDragBits();
+        state.status = "win";
+        $("board").className = "game-board win";
+        $("boom-layer").innerHTML = "";
+        renderPicks();
+        drawMolecule();
+        setStatus("ok", "Все 16 реакций уже собраны. Повторить ту же пару сверху больше нельзя.");
+        return;
+      }
+    }
     clearDragBits();
     state.slots = { a: null, b: null };
     state.selected = null;
@@ -683,13 +747,12 @@
   $("btn-reset").addEventListener("click", resetRound);
   $("btn-theory").addEventListener("click", openTheory);
   $("btn-next").addEventListener("click", () => {
-    const open = [];
-    Object.keys(MOLECULES).forEach((m) => {
-      Object.keys(REACTIONS).forEach((r) => {
-        if (!state.done[m + "|" + r]) open.push([m, r]);
-      });
-    });
-    const pick = open[Math.floor(Math.random() * (open.length || 1))] || ["ethylene", "hydrogenation"];
+    const pick = pickOpenCombo();
+    if (!pick) {
+      renderPicks();
+      setStatus("ok", "Все 16 реакций уже собраны. Повторить ту же пару сверху больше нельзя.");
+      return;
+    }
     state.mol = pick[0];
     state.rx = pick[1];
     resetRound();
