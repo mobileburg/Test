@@ -94,6 +94,8 @@
   .got { border: 1px solid #ddd; padding: 8px 10px; background: #fff; font-size: 0.88rem; }
   .got em { display: block; color: #666; font-style: normal; font-size: 0.8rem; }
   .got.done { border-color: #2f8f4e; background: #f3faf5; }
+  .got .tries { display: block; margin-top: 4px; font-size: 0.8rem; color: #3b7dd8; font-weight: 700; }
+  .got.done .tries { color: #2f8f4e; }
   .boom-layer { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 5; }
   .boom-art { width: 100%; height: 100%; display: block; }
   .boom-flash { fill: #ffd39a; transform-box: view-box; transform-origin: 50% 42%; animation: boom-flash 0.7s ease-out forwards; }
@@ -196,7 +198,7 @@
     return "Атомы должны сесть на два разных углерода двойной связи.";
   }
 
-  const state = { mol: "ethylene", rx: "hydrogenation", slots: { a: null, b: null }, selected: null, status: "play", done: {} };
+  const state = { mol: "ethylene", rx: "hydrogenation", slots: { a: null, b: null }, selected: null, status: "play", done: {}, tries: {}, firstOk: {} };
   const $ = (id) => document.getElementById(id);
 
   function openTheory() {
@@ -423,10 +425,13 @@
     if (!state.slots.a || !state.slots.b || state.status !== "play") return;
     const ok = isCorrect(state.mol, state.rx, state.slots.a, state.slots.b);
     const prod = PRODUCTS[state.mol + "|" + state.rx];
+    const key = state.mol + "|" + state.rx;
+    if (!state.firstOk[key]) state.tries[key] = (state.tries[key] || 0) + 1;
     if (ok) {
       state.status = "win";
       $("board").className = "game-board win";
-      state.done[state.mol + "|" + state.rx] = true;
+      state.done[key] = true;
+      if (!state.firstOk[key]) state.firstOk[key] = state.tries[key];
       drawMolecule();
       setStatus("ok", "Получилось: " + prod.name + " (" + prod.formula + "). Новые атомы на схеме справа подсвечены — двойная связь раскрылась.");
       renderCollection();
@@ -436,6 +441,7 @@
       explode();
       const hint = hintFor(state.mol, state.rx, state.slots.a, state.slots.b);
       setStatus("bad", hint);
+      renderCollection();
       setTimeout(() => {
         if (state.status === "boom") {
           resetRound();
@@ -554,10 +560,16 @@
       const prod = PRODUCTS[key];
       const done = !!state.done[key];
       if (done) n += 1;
+      const tries = state.tries[key] || 0;
+      const okAt = state.firstOk[key];
+      let triesLine = "";
+      if (okAt) triesLine = "<span class=\"tries\">Собрано с " + okAt + "-й попытки</span>";
+      else if (tries) triesLine = "<span class=\"tries\">Попыток пока: " + tries + "</span>";
       const d = document.createElement("div");
       d.className = "got" + (done ? " done" : "");
       d.innerHTML = (done ? prod.name + " · " + prod.formula : "ещё не собрано") +
-        "<em>" + MOLECULES[parts[0]].name + " → " + REACTIONS[parts[1]].name + "</em>";
+        "<em>" + MOLECULES[parts[0]].name + " → " + REACTIONS[parts[1]].name + "</em>" +
+        triesLine;
       box.appendChild(d);
     });
     $("collection-meta").textContent = "Собрано веществ: " + n + " из " + keys.length;
