@@ -665,6 +665,7 @@
       g.id = "drag-ghost";
       g.className = "atom ghost";
       g.hidden = true;
+      g.setAttribute("aria-hidden", "true");
       document.body.appendChild(g);
     }
     return g;
@@ -672,11 +673,7 @@
 
   function clearDragBits() {
     const g = $("drag-ghost");
-    if (g) {
-      g.hidden = true;
-      g.textContent = "";
-      g.className = "atom ghost";
-    }
+    if (g) g.remove();
     document.querySelectorAll(".atom").forEach((el) => {
       if (el.id !== "drag-ghost" && !el.closest("#tray")) el.remove();
     });
@@ -685,9 +682,11 @@
 
   function bindDrag(el, kind) {
     let sx = 0, sy = 0, moved = false, pointer = null, dragging = false;
+    el.addEventListener("contextmenu", (e) => { e.preventDefault(); });
     el.addEventListener("pointerdown", (e) => {
       if (el.classList.contains("used") || state.status !== "play") return;
       if (e.pointerType === "mouse" && e.button !== 0) return;
+      if (pointer !== null) return;
       clearDragBits();
       pointer = e.pointerId;
       dragging = false;
@@ -697,7 +696,8 @@
       try { el.setPointerCapture(pointer); } catch (err) {}
     });
     el.addEventListener("pointermove", (e) => {
-      if (pointer === null) return;
+      if (pointer === null || e.pointerId !== pointer) return;
+      if (e.clientX == null || e.clientY == null) return;
       if (!moved && Math.abs(e.clientX - sx) + Math.abs(e.clientY - sy) < 8) return;
       moved = true;
       dragging = true;
@@ -715,10 +715,13 @@
     });
     function end(e) {
       if (pointer === null) return;
+      if (e && e.pointerId != null && e.pointerId !== pointer) return;
       const wasDrag = dragging;
-      clearDragBits();
+      const pid = pointer;
       dragging = false;
-      if (wasDrag && e && e.clientX != null) {
+      pointer = null;
+      clearDragBits();
+      if (wasDrag && e && e.clientX != null && e.clientX > -100 && e.clientY != null && e.clientY > -100) {
         let target = null;
         document.querySelectorAll(".drop").forEach((d) => {
           const r = d.getBoundingClientRect();
@@ -726,13 +729,12 @@
         });
         if (target) place(target, kind);
       }
-      try { el.releasePointerCapture(pointer); } catch (err) {}
-      pointer = null;
+      try { el.releasePointerCapture(pid); } catch (err) {}
     }
     el.addEventListener("pointerup", end);
     el.addEventListener("pointercancel", end);
     el.addEventListener("lostpointercapture", () => {
-      if (pointer !== null) end({ clientX: -999, clientY: -999 });
+      if (pointer !== null) end({ pointerId: pointer, clientX: -999, clientY: -999 });
     });
   }
 
@@ -762,8 +764,16 @@
   });
   if (location.hash === "#theory") openTheory();
 
-  document.addEventListener("pointerup", clearDragBits);
-  document.addEventListener("pointercancel", clearDragBits);
+  document.addEventListener("pointerup", clearDragBits, true);
+  document.addEventListener("pointercancel", clearDragBits, true);
+  window.addEventListener("blur", clearDragBits);
+  document.addEventListener("visibilitychange", clearDragBits);
+  window.addEventListener("resize", clearDragBits);
+  window.addEventListener("orientationchange", clearDragBits);
+  document.addEventListener("scroll", clearDragBits, true);
+  document.addEventListener("contextmenu", (e) => {
+    if (e.target && e.target.closest && e.target.closest("#tray .atom")) e.preventDefault();
+  });
   resetRound();
   renderCollection();
 })();
