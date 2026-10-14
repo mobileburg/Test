@@ -57,6 +57,10 @@
     80% { transform: translateX(5px); }
   }
   .mol-wrap svg { display: block; width: 100%; height: auto; max-height: 240px; }
+  .game-board.win .mol-wrap svg { max-height: 340px; }
+  .game-board.win .drops, .game-board.win .tray { display: none; }
+  .result-formula { display: none; margin: 0 0 10px; padding: 10px 12px; background: #eef8f1; border: 1px solid #2f8f4e; font: 700 1.05rem system-ui, sans-serif; }
+  .game-board.win .result-formula { display: block; }
   .drops { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 12px 0 8px; }
   .drop { min-height: 92px; border: 2px dashed #3b7dd8; background: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; cursor: pointer; padding: 8px; }
   .drop.over, .drop.ready { background: #eaf2ff; }
@@ -100,6 +104,7 @@
   </div>
   <div class="game-board" id="board">
     <div class="boom-layer" id="boom-layer"></div>
+    <div class="result-formula" id="result-formula"></div>
     <div class="mol-wrap" id="mol-wrap"></div>
     <div class="drops">
       <div class="drop" id="drop-a" data-slot="a"><small id="drop-a-label">Углерод 1</small><div id="drop-a-atom"></div></div>
@@ -203,30 +208,40 @@
     fill($("rx-pick"), REACTIONS, state.rx, (id) => { state.rx = id; resetRound(); });
   }
 
-  function carbonPoints(n) {
-    const start = n === 2 ? 220 : n === 3 ? 160 : 110;
-    return Array.from({ length: n }, (_, i) => ({ x: start + i * 108, y: 120 }));
+  function carbonPoints(n, originX, originY, step) {
+    const st = step || 96;
+    return Array.from({ length: n }, (_, i) => ({ x: originX + i * st, y: originY }));
+  }
+
+  function extraSpot(p, i, n, hCount) {
+    if (hCount <= 1) return { x: p.x, y: p.y + 58 };
+    if (i === 0) return { x: p.x - 58, y: p.y };
+    if (i === n - 1) return { x: p.x + 58, y: p.y };
+    return { x: p.x, y: p.y + 58 };
   }
 
   function drawMolecule() {
     const mol = MOLECULES[state.mol];
-    const pts = carbonPoints(mol.carbons);
-    const [i1, i2] = mol.double;
+    const win = state.status === "win";
+    const prod = PRODUCTS[state.mol + "|" + state.rx];
     const ns = "http://www.w3.org/2000/svg";
     const svg = document.createElementNS(ns, "svg");
-    svg.setAttribute("viewBox", "0 0 640 230");
-    function line(x1, y1, x2, y2) {
+    svg.setAttribute("viewBox", win ? "0 0 1040 300" : "0 0 640 230");
+
+    function line(x1, y1, x2, y2, color) {
       const el = document.createElementNS(ns, "line");
       el.setAttribute("x1", x1); el.setAttribute("y1", y1);
       el.setAttribute("x2", x2); el.setAttribute("y2", y2);
-      el.setAttribute("stroke", "#2b2b2b");
+      el.setAttribute("stroke", color || "#2b2b2b");
       el.setAttribute("stroke-width", 5);
       svg.appendChild(el);
     }
-    function circle(x, y, r, fill) {
+    function circle(x, y, r, fill, stroke) {
       const el = document.createElementNS(ns, "circle");
       el.setAttribute("cx", x); el.setAttribute("cy", y); el.setAttribute("r", r);
-      el.setAttribute("fill", fill); el.setAttribute("stroke", "#2b2b2b"); el.setAttribute("stroke-width", 3);
+      el.setAttribute("fill", fill);
+      el.setAttribute("stroke", stroke || "#2b2b2b");
+      el.setAttribute("stroke-width", 3);
       svg.appendChild(el);
     }
     function text(x, y, s, fill, size) {
@@ -241,39 +256,92 @@
       el.textContent = s;
       svg.appendChild(el);
     }
-    pts.forEach((p, i) => {
-      if (i === pts.length - 1) return;
-      const q = pts[i + 1];
-      if (i === i1 && i + 1 === i2) {
-        line(p.x, p.y - 5, q.x, q.y - 5);
-        line(p.x, p.y + 5, q.x, q.y + 5);
-      } else line(p.x, p.y, q.x, q.y);
-    });
-    pts.forEach((p, i) => {
-      const hs = mol.hCount[i];
-      const spots = [];
-      if (hs >= 1) spots.push([p.x, p.y - 58]);
-      if (hs >= 2) spots.push([p.x, p.y + 58]);
-      if (hs >= 3) spots.push([i === 0 ? p.x - 58 : p.x + 58, p.y]);
-      spots.forEach(([x, y]) => {
-        line(p.x, p.y, x, y);
-        circle(x, y, 15, "#fff");
-        text(x, y, "H", "#1a1a1a", 13);
-      });
-    });
-    pts.forEach((p, i) => {
-      const active = (i === i1 || i === i2);
-      if (active) {
-        const ring = document.createElementNS(ns, "circle");
-        ring.setAttribute("cx", p.x); ring.setAttribute("cy", p.y); ring.setAttribute("r", 28);
-        ring.setAttribute("fill", "none"); ring.setAttribute("stroke", "#3b7dd8");
-        ring.setAttribute("stroke-width", 3); ring.setAttribute("stroke-dasharray", "6 5");
-        svg.appendChild(ring);
+
+    function drawGuest(carbon, spot, kind) {
+      const fill = kind === "H" ? "#d6ebff" : kind === "Br" ? "#b85c38" : "#c43c3c";
+      const fg = kind === "H" ? "#1a1a1a" : "#fff";
+      const color = kind === "H" ? "#3b7dd8" : (kind === "Br" ? "#b85c38" : "#c43c3c");
+      line(carbon.x, carbon.y, spot.x, spot.y, color);
+      if (kind === "OH") {
+        const ox = spot.x, oy = spot.y;
+        const hx = spot.x === carbon.x ? spot.x + 36 : spot.x + (spot.x > carbon.x ? 36 : -36);
+        const hy = spot.x === carbon.x ? spot.y : spot.y;
+        circle(ox, oy, 15, "#c43c3c", "#8a2424");
+        text(ox, oy, "O", "#fff", 13);
+        line(ox, oy, hx, hy, "#c43c3c");
+        circle(hx, hy, 13, "#fff", "#8a2424");
+        text(hx, hy, "H", "#1a1a1a", 12);
+      } else {
+        circle(spot.x, spot.y, 16, fill, color);
+        text(spot.x, spot.y, kind, fg, kind === "Br" ? 12 : 14);
       }
-      circle(p.x, p.y, 19, "#2b2b2b");
-      text(p.x, p.y, "C", "#fff", 15);
-      text(p.x, p.y - 80, String(i + 1), "#3b7dd8", 13);
-    });
+    }
+
+    function drawChain(originX, originY, asProduct) {
+      const pts = carbonPoints(mol.carbons, originX, originY, 92);
+      const [i1, i2] = mol.double;
+      pts.forEach((p, i) => {
+        if (i === pts.length - 1) return;
+        const q = pts[i + 1];
+        if (!asProduct && i === i1 && i + 1 === i2) {
+          line(p.x, p.y - 5, q.x, q.y - 5);
+          line(p.x, p.y + 5, q.x, q.y + 5);
+        } else {
+          line(p.x, p.y, q.x, q.y);
+        }
+      });
+      pts.forEach((p, i) => {
+        const hs = mol.hCount[i];
+        const spots = [];
+        if (hs >= 1) spots.push([p.x, p.y - 54]);
+        if (hs >= 2) spots.push([p.x, p.y + 54]);
+        if (hs >= 3) spots.push([i === 0 ? p.x - 54 : p.x + 54, p.y]);
+        spots.forEach(([x, y]) => {
+          line(p.x, p.y, x, y);
+          circle(x, y, 14, "#fff");
+          text(x, y, "H", "#1a1a1a", 12);
+        });
+      });
+      if (asProduct) {
+        drawGuest(pts[i1], extraSpot(pts[i1], i1, mol.carbons, mol.hCount[i1]), state.slots.a);
+        drawGuest(pts[i2], extraSpot(pts[i2], i2, mol.carbons, mol.hCount[i2]), state.slots.b);
+      }
+      pts.forEach((p, i) => {
+        if (!asProduct && (i === i1 || i === i2)) {
+          const ring = document.createElementNS(ns, "circle");
+          ring.setAttribute("cx", p.x); ring.setAttribute("cy", p.y); ring.setAttribute("r", 26);
+          ring.setAttribute("fill", "none"); ring.setAttribute("stroke", "#3b7dd8");
+          ring.setAttribute("stroke-width", 3); ring.setAttribute("stroke-dasharray", "6 5");
+          svg.appendChild(ring);
+        }
+        circle(p.x, p.y, 18, "#2b2b2b");
+        text(p.x, p.y, "C", "#fff", 14);
+        text(p.x, p.y - 76, String(i + 1), "#3b7dd8", 13);
+      });
+      return pts;
+    }
+
+    if (win) {
+      const leftMid = 70 + (mol.carbons - 1) * 46;
+      const rightMid = 580 + (mol.carbons - 1) * 46;
+      drawChain(70, 130, false);
+      text(leftMid, 28, "было", "#555", 16);
+      text(leftMid, 252, mol.name + "  " + mol.formula, "#1a1a1a", 16);
+      const ax = 500, ay = 130;
+      line(ax - 28, ay, ax + 36, ay, "#2f8f4e");
+      const head = document.createElementNS(ns, "polygon");
+      head.setAttribute("points", (ax + 46) + "," + ay + " " + (ax + 28) + "," + (ay - 10) + " " + (ax + 28) + "," + (ay + 10));
+      head.setAttribute("fill", "#2f8f4e");
+      svg.appendChild(head);
+      drawChain(580, 130, true);
+      text(rightMid, 28, "стало", "#2f8f4e", 16);
+      text(rightMid, 252, prod.name + "  " + prod.formula, "#2f8f4e", 16);
+      $("result-formula").textContent = mol.name + " + " + REACTIONS[state.rx].reagent + "  →  " + prod.name + "   " + prod.formula;
+    } else {
+      drawChain(mol.carbons === 2 ? 220 : mol.carbons === 3 ? 160 : 110, 120, false);
+      $("result-formula").textContent = "";
+    }
+
     $("mol-wrap").innerHTML = "";
     $("mol-wrap").appendChild(svg);
     $("drop-a-label").textContent = "Углерод " + mol.a;
@@ -344,7 +412,8 @@
       state.status = "win";
       $("board").className = "game-board win";
       state.done[state.mol + "|" + state.rx] = true;
-      setStatus("ok", "Получилось: " + prod.name + " (" + prod.formula + ").");
+      drawMolecule();
+      setStatus("ok", "Получилось: " + prod.name + " (" + prod.formula + "). Новые атомы на схеме справа подсвечены — двойная связь раскрылась.");
       renderCollection();
     } else {
       state.status = "boom";
