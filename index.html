@@ -49,6 +49,9 @@
   .game-board { position: relative; border: 1px solid #ddd; background: #fafafa; padding: 12px; overflow: hidden; }
   .game-board.win { outline: 3px solid #2f8f4e; background: #f3faf5; }
   .game-board.boom { border: 4px solid #c43c3c; outline: 6px solid rgba(196,60,60,0.35); background: #fff4f2; animation: board-shake 0.55s; }
+  .game-board.boom .mol-wrap,
+  .game-board.boom .drops,
+  .game-board.boom .tray { opacity: 0.18; }
   @keyframes board-shake {
     0%, 100% { transform: translateX(0); }
     20% { transform: translateX(-8px); }
@@ -91,9 +94,21 @@
   .got { border: 1px solid #ddd; padding: 8px 10px; background: #fff; font-size: 0.88rem; }
   .got em { display: block; color: #666; font-style: normal; font-size: 0.8rem; }
   .got.done { border-color: #2f8f4e; background: #f3faf5; }
-  .boom-layer { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
-  .spark { position: absolute; width: 18px; height: 18px; border-radius: 50%; background: #c43c3c; }
-  .boom-banner { position: absolute; left: 50%; top: 18%; transform: translate(-50%,-50%); z-index: 6; background: #c43c3c; color: #fff; font: 800 1.4rem system-ui, sans-serif; padding: 8px 18px; letter-spacing: 0.04em; }
+  .boom-layer { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 5; }
+  .boom-art { width: 100%; height: 100%; display: block; }
+  .boom-flash { fill: #ffd39a; transform-box: view-box; transform-origin: 50% 42%; animation: boom-flash 0.7s ease-out forwards; }
+  .boom-core { fill: #c43c3c; transform-box: view-box; transform-origin: 50% 42%; animation: boom-core 0.55s ease-out forwards; }
+  .boom-ring { fill: none; stroke: #c43c3c; stroke-width: 1.2; transform-box: view-box; transform-origin: 50% 42%; animation: boom-ring 0.9s ease-out forwards; }
+  .boom-ring.r2 { stroke: #e09a2a; animation-delay: 0.08s; }
+  .boom-ring.r3 { stroke: #8a2424; animation-delay: 0.16s; }
+  .boom-spike { fill: #c43c3c; transform-box: view-box; transform-origin: 50% 42%; animation: boom-spike 0.7s ease-out forwards; }
+  .boom-spike.alt { fill: #e09a2a; }
+  .boom-shard { animation: boom-shard 0.85s ease-out forwards; }
+  @keyframes boom-flash { 0% { transform: scale(0.2); opacity: 0.95; } 100% { transform: scale(8); opacity: 0; } }
+  @keyframes boom-core { 0% { transform: scale(0.3); opacity: 1; } 100% { transform: scale(2.4); opacity: 0; } }
+  @keyframes boom-ring { 0% { transform: scale(0.15); opacity: 0.9; } 100% { transform: scale(4.2); opacity: 0; } }
+  @keyframes boom-spike { 0% { transform: scale(0.2); opacity: 1; } 70% { opacity: 0.85; } 100% { transform: scale(1.15); opacity: 0; } }
+  @keyframes boom-shard { 0% { opacity: 1; } 100% { opacity: 0; } }
 </style>
 <section id="game">
   <h2>Собери реакцию</h2>
@@ -420,7 +435,7 @@
       $("board").className = "game-board boom";
       explode();
       const hint = hintFor(state.mol, state.rx, state.slots.a, state.slots.b);
-      setStatus("bad", "Взрыв. " + hint);
+      setStatus("bad", hint);
       setTimeout(() => {
         if (state.status === "boom") {
           resetRound();
@@ -433,29 +448,80 @@
   function explode() {
     const layer = $("boom-layer");
     layer.innerHTML = "";
-    const banner = document.createElement("div");
-    banner.className = "boom-banner";
-    banner.textContent = "ВЗРЫВ";
-    layer.appendChild(banner);
-    for (let i = 0; i < 22; i++) {
-      const s = document.createElement("div");
-      s.className = "spark";
-      const ang = (Math.PI * 2 * i) / 18;
-      const dist = 80 + (i % 5) * 14;
-      s.style.left = "50%";
-      s.style.top = "30%";
-      s.style.background = i % 2 ? "#c43c3c" : "#e09a2a";
-      layer.appendChild(s);
-      if (s.animate) {
-        s.animate(
+    const ns = "http://www.w3.org/2000/svg";
+    const svg = document.createElementNS(ns, "svg");
+    svg.setAttribute("class", "boom-art");
+    svg.setAttribute("viewBox", "0 0 100 100");
+    svg.setAttribute("preserveAspectRatio", "xMidYMid slice");
+    svg.setAttribute("aria-hidden", "true");
+    function el(name, attrs) {
+      const node = document.createElementNS(ns, name);
+      Object.keys(attrs).forEach((k) => node.setAttribute(k, attrs[k]));
+      svg.appendChild(node);
+      return node;
+    }
+    el("circle", { class: "boom-flash", cx: "50", cy: "42", r: "16" });
+    el("circle", { class: "boom-core", cx: "50", cy: "42", r: "7" });
+    el("circle", { class: "boom-ring", cx: "50", cy: "42", r: "12" });
+    el("circle", { class: "boom-ring r2", cx: "50", cy: "42", r: "12" });
+    el("circle", { class: "boom-ring r3", cx: "50", cy: "42", r: "12" });
+    const spikes = 14;
+    for (let i = 0; i < spikes; i++) {
+      const a = (Math.PI * 2 * i) / spikes;
+      const a2 = a + Math.PI / spikes;
+      const outer = 28 + (i % 2) * 10;
+      const inner = 6;
+      const x1 = 50 + Math.cos(a) * outer;
+      const y1 = 42 + Math.sin(a) * outer;
+      const x2 = 50 + Math.cos(a + 0.18) * inner;
+      const y2 = 42 + Math.sin(a + 0.18) * inner;
+      const x3 = 50 + Math.cos(a2) * inner;
+      const y3 = 42 + Math.sin(a2) * inner;
+      el("polygon", {
+        class: "boom-spike" + (i % 2 ? " alt" : ""),
+        points: x1.toFixed(1) + "," + y1.toFixed(1) + " " + x2.toFixed(1) + "," + y2.toFixed(1) + " " + x3.toFixed(1) + "," + y3.toFixed(1)
+      });
+    }
+    const bits = ["C", "C", "H", "H", "H", "H"];
+    bits.forEach((label, i) => {
+      const a = (Math.PI * 2 * i) / bits.length + 0.3;
+      const x = 50 + Math.cos(a) * 8;
+      const y = 42 + Math.sin(a) * 8;
+      const g = document.createElementNS(ns, "g");
+      g.setAttribute("class", "boom-shard");
+      const c = document.createElementNS(ns, "circle");
+      c.setAttribute("cx", x.toFixed(1));
+      c.setAttribute("cy", y.toFixed(1));
+      c.setAttribute("r", label === "C" ? "3.2" : "2.4");
+      c.setAttribute("fill", label === "C" ? "#2b2b2b" : "#fff");
+      c.setAttribute("stroke", "#2b2b2b");
+      c.setAttribute("stroke-width", "0.6");
+      const t = document.createElementNS(ns, "text");
+      t.setAttribute("x", x.toFixed(1));
+      t.setAttribute("y", y.toFixed(1));
+      t.setAttribute("text-anchor", "middle");
+      t.setAttribute("dominant-baseline", "middle");
+      t.setAttribute("fill", label === "C" ? "#fff" : "#1a1a1a");
+      t.setAttribute("font-size", "2.4");
+      t.setAttribute("font-family", "system-ui, sans-serif");
+      t.setAttribute("font-weight", "700");
+      t.textContent = label;
+      g.appendChild(c);
+      g.appendChild(t);
+      svg.appendChild(g);
+      const dx = Math.cos(a) * 38;
+      const dy = Math.sin(a) * 32;
+      if (g.animate) {
+        g.animate(
           [
-            { transform: "translate(-50%,-50%) scale(1)", opacity: 1 },
-            { transform: "translate(" + Math.cos(ang) * dist + "px, " + Math.sin(ang) * dist + "px) scale(0.2)", opacity: 0 }
+            { transform: "translate(0px, 0px) rotate(0deg)", opacity: 1 },
+            { transform: "translate(" + dx.toFixed(1) + "px, " + dy.toFixed(1) + "px) rotate(" + (i % 2 ? 50 : -50) + "deg)", opacity: 0 }
           ],
-          { duration: 650, easing: "ease-out" }
+          { duration: 900, easing: "ease-out", fill: "forwards" }
         );
       }
-    }
+    });
+    layer.appendChild(svg);
   }
 
   function setStatus(kind, text) {
