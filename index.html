@@ -274,21 +274,34 @@
       svg.appendChild(el);
     }
 
+    function edgeLine(x1, y1, r1, x2, y2, r2, color) {
+      const dx = x2 - x1, dy = y2 - y1;
+      const len = Math.hypot(dx, dy) || 1;
+      line(
+        x1 + (dx / len) * r1,
+        y1 + (dy / len) * r1,
+        x2 - (dx / len) * r2,
+        y2 - (dy / len) * r2,
+        color
+      );
+    }
+
     function drawGuest(carbon, spot, kind) {
       const fill = kind === "H" ? "#d6ebff" : kind === "Br" ? "#b85c38" : "#c43c3c";
       const fg = kind === "H" ? "#1a1a1a" : "#fff";
       const color = kind === "H" ? "#3b7dd8" : (kind === "Br" ? "#b85c38" : "#c43c3c");
-      line(carbon.x, carbon.y, spot.x, spot.y, color);
       if (kind === "OH") {
         const ox = spot.x, oy = spot.y;
-        const hx = spot.x === carbon.x ? spot.x + 36 : spot.x + (spot.x > carbon.x ? 36 : -36);
-        const hy = spot.x === carbon.x ? spot.y : spot.y;
+        const hx = spot.x === carbon.x ? spot.x + 38 : spot.x + (spot.x > carbon.x ? 38 : -38);
+        const hy = spot.y;
+        edgeLine(carbon.x, carbon.y, 18, ox, oy, 15, color);
+        edgeLine(ox, oy, 15, hx, hy, 13, color);
         circle(ox, oy, 15, "#c43c3c", "#8a2424");
         text(ox, oy, "O", "#fff", 13);
-        line(ox, oy, hx, hy, "#c43c3c");
         circle(hx, hy, 13, "#fff", "#8a2424");
         text(hx, hy, "H", "#1a1a1a", 12);
       } else {
+        edgeLine(carbon.x, carbon.y, 18, spot.x, spot.y, 16, color);
         circle(spot.x, spot.y, 16, fill, color);
         text(spot.x, spot.y, kind, fg, kind === "Br" ? 12 : 14);
       }
