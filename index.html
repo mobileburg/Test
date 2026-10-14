@@ -46,7 +46,7 @@
   .game-pick-row span.label { min-width: 92px; color: #555; font-size: 0.92rem; }
   .chip { border: 1px solid #ccc; background: #fff; color: #1a1a1a; padding: 7px 12px; font: 600 0.92rem system-ui, sans-serif; cursor: pointer; }
   .chip[aria-pressed="true"] { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
-  .game-board { position: relative; border: 1px solid #ddd; background: #fafafa; padding: 12px 12px 8px; overflow: hidden; }
+  .game-board { position: relative; border: 1px solid #ddd; background: #fafafa; padding: 12px; overflow: hidden; }
   .game-board.win { outline: 3px solid #2f8f4e; background: #f3faf5; }
   .game-board.boom { outline: 3px solid #c43c3c; background: #fff4f2; animation: board-shake 0.45s; }
   @keyframes board-shake {
@@ -56,28 +56,26 @@
     60% { transform: translateX(-5px); }
     80% { transform: translateX(5px); }
   }
-  .mol-wrap { width: 100%; overflow: auto; }
-  .mol-wrap svg { display: block; width: 100%; height: auto; max-height: 280px; }
-  .slot-ring { fill: none; stroke: #3b7dd8; stroke-width: 3; stroke-dasharray: 6 5; }
-  .slot-hit { fill: rgba(59,125,216,0.08); stroke: transparent; cursor: pointer; }
-  .slot-hit.filled { fill: rgba(59,125,216,0.04); }
-  .slot-hit.over { fill: rgba(59,125,216,0.22); }
-  .game-board.win .slot-ring { stroke: #2f8f4e; }
-  .game-board.boom .slot-ring { stroke: #c43c3c; }
-  .atom-on-mol { pointer-events: none; }
-  .tray { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; padding: 12px 4px 4px; }
+  .mol-wrap svg { display: block; width: 100%; height: auto; max-height: 240px; }
+  .drops { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 12px 0 8px; }
+  .drop { min-height: 92px; border: 2px dashed #3b7dd8; background: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; cursor: pointer; padding: 8px; }
+  .drop.over, .drop.ready { background: #eaf2ff; }
+  .drop.filled { border-style: solid; }
+  .drop small { color: #555; font-size: 0.82rem; text-align: center; }
+  .drop-atom { min-width: 52px; height: 52px; border-radius: 50%; border: 3px solid #2b2b2b; display: grid; place-items: center; font: 700 0.95rem system-ui, sans-serif; }
+  .drop-atom.H { background: #d6ebff; }
+  .drop-atom.Br { background: #b85c38; color: #fff; }
+  .drop-atom.OH { background: #c43c3c; color: #fff; border-radius: 28px; padding: 0 10px; }
+  .tray { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; padding: 8px 0 0; }
   .tray-label { width: 100%; color: #555; font-size: 0.9rem; }
-  .atom { width: 52px; height: 52px; border-radius: 50%; border: 3px solid #2b2b2b; display: grid; place-items: center; font: 700 0.95rem system-ui, sans-serif; cursor: grab; user-select: none; touch-action: none; position: relative; z-index: 2; }
-  .atom:active { cursor: grabbing; }
+  .atom { width: 52px; height: 52px; border-radius: 50%; border: 3px solid #2b2b2b; display: grid; place-items: center; font: 700 0.95rem system-ui, sans-serif; cursor: grab; user-select: none; touch-action: none; background: #fff; }
   .atom.H { background: #d6ebff; }
   .atom.Br { background: #b85c38; color: #fff; }
   .atom.OH { background: #c43c3c; color: #fff; width: 58px; border-radius: 28px; }
   .atom.used { opacity: 0.28; pointer-events: none; }
-  .atom.selected { outline: 3px solid #1a1a1a; outline-offset: 2px; }
-  .atom.dragging { opacity: 0.35; }
-  .ghost { position: fixed; pointer-events: none; z-index: 40; margin: 0; }
+  .atom.selected { outline: 3px solid #1a1a1a; outline-offset: 3px; }
+  .ghost { position: fixed; z-index: 50; pointer-events: none; margin: 0; }
   .game-status { min-height: 52px; margin: 12px 0 0; padding: 10px 12px; background: #fff; border: 1px solid #e5e5e5; }
-  .game-status strong { display: block; margin-bottom: 2px; }
   .game-status.ok { background: #eef8f1; border-color: #2f8f4e; }
   .game-status.bad { background: #fff1ef; border-color: #c43c3c; }
   .game-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
@@ -94,22 +92,23 @@
 </style>
 <section id="game">
   <h2>Собери реакцию</h2>
-  <p class="game-lead">Выбери молекулу и реакцию. Перетащи атомы на углероды с двойной связью — они обведены синим кольцом. Можно сначала нажать на атом, потом на кольцо. Если атомы сядут правильно, молекула вспыхнет зелёным и появится продукт. Если нет — будет взрыв, и придётся собрать заново. Подсказки с готовыми схемами можно открыть ниже.</p>
+  <p class="game-lead">Выбери молекулу и реакцию. Возьми атомы снизу и положи их в клетки «углерод 1» и «углерод 2» — это два конца двойной связи. Можно перетащить или нажать атом, затем клетку. Верно — зелёная рамка и название продукта. Неверно — взрыв. Готовые схемы можно открыть в подсказках ниже.</p>
   <div class="game-pick">
-    <div class="game-pick-row" id="mol-pick">
-      <span class="label">Молекула</span>
-    </div>
-    <div class="game-pick-row" id="rx-pick">
-      <span class="label">Реакция</span>
-    </div>
+    <div class="game-pick-row" id="mol-pick"><span class="label">Молекула</span></div>
+    <div class="game-pick-row" id="rx-pick"><span class="label">Реакция</span></div>
   </div>
   <div class="game-board" id="board">
     <div class="boom-layer" id="boom-layer"></div>
     <div class="mol-wrap" id="mol-wrap"></div>
+    <div class="drops">
+      <div class="drop" id="drop-a" data-slot="a"><small id="drop-a-label">Углерод 1</small><div id="drop-a-atom"></div></div>
+      <div class="drop" id="drop-b" data-slot="b"><small id="drop-b-label">Углерод 2</small><div id="drop-b-atom"></div></div>
+    </div>
     <div class="tray" id="tray"></div>
   </div>
   <div class="game-status" id="status"></div>
   <div class="game-actions">
+    <button type="button" id="btn-check">Проверить</button>
     <button type="button" id="btn-reset" class="secondary">Сбросить попытку</button>
     <button type="button" id="btn-next" class="secondary">Другая карточка</button>
     <button type="button" id="btn-theory" class="secondary">Показать подсказки-картинки</button>
@@ -123,10 +122,10 @@
 <script>
 (function () {
   const MOLECULES = {
-    ethylene: { name: "этилен", formula: "CH₂=CH₂", carbons: 2, double: [0, 1], hCount: [2, 2] },
-    propene: { name: "пропен", formula: "CH₂=CH–CH₃", carbons: 3, double: [0, 1], hCount: [2, 1, 3] },
-    butene1: { name: "бутен-1", formula: "CH₂=CH–CH₂–CH₃", carbons: 4, double: [0, 1], hCount: [2, 1, 2, 3] },
-    butene2: { name: "бутен-2", formula: "CH₃–CH=CH–CH₃", carbons: 4, double: [1, 2], hCount: [3, 1, 1, 3] }
+    ethylene: { name: "этилен", formula: "CH₂=CH₂", carbons: 2, double: [0, 1], hCount: [2, 2], a: "1-й, крайний", b: "2-й, крайний" },
+    propene: { name: "пропен", formula: "CH₂=CH–CH₃", carbons: 3, double: [0, 1], hCount: [2, 1, 3], a: "1-й, край (CH₂=)", b: "2-й, средний" },
+    butene1: { name: "бутен-1", formula: "CH₂=CH–CH₂–CH₃", carbons: 4, double: [0, 1], hCount: [2, 1, 2, 3], a: "1-й, край (CH₂=)", b: "2-й" },
+    butene2: { name: "бутен-2", formula: "CH₃–CH=CH–CH₃", carbons: 4, double: [1, 2], hCount: [3, 1, 1, 3], a: "2-й, середина", b: "3-й, середина" }
   };
   const REACTIONS = {
     hydrogenation: { name: "гидрирование", reagent: "H₂", need: ["H", "H"] },
@@ -152,73 +151,60 @@
     "butene2|hydrobromination": { name: "2-бромбутан", formula: "CH₃–CH₂–CHBr–CH₃" },
     "butene2|hydration": { name: "бутанол-2", formula: "CH₃–CH₂–CH(OH)–CH₃" }
   };
-
-  function productKey(mol, rx) { return mol + "|" + rx; }
+  const TRAY = ["H", "H", "Br", "Br", "OH", "OH"];
 
   function isCorrect(molId, rxId, slotA, slotB) {
     if (!slotA || !slotB) return false;
-    const placed = [slotA, slotB].slice().sort();
     const need = REACTIONS[rxId].need.slice().sort();
+    const placed = [slotA, slotB].slice().sort();
     if (placed[0] !== need[0] || placed[1] !== need[1]) return false;
-    const unsym = (molId === "propene" || molId === "butene1");
-    if (unsym && (rxId === "hydrobromination" || rxId === "hydration")) {
+    if ((molId === "propene" || molId === "butene1") && (rxId === "hydrobromination" || rxId === "hydration")) {
       return slotA === "H" && slotB === (rxId === "hydration" ? "OH" : "Br");
     }
     return true;
   }
-
   function hintFor(molId, rxId, slotA, slotB) {
-    const unsym = (molId === "propene" || molId === "butene1");
     const need = REACTIONS[rxId].need.slice().sort();
     const placed = [slotA, slotB].slice().sort();
     if (placed[0] !== need[0] || placed[1] !== need[1]) {
-      return "Для " + REACTIONS[rxId].name + " нужны " + REACTIONS[rxId].need.join(" и ") + ", по одному на каждый углерод двойной связи.";
+      return "Для " + REACTIONS[rxId].name + " нужны " + REACTIONS[rxId].need.join(" и ") + ".";
     }
-    if (unsym && (rxId === "hydrobromination" || rxId === "hydration")) {
-      return "Правило Марковникова: водород — на крайний углерод (у него уже больше H), а " + (rxId === "hydration" ? "OH" : "Br") + " — внутрь, на 2-й углерод.";
+    if ((molId === "propene" || molId === "butene1") && (rxId === "hydrobromination" || rxId === "hydration")) {
+      return "Правило Марковникова: H на край (углерод 1), а " + (rxId === "hydration" ? "OH" : "Br") + " внутрь (углерод 2).";
     }
     return "Атомы должны сесть на два разных углерода двойной связи.";
   }
 
-  const state = {
-    mol: "ethylene",
-    rx: "hydrogenation",
-    slots: { a: null, b: null },
-    selected: null,
-    status: "play",
-    done: {}
-  };
-
+  const state = { mol: "ethylene", rx: "hydrogenation", slots: { a: null, b: null }, selected: null, status: "play", done: {} };
   const $ = (id) => document.getElementById(id);
 
+  function openTheory() {
+    const d = $("theory");
+    if (!d) return;
+    d.open = true;
+    d.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
   function renderPicks() {
-    const molBox = $("mol-pick");
-    molBox.querySelectorAll("button").forEach((b) => b.remove());
-    Object.keys(MOLECULES).forEach((id) => {
-      const b = document.createElement("button");
-      b.type = "button";
-      b.className = "chip";
-      b.textContent = MOLECULES[id].name;
-      b.setAttribute("aria-pressed", id === state.mol ? "true" : "false");
-      b.addEventListener("click", () => { state.mol = id; resetRound(false); });
-      molBox.appendChild(b);
-    });
-    const rxBox = $("rx-pick");
-    rxBox.querySelectorAll("button").forEach((b) => b.remove());
-    Object.keys(REACTIONS).forEach((id) => {
-      const b = document.createElement("button");
-      b.type = "button";
-      b.className = "chip";
-      b.textContent = REACTIONS[id].name;
-      b.setAttribute("aria-pressed", id === state.rx ? "true" : "false");
-      b.addEventListener("click", () => { state.rx = id; resetRound(false); });
-      rxBox.appendChild(b);
-    });
+    const fill = (box, dict, current, setter) => {
+      box.querySelectorAll("button").forEach((b) => b.remove());
+      Object.keys(dict).forEach((id) => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "chip";
+        b.textContent = dict[id].name;
+        b.setAttribute("aria-pressed", id === current ? "true" : "false");
+        b.addEventListener("click", () => setter(id));
+        box.appendChild(b);
+      });
+    };
+    fill($("mol-pick"), MOLECULES, state.mol, (id) => { state.mol = id; resetRound(); });
+    fill($("rx-pick"), REACTIONS, state.rx, (id) => { state.rx = id; resetRound(); });
   }
 
   function carbonPoints(n) {
     const start = n === 2 ? 220 : n === 3 ? 160 : 110;
-    return Array.from({ length: n }, (_, i) => ({ x: start + i * 108, y: 132 }));
+    return Array.from({ length: n }, (_, i) => ({ x: start + i * 108, y: 120 }));
   }
 
   function drawMolecule() {
@@ -227,27 +213,20 @@
     const [i1, i2] = mol.double;
     const ns = "http://www.w3.org/2000/svg";
     const svg = document.createElementNS(ns, "svg");
-    svg.setAttribute("viewBox", "0 0 640 260");
-    svg.setAttribute("role", "img");
-    svg.setAttribute("aria-label", mol.name + " " + mol.formula);
-
-    function line(x1, y1, x2, y2, w) {
+    svg.setAttribute("viewBox", "0 0 640 230");
+    function line(x1, y1, x2, y2) {
       const el = document.createElementNS(ns, "line");
       el.setAttribute("x1", x1); el.setAttribute("y1", y1);
       el.setAttribute("x2", x2); el.setAttribute("y2", y2);
       el.setAttribute("stroke", "#2b2b2b");
-      el.setAttribute("stroke-width", w || 5);
+      el.setAttribute("stroke-width", 5);
       svg.appendChild(el);
     }
-    function circle(x, y, r, fill, stroke) {
+    function circle(x, y, r, fill) {
       const el = document.createElementNS(ns, "circle");
-      el.setAttribute("cx", x); el.setAttribute("cy", y);
-      el.setAttribute("r", r);
-      el.setAttribute("fill", fill);
-      el.setAttribute("stroke", stroke || "#2b2b2b");
-      el.setAttribute("stroke-width", 3);
+      el.setAttribute("cx", x); el.setAttribute("cy", y); el.setAttribute("r", r);
+      el.setAttribute("fill", fill); el.setAttribute("stroke", "#2b2b2b"); el.setAttribute("stroke-width", 3);
       svg.appendChild(el);
-      return el;
     }
     function text(x, y, s, fill, size) {
       const el = document.createElementNS(ns, "text");
@@ -261,121 +240,109 @@
       el.textContent = s;
       svg.appendChild(el);
     }
-
     pts.forEach((p, i) => {
       if (i === pts.length - 1) return;
       const q = pts[i + 1];
       if (i === i1 && i + 1 === i2) {
         line(p.x, p.y - 5, q.x, q.y - 5);
         line(p.x, p.y + 5, q.x, q.y + 5);
-      } else {
-        line(p.x, p.y, q.x, q.y);
-      }
+      } else line(p.x, p.y, q.x, q.y);
     });
-
     pts.forEach((p, i) => {
       const hs = mol.hCount[i];
       const spots = [];
-      if (hs >= 1) spots.push([p.x, p.y - 62]);
-      if (hs >= 2) spots.push([p.x, p.y + 62]);
-      if (hs >= 3) spots.push([i === 0 ? p.x - 62 : p.x + 62, p.y]);
+      if (hs >= 1) spots.push([p.x, p.y - 58]);
+      if (hs >= 2) spots.push([p.x, p.y + 58]);
+      if (hs >= 3) spots.push([i === 0 ? p.x - 58 : p.x + 58, p.y]);
       spots.forEach(([x, y]) => {
-        line(p.x, p.y, x, y, 4);
-        circle(x, y, 16, "#fff");
+        line(p.x, p.y, x, y);
+        circle(x, y, 15, "#fff");
         text(x, y, "H", "#1a1a1a", 13);
       });
     });
-
-    [["a", i1], ["b", i2]].forEach(([slot, idx]) => {
-      const p = pts[idx];
-      const ring = circle(p.x, p.y, 34, "none", "#3b7dd8");
-      ring.setAttribute("class", "slot-ring");
-      ring.setAttribute("stroke-dasharray", "6 5");
-      const hit = circle(p.x, p.y, 38, "rgba(59,125,216,0.08)", "transparent");
-      hit.setAttribute("class", "slot-hit" + (state.slots[slot] ? " filled" : ""));
-      hit.dataset.slot = slot;
-      hit.addEventListener("click", () => placeSelected(slot));
-    });
-
     pts.forEach((p, i) => {
-      circle(p.x, p.y, 20, "#2b2b2b");
+      const active = (i === i1 || i === i2);
+      if (active) {
+        const ring = document.createElementNS(ns, "circle");
+        ring.setAttribute("cx", p.x); ring.setAttribute("cy", p.y); ring.setAttribute("r", 28);
+        ring.setAttribute("fill", "none"); ring.setAttribute("stroke", "#3b7dd8");
+        ring.setAttribute("stroke-width", 3); ring.setAttribute("stroke-dasharray", "6 5");
+        svg.appendChild(ring);
+      }
+      circle(p.x, p.y, 19, "#2b2b2b");
       text(p.x, p.y, "C", "#fff", 15);
-      text(p.x, p.y - 86, String(i + 1), "#3b7dd8", 13);
+      text(p.x, p.y - 80, String(i + 1), "#3b7dd8", 13);
     });
-
-    [["a", i1], ["b", i2]].forEach(([slot, idx]) => {
-      const atom = state.slots[slot];
-      if (!atom) return;
-      const p = pts[idx];
-      const x = slot === "a" ? p.x - 70 : p.x + 70;
-      const y = p.y;
-      const fill = atom === "H" ? "#d6ebff" : atom === "Br" ? "#b85c38" : "#c43c3c";
-      const fg = atom === "H" ? "#1a1a1a" : "#fff";
-      circle(x, y, 18, fill);
-      text(x, y, atom, fg, atom === "OH" ? 12 : 14);
-    });
-
     $("mol-wrap").innerHTML = "";
     $("mol-wrap").appendChild(svg);
+    $("drop-a-label").textContent = "Углерод " + mol.a;
+    $("drop-b-label").textContent = "Углерод " + mol.b;
+  }
+
+  function paintDrop(slot) {
+    const box = $("drop-" + slot);
+    const holder = $("drop-" + slot + "-atom");
+    const atom = state.slots[slot];
+    box.classList.toggle("filled", !!atom);
+    holder.innerHTML = "";
+    if (!atom) return;
+    const d = document.createElement("div");
+    d.className = "drop-atom " + atom;
+    d.textContent = atom;
+    holder.appendChild(d);
+  }
+
+  function usedCount(kind) {
+    return [state.slots.a, state.slots.b].filter((x) => x === kind).length;
   }
 
   function renderTray() {
     const tray = $("tray");
-    tray.innerHTML = '<div class="tray-label">Атомы и группы. Перетащи на синие кольца или нажми атом, затем кольцо.</div>';
-    const kinds = ["H", "H", "Br", "Br", "OH", "OH"];
-    kinds.forEach((kind, idx) => {
-      const el = document.createElement("button");
-      el.type = "button";
+    tray.innerHTML = '<div class="tray-label">Атомы. Перетащи в клетку или нажми атом, затем клетку.</div>';
+    const seen = { H: 0, Br: 0, OH: 0 };
+    TRAY.forEach((kind, idx) => {
+      const el = document.createElement("div");
       el.className = "atom " + kind;
       el.textContent = kind;
       el.dataset.kind = kind;
       el.dataset.idx = String(idx);
-      if (usedAtom(kind, idx)) el.classList.add("used");
+      const order = seen[kind];
+      seen[kind] += 1;
+      if (order < usedCount(kind)) el.classList.add("used");
       if (state.selected === idx) el.classList.add("selected");
       el.addEventListener("click", (e) => {
         e.stopPropagation();
         if (el.classList.contains("used") || state.status !== "play") return;
         state.selected = (state.selected === idx) ? null : idx;
-        renderTray();
+        document.querySelectorAll(".atom").forEach((a) => a.classList.toggle("selected", Number(a.dataset.idx) === state.selected));
+        document.querySelectorAll(".drop").forEach((d) => d.classList.toggle("ready", state.selected !== null));
       });
-      bindDrag(el, kind, idx);
+      bindDrag(el, kind);
       tray.appendChild(el);
     });
   }
 
-  function usedAtom(kind, idx) {
-    const placed = [state.slots.a, state.slots.b].filter(Boolean);
-    const sameKind = placed.filter((k) => k === kind).length;
-    const earlier = ["H", "H", "Br", "Br", "OH", "OH"].slice(0, idx).filter((k) => k === kind).length;
-    return earlier < sameKind;
-  }
-
-  function placeSelected(slot) {
-    if (state.status !== "play" || state.selected === null) return;
-    const kinds = ["H", "H", "Br", "Br", "OH", "OH"];
-    const kind = kinds[state.selected];
-    if (usedAtom(kind, state.selected) && state.slots[slot] !== kind) return;
-    if (state.slots[slot]) return;
+  function place(slot, kind) {
+    if (state.status !== "play" || state.slots[slot]) return false;
     state.slots[slot] = kind;
     state.selected = null;
-    afterPlace();
-  }
-
-  function afterPlace() {
-    drawMolecule();
+    paintDrop("a");
+    paintDrop("b");
     renderTray();
+    document.querySelectorAll(".drop").forEach((d) => d.classList.remove("ready", "over"));
     if (state.slots.a && state.slots.b) evaluate();
-    else setStatus("play", "Поставь второй атом на оставшееся кольцо.");
+    else setStatus("play", "Теперь положи атом во вторую клетку.");
+    return true;
   }
 
   function evaluate() {
+    if (!state.slots.a || !state.slots.b || state.status !== "play") return;
     const ok = isCorrect(state.mol, state.rx, state.slots.a, state.slots.b);
-    const key = productKey(state.mol, state.rx);
-    const prod = PRODUCTS[key];
+    const prod = PRODUCTS[state.mol + "|" + state.rx];
     if (ok) {
       state.status = "win";
       $("board").className = "game-board win";
-      state.done[key] = true;
+      state.done[state.mol + "|" + state.rx] = true;
       setStatus("ok", "Получилось: " + prod.name + " (" + prod.formula + ").");
       renderCollection();
     } else {
@@ -386,56 +353,55 @@
       setStatus("bad", "Взрыв. " + hint);
       setTimeout(() => {
         if (state.status === "boom") {
-          resetRound(true);
-          setStatus("bad", hint + " Если всё ещё неясно — открой подсказки-картинки.");
+          resetRound();
+          setStatus("bad", hint + " Можно открыть подсказки-картинки.");
         }
-      }, 1400);
+      }, 1500);
     }
   }
 
   function explode() {
     const layer = $("boom-layer");
     layer.innerHTML = "";
-    const box = $("board").getBoundingClientRect();
     for (let i = 0; i < 18; i++) {
       const s = document.createElement("div");
       s.className = "spark";
       const ang = (Math.PI * 2 * i) / 18;
-      const dist = 70 + (i % 5) * 16;
+      const dist = 80 + (i % 5) * 14;
       s.style.left = "50%";
-      s.style.top = "42%";
+      s.style.top = "30%";
       s.style.background = i % 2 ? "#c43c3c" : "#e09a2a";
       layer.appendChild(s);
-      s.animate(
-        [
-          { transform: "translate(-50%,-50%) scale(1)", opacity: 1 },
-          { transform: "translate(calc(-50% + " + Math.cos(ang) * dist + "px), calc(-50% + " + Math.sin(ang) * dist + "px)) scale(0.2)", opacity: 0 }
-        ],
-        { duration: 650, easing: "ease-out" }
-      );
+      if (s.animate) {
+        s.animate(
+          [
+            { transform: "translate(-50%,-50%) scale(1)", opacity: 1 },
+            { transform: "translate(" + Math.cos(ang) * dist + "px, " + Math.sin(ang) * dist + "px) scale(0.2)", opacity: 0 }
+          ],
+          { duration: 650, easing: "ease-out" }
+        );
+      }
     }
-    void box;
   }
 
   function setStatus(kind, text) {
     const el = $("status");
     el.className = "game-status" + (kind === "ok" ? " ok" : kind === "bad" ? " bad" : "");
-    const mol = MOLECULES[state.mol];
-    const rx = REACTIONS[state.rx];
-    el.innerHTML = "<strong>" + mol.name + " + " + rx.reagent + "</strong>" + text;
+    el.innerHTML = "<strong>" + MOLECULES[state.mol].name + " + " + REACTIONS[state.rx].reagent + "</strong>" + text;
   }
 
-  function resetRound(keepPick) {
+  function resetRound() {
     state.slots = { a: null, b: null };
     state.selected = null;
     state.status = "play";
     $("board").className = "game-board";
     $("boom-layer").innerHTML = "";
-    if (!keepPick) renderPicks();
-    else renderPicks();
+    renderPicks();
     drawMolecule();
+    paintDrop("a");
+    paintDrop("b");
     renderTray();
-    setStatus("play", "Перетащи нужные атомы на два углерода двойной связи.");
+    setStatus("play", "Положи нужные атомы в две клетки под молекулой.");
   }
 
   function renderCollection() {
@@ -444,93 +410,91 @@
     const keys = Object.keys(PRODUCTS);
     let n = 0;
     keys.forEach((key) => {
-      const [mol, rx] = key.split("|");
+      const parts = key.split("|");
       const prod = PRODUCTS[key];
       const done = !!state.done[key];
       if (done) n += 1;
       const d = document.createElement("div");
       d.className = "got" + (done ? " done" : "");
       d.innerHTML = (done ? prod.name + " · " + prod.formula : "ещё не собрано") +
-        "<em>" + MOLECULES[mol].name + " → " + REACTIONS[rx].name + "</em>";
+        "<em>" + MOLECULES[parts[0]].name + " → " + REACTIONS[parts[1]].name + "</em>";
       box.appendChild(d);
     });
     $("collection-meta").textContent = "Собрано веществ: " + n + " из " + keys.length;
   }
 
-  function bindDrag(el, kind, idx) {
-    let startX = 0, startY = 0, moved = false, ghost = null;
+  function bindDrag(el, kind) {
+    let sx = 0, sy = 0, moved = false, ghost = null, pointer = null;
     el.addEventListener("pointerdown", (e) => {
       if (el.classList.contains("used") || state.status !== "play") return;
       e.preventDefault();
-      el.setPointerCapture(e.pointerId);
-      startX = e.clientX; startY = e.clientY; moved = false;
-      state.selected = idx;
-      renderTray();
+      pointer = e.pointerId;
+      el.setPointerCapture(pointer);
+      sx = e.clientX; sy = e.clientY; moved = false;
       ghost = el.cloneNode(true);
-      ghost.classList.add("ghost");
-      ghost.style.left = e.clientX - 26 + "px";
-      ghost.style.top = e.clientY - 26 + "px";
+      ghost.className = el.className + " ghost";
+      ghost.style.left = (e.clientX - 26) + "px";
+      ghost.style.top = (e.clientY - 26) + "px";
       document.body.appendChild(ghost);
-      el.classList.add("dragging");
     });
     el.addEventListener("pointermove", (e) => {
       if (!ghost) return;
-      if (Math.abs(e.clientX - startX) + Math.abs(e.clientY - startY) > 6) moved = true;
-      ghost.style.left = e.clientX - 26 + "px";
-      ghost.style.top = e.clientY - 26 + "px";
-      document.querySelectorAll(".slot-hit").forEach((hit) => {
-        const r = hit.getBoundingClientRect();
-        const over = e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
-        hit.classList.toggle("over", over);
+      if (Math.abs(e.clientX - sx) + Math.abs(e.clientY - sy) > 8) moved = true;
+      ghost.style.left = (e.clientX - 26) + "px";
+      ghost.style.top = (e.clientY - 26) + "px";
+      document.querySelectorAll(".drop").forEach((d) => {
+        const r = d.getBoundingClientRect();
+        d.classList.toggle("over", e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom);
       });
     });
     function end(e) {
       if (!ghost) return;
-      ghost.remove(); ghost = null;
-      el.classList.remove("dragging");
+      ghost.remove();
+      ghost = null;
       let target = null;
-      document.querySelectorAll(".slot-hit").forEach((hit) => {
-        const r = hit.getBoundingClientRect();
-        const over = e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
-        if (over) target = hit.dataset.slot;
-        hit.classList.remove("over");
+      document.querySelectorAll(".drop").forEach((d) => {
+        const r = d.getBoundingClientRect();
+        if (e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom) target = d.dataset.slot;
+        d.classList.remove("over");
       });
-      if (target && !state.slots[target] && state.status === "play") {
-        state.slots[target] = kind;
-        state.selected = null;
-        afterPlace();
-      } else if (!moved) {
-        renderTray();
-      } else {
-        state.selected = null;
-        renderTray();
+      if (target) place(target, kind);
+      if (pointer !== null) {
+        try { el.releasePointerCapture(pointer); } catch (err) {}
+        pointer = null;
       }
     }
     el.addEventListener("pointerup", end);
     el.addEventListener("pointercancel", end);
   }
 
-  $("btn-theory").addEventListener("click", () => {
-    const d = document.getElementById("theory");
-    d.open = true;
-    d.scrollIntoView({ behavior: "smooth", block: "start" });
-  });
-  $("btn-reset").addEventListener("click", () => resetRound(true));
-  $("btn-next").addEventListener("click", () => {
-    const mols = Object.keys(MOLECULES);
-    const rxs = Object.keys(REACTIONS);
-    const open = [];
-    mols.forEach((m) => rxs.forEach((r) => {
-      if (!state.done[productKey(m, r)]) open.push([m, r]);
-    }));
-    const pick = open.length ? open[Math.floor(Math.random() * open.length)] : [mols[0], rxs[0]];
-    state.mol = pick[0];
-    state.rx = pick[1];
-    resetRound(false);
+  ["a", "b"].forEach((slot) => {
+    $("drop-" + slot).addEventListener("click", () => {
+      if (state.selected === null || state.status !== "play") return;
+      place(slot, TRAY[state.selected]);
+    });
   });
 
-  window.__alkenyCheck = isCorrect;
-  resetRound(false);
+  $("btn-check").addEventListener("click", evaluate);
+  $("btn-reset").addEventListener("click", resetRound);
+  $("btn-theory").addEventListener("click", openTheory);
+  $("btn-next").addEventListener("click", () => {
+    const open = [];
+    Object.keys(MOLECULES).forEach((m) => {
+      Object.keys(REACTIONS).forEach((r) => {
+        if (!state.done[m + "|" + r]) open.push([m, r]);
+      });
+    });
+    const pick = open[Math.floor(Math.random() * (open.length || 1))] || ["ethylene", "hydrogenation"];
+    state.mol = pick[0];
+    state.rx = pick[1];
+    resetRound();
+  });
+  document.querySelectorAll('a[href="#theory"]').forEach((a) => {
+    a.addEventListener("click", () => setTimeout(openTheory, 0));
+  });
+  if (location.hash === "#theory") openTheory();
+
+  resetRound();
   renderCollection();
 })();
 </script>
