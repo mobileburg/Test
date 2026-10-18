@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Автошкола — рекламный баннер 3:2</title>
+<style>
+  @font-face { font-family: "Oswald"; src: url("assets/fonts/Oswald.ttf"); font-weight: 200 700; }
+  @font-face { font-family: "Marck"; src: url("assets/fonts/MarckScript-Regular.ttf"); }
+  @font-face { font-family: "RC"; src: url("assets/fonts/RobotoCondensed.ttf"); font-weight: 100 900; }
+
+  :root { --y: #ffd400; --y2: #ffc400; --k: #0a0a0c; --blue: #0b1630; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1500px; height: 1000px; overflow: hidden; background: #000; }
+
+  .banner { position: relative; width: 1500px; height: 1000px; overflow: hidden; font-family: "Oswald", sans-serif; color: #fff; }
+
+  .bg {
+    position: absolute; inset: 0;
+    background: url("assets/bg_car.jpg") no-repeat;
+    background-size: 1778px 1000px;
+    background-position: -40px 0;
+    filter: contrast(1.08) saturate(1.12);
+  }
+  .shade { position: absolute; inset: 0; pointer-events: none; }
+  .shade.tl { background: radial-gradient(ellipse 900px 620px at 18% 22%, rgba(3,8,22,.88), rgba(3,8,22,.55) 55%, rgba(3,8,22,0) 85%); }
+  .shade.tr { background: radial-gradient(ellipse 560px 520px at 90% 26%, rgba(3,8,22,.78), rgba(3,8,22,0) 80%); }
+  .shade.bl { background: radial-gradient(ellipse 560px 480px at 12% 78%, rgba(0,0,0,.7), rgba(0,0,0,0) 80%); }
+  .shade.bottom { background: linear-gradient(to top, rgba(0,0,0,.85), rgba(0,0,0,0) 30%); }
+  .shade.vig { background: radial-gradient(ellipse 120% 100% at 55% 55%, rgba(0,0,0,0) 55%, rgba(0,0,0,.55)); }
+
+  .abs { position: absolute; }
+  .brush { position: absolute; filter: url(#brush); }
+  .brush.y { background: var(--y); }
+  .brush.k { background: rgba(8,8,10,.94); filter: url(#brushk); }
+
+  /* ---------- Заголовок ---------- */
+  .kicker {
+    left: 64px; top: 46px; font-weight: 500; font-size: 25px; letter-spacing: .52em;
+    display: flex; align-items: center; gap: 18px; color: #fff;
+  }
+  .kicker::before { content: ""; width: 46px; height: 4px; background: var(--y); transform: skewX(-20deg); }
+  .script { font-family: "Marck", cursive; color: var(--y); -webkit-text-stroke: 1.6px var(--y); }
+  .lead { left: 70px; top: 76px; font-size: 70px; transform: rotate(-4deg); text-shadow: 0 3px 14px rgba(0,0,0,.6); }
+
+  .h1 { font-weight: 700; text-transform: uppercase; line-height: 1; letter-spacing: -.005em; transform: skewX(-9deg); white-space: nowrap; }
+  .h1.l1 { left: 58px; top: 154px; font-size: 110px; color: #fff; text-shadow: 0 6px 22px rgba(0,0,0,.65); }
+  .h1.l2 { left: 72px; top: 292px; font-size: 110px; color: var(--k); }
+  .strip2 { left: 24px; top: 280px; width: 880px; height: 136px;
+    clip-path: polygon(2% 10%, 6% 0, 40% 4%, 75% 0, 97% 6%, 100% 30%, 98% 55%, 100% 80%, 96% 100%, 60% 96%, 20% 100%, 3% 94%, 0 70%, 1.5% 45%, 0 25%); }
+
+  .sub { left: 66px; top: 440px; transform: skewX(-9deg); text-transform: uppercase; line-height: 1.12; text-shadow: 0 3px 12px rgba(0,0,0,.8); }
+  .sub .a { font-weight: 700; font-size: 40px; color: var(--y); }
+  .sub .b { font-weight: 600; font-size: 34px; color: #fff; letter-spacing: .01em; }
+
+  /* ---------- Главное предложение ---------- */
+  .offer-wrap { left: 34px; top: 608px; width: 424px; height: 296px; transform: rotate(-3deg); }
+  .offer-bg { left: 0; top: 0; width: 100%; height: 100%;
+    clip-path: polygon(1% 4%, 30% 0, 70% 3%, 99% 0, 100% 35%, 98% 70%, 100% 97%, 65% 100%, 30% 97%, 0 100%, 2% 60%, 0 30%); }
+  .offer-shadow { left: 14px; top: 16px; width: 100%; height: 100%; background: rgba(0,0,0,.55); filter: blur(14px); }
+  .offer { left: 0; top: 0; width: 100%; height: 100%; padding: 26px 30px 0 34px; color: var(--k); text-transform: uppercase; transform: skewX(-7deg); }
+  .offer .o1 { font-weight: 700; font-size: 37px; line-height: 1; letter-spacing: .01em; }
+  .offer .o2 { font-weight: 700; font-size: 54px; line-height: 1; margin-top: 10px; }
+  .offer .o3 { font-weight: 700; font-size: 108px; line-height: .9; margin-top: 4px; letter-spacing: -.01em; }
+  .arrow { z-index: 5; left: 222px; top: 524px; width: 210px; height: 120px; overflow: visible; }
+
+  /* ---------- Преимущества справа ---------- */
+  .features { left: 1040px; top: 70px; width: 430px; }
+  .feat { position: relative; height: 74px; margin-bottom: 18px; }
+  .feat .plate { left: 40px; top: 6px; width: 390px; height: 62px;
+    clip-path: polygon(0 8%, 30% 0, 70% 6%, 99% 0, 100% 40%, 98% 70%, 100% 100%, 60% 94%, 20% 100%, 0 92%); }
+  .feat .ico { position: absolute; left: 0; top: 0; width: 74px; height: 74px; border-radius: 50%;
+    background: #070708; border: 3px solid var(--y); display: grid; place-items: center; box-shadow: 0 4px 14px rgba(0,0,0,.6); }
+  .feat .ico svg { width: 40px; height: 40px; }
+  .feat .t { position: absolute; left: 96px; top: 0; height: 74px; display: flex; flex-direction: column; justify-content: center;
+    font-weight: 500; font-size: 27px; line-height: 1.05; color: #fff; letter-spacing: .01em; }
+  .feat .t small { font-family: "RC"; font-weight: 500; font-size: 17px; color: var(--y); letter-spacing: .04em; margin-top: 3px; }
+
+  /* ---------- Призыв к действию ---------- */
+  .cta { left: 960px; top: 806px; width: 520px; height: 90px; }
+  .cta .plate { left: 0; top: 4px; width: 450px; height: 80px;
+    clip-path: polygon(1% 6%, 40% 0, 80% 5%, 100% 0, 99% 50%, 100% 100%, 60% 95%, 25% 100%, 0 96%, 1.5% 50%); }
+  .cta .t { position: absolute; left: 22px; top: 4px; height: 80px; display: flex; align-items: center;
+    font-weight: 700; font-size: 34px; color: var(--k); transform: skewX(-9deg); text-transform: uppercase; white-space: nowrap; }
+  .cta .circle { position: absolute; left: 424px; top: -2px; width: 92px; height: 92px; border-radius: 50%;
+    background: #070708; border: 3px solid var(--y); display: grid; place-items: center; box-shadow: 0 6px 18px rgba(0,0,0,.6); }
+  .cta .circle svg { width: 46px; height: 46px; transform: translateX(-2px); }
+  .tg { left: 980px; top: 904px; width: 420px; font-family: "RC"; font-weight: 600; font-size: 18px; letter-spacing: .2em; color: #fff; text-shadow: 0 2px 8px #000; }
+
+  /* ---------- Нижняя полоса ---------- */
+  .bar { left: 0; top: 938px; width: 1500px; height: 62px; background: rgba(6,7,10,.94); border-top: 3px solid var(--y);
+    display: flex; justify-content: center; align-items: center; gap: 0; }
+  .bar .it { display: flex; align-items: center; gap: 14px; padding: 0 52px; font-weight: 600; font-size: 22px; letter-spacing: .08em; color: #fff; }
+  .bar .it + .it { border-left: 2px solid rgba(255,212,0,.35); }
+  .bar svg { width: 34px; height: 34px; }
+
+  .splat { position: absolute; inset: 0; pointer-events: none; }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <filter id="brush" x="-4%" y="-25%" width="108%" height="150%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.018 0.09" numOctaves="4" seed="11" result="n"/>
+      <feDisplacementMap in="SourceGraphic" in2="n" scale="16" xChannelSelector="R" yChannelSelector="G" result="d"/>
+      <feTurbulence type="fractalNoise" baseFrequency="0.004 0.22" numOctaves="3" seed="4" result="streak"/>
+      <feColorMatrix in="streak" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 14 -3.3" result="sa"/>
+      <feTurbulence type="fractalNoise" baseFrequency="0.55" numOctaves="2" seed="9" result="grain"/>
+      <feColorMatrix in="grain" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 20 -4.4" result="ga"/>
+      <feComposite in="sa" in2="ga" operator="arithmetic" k1="1" k2="0" k3="0" k4="0" result="mask"/>
+      <feComposite in="d" in2="mask" operator="in"/>
+    </filter>
+    <filter id="brushk" x="-4%" y="-25%" width="108%" height="150%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.02 0.1" numOctaves="4" seed="5" result="n"/>
+      <feDisplacementMap in="SourceGraphic" in2="n" scale="12" xChannelSelector="R" yChannelSelector="G" result="d"/>
+      <feTurbulence type="fractalNoise" baseFrequency="0.003 0.25" numOctaves="3" seed="8" result="streak"/>
+      <feColorMatrix in="streak" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 16 -3.4" result="sa"/>
+      <feComposite in="d" in2="sa" operator="in"/>
+    </filter>
+    <filter id="rough" x="-10%" y="-10%" width="120%" height="120%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.06" numOctaves="2" seed="3" result="n"/>
+      <feDisplacementMap in="SourceGraphic" in2="n" scale="5" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+  </defs>
+</svg>
+
+<div class="banner">
+  <div class="bg"></div>
+  <div class="shade tl"></div>
+  <div class="shade tr"></div>
+  <div class="shade bl"></div>
+  <div class="shade bottom"></div>
+  <div class="shade vig"></div>
+
+  <!-- чёрный мазок под первой строкой заголовка -->
+  <div class="brush k abs" style="left:18px; top:152px; width:880px; height:124px; opacity:.6;
+    clip-path: polygon(0 20%, 8% 4%, 50% 0, 92% 6%, 100% 30%, 97% 70%, 100% 100%, 50% 94%, 4% 100%, 1% 60%);"></div>
+
+  <!-- брызги -->
+  <svg class="splat" viewBox="0 0 1500 1000" filter="url(#rough)">
+    <g fill="#ffd400">
+      <circle cx="918" cy="300" r="7"/><circle cx="934" cy="322" r="4"/><circle cx="922" cy="404" r="5"/><circle cx="944" cy="290" r="3"/>
+      <circle cx="912" cy="420" r="3"/><circle cx="18" cy="296" r="5"/><circle cx="10" cy="330" r="3"/>
+      <circle cx="446" cy="640" r="6"/><circle cx="462" cy="668" r="3.5"/><circle cx="440" cy="880" r="4"/><circle cx="30" cy="912" r="5"/>
+      <circle cx="946" cy="830" r="5"/><circle cx="938" cy="858" r="3"/><circle cx="1488" cy="872" r="4"/>
+      <path d="M900 286 l26 -6 l-4 6z"/><path d="M450 900 l30 4 l-28 3z"/>
+    </g>
+    <g fill="#0a0a0c" opacity=".8">
+      <circle cx="1030" cy="64" r="5"/><circle cx="1478" cy="120" r="4"/><circle cx="1490" cy="400" r="5"/>
+    </g>
+  </svg>
+
+  <!-- ЗАГОЛОВОК -->
+  <div class="abs kicker">АВТОШКОЛА</div>
+  <div class="abs script lead">Твой путь к</div>
+  <div class="abs h1 l1">ВОДИТЕЛЬСКОМУ</div>
+  <div class="brush y strip2"></div>
+  <div class="abs h1 l2">УДОСТОВЕРЕНИЮ</div>
+
+  <div class="abs sub">
+    <div class="a">НАЧНИ СЕГОДНЯ —</div>
+    <div class="b">СДЕЛАЙ ШАГ К СВОБОДЕ ЗА РУЛЁМ!</div>
+  </div>
+
+  <!-- стрелка к плашке -->
+  <svg class="abs arrow" viewBox="0 0 210 120" filter="url(#rough)">
+    <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M186 4 C 178 44, 120 52, 66 80 M62 52 L 62 82 L 92 82" stroke="rgba(0,0,0,.65)" stroke-width="13"/>
+      <path d="M186 4 C 178 44, 120 52, 66 80 M62 52 L 62 82 L 92 82" stroke="#ffd400" stroke-width="7"/>
+    </g>
+  </svg>
+
+  <!-- ГЛАВНОЕ ПРЕДЛОЖЕНИЕ -->
+  <div class="abs offer-wrap">
+    <div class="abs offer-shadow"></div>
+    <div class="brush y offer-bg"></div>
+    <div class="abs offer">
+      <div class="o1">СТАРТ ОБУЧЕНИЯ</div>
+      <div class="o2">КАЖДУЮ</div>
+      <div class="o3">НЕДЕЛЮ</div>
+    </div>
+  </div>
+
+  <!-- ПРЕИМУЩЕСТВА -->
+  <div class="abs features">
+    <div class="feat">
+      <div class="brush k plate"></div>
+      <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5l7.5 3v5.8c0 4.6-3.2 8.6-7.5 10.2-4.3-1.6-7.5-5.6-7.5-10.2V5.5z"/><path d="M8.4 12.2l2.6 2.6 4.8-5.2"/></svg></div>
+      <div class="t">Обучение в автошколе</div>
+    </div>
+    <div class="feat">
+      <div class="brush k plate"></div>
+      <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 15.5v-3.2l2-4.6c.3-.7 1-1.2 1.8-1.2h10.4c.8 0 1.5.5 1.8 1.2l2 4.6v3.2c0 .6-.4 1-1 1H4c-.6 0-1-.4-1-1z"/><path d="M3.4 12h17.2"/><circle cx="7" cy="14.2" r=".9" fill="#fff"/><circle cx="17" cy="14.2" r=".9" fill="#fff"/><path d="M5.5 16.5v2M18.5 16.5v2"/></svg></div>
+      <div class="t">Теория и практика</div>
+    </div>
+    <div class="feat">
+      <div class="brush k plate"></div>
+      <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="7.5" r="3.6"/><path d="M8 5.4c1-1.9 7-1.9 8 0"/><path d="M4.5 21c.4-4.2 3.6-7 7.5-7s7.1 2.8 7.5 7"/><path d="M12 14l-1.3 2.6L12 21l1.3-4.4z"/></svg></div>
+      <div class="t">Опытные инструкторы<small>Индивидуальный подход</small></div>
+    </div>
+    <div class="feat">
+      <div class="brush k plate"></div>
+      <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2.5H6.5c-.8 0-1.5.7-1.5 1.5v16c0 .8.7 1.5 1.5 1.5h11c.8 0 1.5-.7 1.5-1.5V7.5z"/><path d="M14 2.5v5h5"/><path d="M8.5 12h7M8.5 15h7M8.5 18h4"/></svg></div>
+      <div class="t">Подготовка к экзаменам</div>
+    </div>
+  </div>
+
+  <!-- ПРИЗЫВ К ДЕЙСТВИЮ -->
+  <div class="abs cta">
+    <div class="brush y plate"></div>
+    <div class="t">ЗАПИШИСЬ НА ОБУЧЕНИЕ!</div>
+    <div class="circle"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 3L2.8 10.4c-.7.3-.7 1.2 0 1.5l4.6 1.8 1.8 6c.2.6 1 .8 1.4.3l2.7-2.9 4.6 3.4c.5.4 1.3.1 1.4-.5L22.4 4c.2-.7-.4-1.3-.9-1z"/><path d="M7.4 13.7L21.5 3l-11.2 13.6"/></svg></div>
+  </div>
+  <div class="abs tg">НАПИШИТЕ НАМ В TELEGRAM</div>
+
+  <!-- НИЖНЯЯ ПОЛОСА -->
+  <div class="abs bar">
+    <div class="it"><svg viewBox="0 0 24 24" fill="none" stroke="#ffd400" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="2"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/><path d="M8.5 15l2.3 2.2 4.7-4.7"/></svg>УДОБНОЕ РАСПИСАНИЕ</div>
+    <div class="it"><svg viewBox="0 0 24 24" fill="none" stroke="#ffd400" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 15.5v-3l1.6-1 2.4-4c.4-.6 1-1 1.7-1h7.1c.6 0 1.2.3 1.6.8l3 4.2 1.6.6c.6.2.9.7.9 1.3v2.1c0 .6-.4 1-1 1h-1.2"/><path d="M5.8 16.5H3.5c-.6 0-1-.4-1-1"/><path d="M10 16.5h5.6"/><circle cx="7.9" cy="16.5" r="2"/><circle cx="17.7" cy="16.5" r="2"/><path d="M4.4 11h14.5"/></svg>СОВРЕМЕННЫЙ АВТОПАРК</div>
+    <div class="it"><svg viewBox="0 0 24 24" fill="none" stroke="#ffd400" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="3.5" width="15" height="18" rx="2"/><path d="M9 3.5V2.5h6v1"/><path d="M8 9l1.3 1.3L11.8 8M8 14.5l1.3 1.3 2.5-2.3"/><path d="M14 9.2h2.5M14 14.7h2.5"/></svg>ПОНЯТНАЯ ПРОГРАММА</div>
+  </div>
+</div>
+</body>
+</html>
