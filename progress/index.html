@@ -52,7 +52,8 @@ window.addEventListener("DOMContentLoaded", async () => {
   const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;");
 
   async function render() {
-    const { source, events } = await Portal.getEvents();
+    const res = await Portal.getEvents();
+    const source = res.source, events = res.events.filter((e) => e.type !== "server_check");
     const by = (t) => events.filter((e) => e.type === t);
     const visits = by("visit"), times = by("time");
     const totalSec = times.reduce((s, e) => s + (e.data.sec || 0), 0);
