@@ -182,7 +182,7 @@
     <ol>
       <li><b>Прямая</b> — нажми на две точки (вершины или отмеченные точки). Через них пройдёт прямая.</li>
       <li><b>Параллельная</b> — нажми на прямую или ребро, а затем на точку. Через точку пройдёт прямая, параллельная выбранной. Нужна для куба: следы на параллельных гранях параллельны.</li>
-      <li><b>Масштаб</b> — кнопки «+», «−» и «Весь чертёж» в углу чертежа. На телефоне можно разводить и сводить два пальца, на компьютере — Ctrl + колёсико мыши. Перетаскивай чертёж мышью или двумя пальцами. Когда чертёж отдаляется, точки становятся мельче и не закрывают построение.</li>
+      <li><b>Масштаб</b> — кнопки «+», «−» и «Весь чертёж» в углу чертежа. На телефоне можно разводить и сводить два пальца, на компьютере — Ctrl + колёсико мыши. Перетаскивай чертёж мышью или двумя пальцами. Когда чертёж отдаляется, точки становятся мельче и не закрывают построение. Кнопка «⛶» разворачивает тетрадный лист на весь экран, а «✕ Свернуть» или Esc возвращают обычный вид.</li>
       <li><b>Точка</b> — нажми рядом с местом, где пересекаются две прямые или прямая и ребро. Места пересечений подсвечены пунктирными кружками. Если точка лежит на продолжении ребра, продолжение дорисуется пунктиром, а если пересечение ушло за край, чертёж сам отдалится.</li>
       <li>Найди все недостающие вершины сечения, отметь их и нажми <b>Проверить</b>. После решения нажми <b>Посмотреть в 3D</b>.</li>
     </ol>
@@ -212,7 +212,21 @@
   .board.paper svg * { pointer-events: none; }
   .zoombox { position: absolute; top: 8px; left: 8px; z-index: 2; display: flex; gap: 4px; }
   .zoombox button { min-width: 34px; height: 34px; padding: 0 10px; border: 1px solid #c9cfdb; border-radius: 8px; background: rgba(255,255,255,.92); font: 600 18px/1 system-ui, sans-serif; color: #0b57d0; cursor: pointer; }
-  .zoombox button[data-z="fit"] { font-size: 13px; }
+  .zoombox button[data-z="fit"], .zoombox button[data-z="fs"] { font-size: 13px; }
+  .zoombox button[data-z="fs"] { margin-left: 6px; }
+  @media (max-width: 600px) { .zoombox .lbl { display: none; } .zoombox button[data-z="fs"] { font-size: 18px; } }
+  html.fs-lock, html.fs-lock body { overflow: hidden; }
+  .task.fs {
+    position: fixed; inset: 0; z-index: 10000; margin: 0; border: 0; border-radius: 0;
+    width: 100vw; height: 100vh; height: 100dvh; max-width: none; overflow: auto;
+    display: flex; flex-direction: column; padding: 10px 12px 12px; background: #f4f1e8;
+  }
+  .task.fs h3, .task.fs .cond { flex: none; }
+  .task.fs .board.paper { flex: 1 1 0; min-height: 55vh; }
+  @media (max-height: 500px) { .task.fs .board.paper { min-height: 82vh; } .task.fs h3 { display: none; } }
+  .task.fs .board.paper svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .task.fs .tools, .task.fs .hintbox, .task.fs .msg, .task.fs .steps, .task.fs .view3d { flex: none; }
+  :fullscreen { background: #f4f1e8; overflow: auto; }
   .board.paper::after { content: ""; position: absolute; top: 0; bottom: 0; right: 7%; border-left: 2px solid rgba(230,90,90,.55); pointer-events: none; }
   .board.paper text { font-family: "Segoe Print", "Bradley Hand", "Comic Sans MS", "Comic Neue", cursive; font-weight: 700; paint-order: stroke; stroke: #fffef7; stroke-width: 4px; stroke-linejoin: round; }
   @media (max-width: 600px) { .board.paper { background-size: 14px 14px; } }
@@ -691,7 +705,16 @@
     const stats = { t0: Date.now(), hints: 0, wrong: 0, sol: false };
     const track = (type, data) => { if (!demo && window.Portal) Portal.track(type, Object.assign({ solid: S.key }, data)); };
     const st = { hover: null, hintMore: false, hintOn: false, hintStep: null, tool: "line", lines: [], points: [], history: [], pending: null, pendingLine: null, solved: false, showSol: demo, hits: [], view: { x: 0, y: 0, w: W, h: H } };
-    let animToken = 0, goal = null;
+    let animToken = 0, goal = null, fs = false;
+    const shown = () => {
+      const v = st.view, cw = svg.clientWidth, ch = svg.clientHeight;
+      if (!fs || !cw || !ch) return v;
+      const a = cw / ch;
+      if (v.w / v.h > a) { const h = v.w / a; return { x: v.x, y: v.y - (h - v.h) / 2, w: v.w, h }; }
+      const w = v.h * a;
+      return { x: v.x - (w - v.w) / 2, y: v.y, w, h: v.h };
+    };
+    const unitsPerPx = () => shown().w / (svg.clientWidth || W);
     const setMsg = (text, cls) => { if (msg) { msg.textContent = text; msg.className = "msg" + (cls ? " " + cls : ""); } };
 
     const anchors = () => Object.keys(V2).map((k) => ({ name: disp(k), p: V2[k] }))
@@ -716,8 +739,8 @@
       });
       return out;
     }
-    const ui = () => Math.max(st.view.w / W, st.view.w / (svg.clientWidth || W) * 0.55);
-    const inView = (p, m) => p[0] > st.view.x + m && p[0] < st.view.x + st.view.w - m && p[1] > st.view.y + m && p[1] < st.view.y + st.view.h - m;
+    const ui = () => Math.max(st.view.w / W, unitsPerPx() * 0.55);
+    const inView = (p, m) => { const v = shown(); return p[0] > v.x + m && p[0] < v.x + v.w - m && p[1] > v.y + m && p[1] < v.y + v.h - m; };
 
     const FAR = 4;
     const reachable = (x) => x[0] > -FAR * W && x[0] < (FAR + 1) * W && x[1] > -FAR * H && x[1] < (FAR + 1) * H;
@@ -873,13 +896,14 @@
     function paint() {
       const shrink = Math.min(1, Math.max(0.55, Math.pow(W / st.view.w, 0.5)));
       const k = ui() * shrink, kt = ui() * Math.max(0.8, shrink);
-      svg.setAttribute("viewBox", st.view.x + " " + st.view.y + " " + st.view.w + " " + st.view.h);
+      const dv = shown();
+      svg.setAttribute("viewBox", dv.x + " " + dv.y + " " + dv.w + " " + dv.h);
       svg.textContent = "";
       S.faces.forEach((f) => el("polygon", { points: f.vs.map((v) => V2[v].join(",")).join(" "), fill: "#8a94a6", "fill-opacity": 0.05 }, svg));
       const hs = st.hintStep;
       const HL = "#f08c00";
       const ring = (p) => el("circle", { cx: p[0], cy: p[1], r: 14 * k, fill: "#ffd54f", "fill-opacity": 0.35, stroke: HL, "stroke-width": 3 }, svg);
-      const hlLine = (a, b) => { const c = clip(a, b, st.view); if (c) el("line", { x1: c[0][0], y1: c[0][1], x2: c[1][0], y2: c[1][1], stroke: HL, "stroke-width": 3.5, "stroke-opacity": 0.6, "stroke-dasharray": "10 6" }, svg); };
+      const hlLine = (a, b) => { const c = clip(a, b, dv); if (c) el("line", { x1: c[0][0], y1: c[0][1], x2: c[1][0], y2: c[1][1], stroke: HL, "stroke-width": 3.5, "stroke-opacity": 0.6, "stroke-dasharray": "10 6" }, svg); };
       if (st.hover && st.hover.face !== undefined) el("polygon", { points: S.faces[st.hover.face].vs.map((v) => V2[v].join(",")).join(" "), fill: "#4fc3f7", "fill-opacity": 0.55, stroke: "#0288d1", "stroke-width": 3 }, svg);
       if (hs) {
         const face = (fi, op) => el("polygon", { points: S.faces[fi].vs.map((v) => V2[v].join(",")).join(" "), fill: "#ffd54f", "fill-opacity": op, stroke: HL, "stroke-width": 2 }, svg);
@@ -894,7 +918,7 @@
       }
 
       st.lines.forEach((l, i) => {
-        const c = clip(l.a.p, l.b.p, st.view);
+        const c = clip(l.a.p, l.b.p, dv);
         if (c) el("line", { x1: c[0][0], y1: c[0][1], x2: c[1][0], y2: c[1][1], stroke: COL.line, "stroke-width": (st.pendingLine === i ? 3 : 1.4), "stroke-opacity": 0.8 }, svg);
       });
 
@@ -998,17 +1022,39 @@
       st.view = Object.assign({}, st.view, { x: st.view.x - dx, y: st.view.y - dy });
       paint();
     }
-    const unitsPerPx = () => st.view.w / (svg.clientWidth || W);
     const center = () => [st.view.x + st.view.w / 2, st.view.y + st.view.h / 2];
-    const toSvg = (cx, cy) => { const r = svg.getBoundingClientRect(); return [st.view.x + (cx - r.left) * unitsPerPx(), st.view.y + (cy - r.top) * unitsPerPx()]; };
+    const toSvg = (cx, cy) => { const r = svg.getBoundingClientRect(), dv = shown(); return [dv.x + (cx - r.left) * unitsPerPx(), dv.y + (cy - r.top) * unitsPerPx()]; };
 
     const zoomBox = document.createElement("div");
     zoomBox.className = "zoombox";
-    zoomBox.innerHTML = '<button type="button" data-z="in" title="Приблизить">+</button><button type="button" data-z="out" title="Отдалить">−</button><button type="button" data-z="fit" title="Показать весь чертёж">Весь чертёж</button>';
+    zoomBox.innerHTML = '<button type="button" data-z="in" title="Приблизить">+</button><button type="button" data-z="out" title="Отдалить">−</button><button type="button" data-z="fit" title="Показать весь чертёж">Весь чертёж</button>' +
+      '<button type="button" data-z="fs" title="Развернуть лист на весь экран">⛶<span class="lbl"> На весь экран</span></button>';
     svg.parentNode.appendChild(zoomBox);
     zoomBox.querySelector('[data-z="in"]').onclick = () => zoomAt(1 / 1.4, center(), true);
     zoomBox.querySelector('[data-z="out"]').onclick = () => zoomAt(1.4, center(), true);
     zoomBox.querySelector('[data-z="fit"]').onclick = () => { st.manual = false; draw(); };
+
+    const card = root.querySelector(".task"), fsBtn = zoomBox.querySelector('[data-z="fs"]');
+    const fsHost = opts.fsHost || root;
+    function setFs(on) {
+      if (fs === on) return;
+      fs = on;
+      card.classList.toggle("fs", on);
+      document.documentElement.classList.toggle("fs-lock", on);
+      fsBtn.innerHTML = on ? '✕<span class="lbl"> Свернуть</span>' : '⛶<span class="lbl"> На весь экран</span>';
+      fsBtn.title = on ? "Вернуть обычный размер (Esc)" : "Развернуть лист на весь экран";
+      if (!on && document.fullscreenElement === fsHost) document.exitFullscreen().catch(() => {});
+      requestAnimationFrame(() => { paint(); if (on) card.scrollTop = 0; else card.scrollIntoView({ block: "nearest" }); });
+    }
+    fsBtn.onclick = () => {
+      if (fs) { setFs(false); return; }
+      setFs(true);
+      if (fsHost.requestFullscreen) fsHost.requestFullscreen().catch(() => {});
+    };
+    document.addEventListener("fullscreenchange", () => { if (fs && root.isConnected && document.fullscreenElement !== fsHost) setFs(false); });
+    document.addEventListener("keydown", (e) => { if (fs && root.isConnected && e.key === "Escape") setFs(false); });
+    if (opts.fs) setFs(true);
+    window.addEventListener("resize", () => { if (fs && root.isConnected) paint(); });
 
     svg.addEventListener("wheel", (e) => {
       if (!e.ctrlKey && !e.metaKey) return;
@@ -1184,7 +1230,7 @@
       };
       root.querySelector('[data-act="next"]').onclick = () => {
         if (!st.solved) track("geo_skip", { showedSolution: stats.sol, sec: Math.round((Date.now() - stats.t0) / 1000) });
-        opts.onNext();
+        opts.onNext(fs);
       };
     }
 
@@ -1212,14 +1258,14 @@
 
   let solidKey = "tetra";
   let taskNo = 1;
-  function renderOne() {
+  function renderOne(keepFs) {
     const box = document.getElementById("tasks");
     box.innerHTML = "";
     const task = generate(SOLIDS[solidKey]);
     if (!task) return;
     const div = document.createElement("div");
     box.appendChild(div);
-    Board(div, task, { title: "Задача " + taskNo + (solidKey === "cube" ? " · куб" : " · тетраэдр"), onNext: () => { taskNo++; renderOne(); } });
+    Board(div, task, { title: "Задача " + taskNo + (solidKey === "cube" ? " · куб" : " · тетраэдр"), fsHost: box, fs: !!keepFs, onNext: (wasFs) => { taskNo++; renderOne(wasFs); } });
   }
   document.querySelectorAll("#solidSwitch [data-solid]").forEach((b) => {
     b.onclick = () => {
