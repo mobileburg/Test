@@ -610,21 +610,29 @@
     const ui = () => Math.max(st.view.w / W, st.view.w / (svg.clientWidth || W) * 0.55);
     const inView = (p, m) => p[0] > st.view.x + m && p[0] < st.view.x + st.view.w - m && p[1] > st.view.y + m && p[1] < st.view.y + st.view.h - m;
 
+    const FAR = 4;
+    const reachable = (x) => x[0] > -FAR * W && x[0] < (FAR + 1) * W && x[1] > -FAR * H && x[1] < (FAR + 1) * H;
+    function farCrossings(l) {
+      return allLines().filter((m) => {
+        if (m[0] === l.a.p && m[1] === l.b.p) return false;
+        const x = inter2(l.a.p, l.b.p, m[0], m[1]);
+        return !x || !reachable(x);
+      }).length;
+    }
     function userIntersections() {
       const L = allLines();
       const out = [];
       for (let i = S.edges.length; i < L.length; i++) {
         for (let j = 0; j < i; j++) {
           const x = inter2(L[i][0], L[i][1], L[j][0], L[j][1]);
-          if (x && x[0] > -0.6 * W && x[0] < 1.6 * W && x[1] > -0.6 * H && x[1] < 1.6 * H) out.push(x);
+          if (x && reachable(x)) out.push(x);
         }
       }
       return out;
     }
 
     function targetView() {
-      const near = (p) => p[0] > -0.35 * W && p[0] < 1.35 * W && p[1] > -0.35 * H && p[1] < 1.35 * H;
-      const extra = st.points.map((pt) => pt.p).concat(userIntersections().filter(near));
+      const extra = st.points.map((pt) => pt.p).concat(userIntersections());
       if (st.showSol) task.sol.known.forEach((k) => extra.push(k.p));
       if (extra.every((p) => p[0] > 12 && p[0] < W - 12 && p[1] > 12 && p[1] < H - 12)) return { x: 0, y: 0, w: W, h: H };
       const pts = [[0, 0], [W, H]].concat(extra);
@@ -828,7 +836,12 @@
           if (!st.pending) { st.pending = a; setMsg("Теперь нажми на вторую точку."); }
           else if (st.pending === a) { st.pending = null; setMsg("Выбор точки отменён."); }
           else {
-            if (addLine(st.pending, a, st.pending.name + a.name)) setMsg("Проведена прямая " + st.pending.name + a.name + ". Чтобы отметить пересечение, выбери «Точка».");
+            if (addLine(st.pending, a, st.pending.name + a.name)) {
+              const far = farCrossings(st.lines[st.lines.length - 1]);
+              setMsg("Проведена прямая " + st.pending.name + a.name + ". " + (far
+                ? "С некоторыми прямыми она параллельна или почти параллельна — их пересечение так далеко, что его не показать на чертеже."
+                : "Чертёж сам отдалится, чтобы были видны все пересечения. Чтобы отметить пересечение, выбери «Точка»."));
+            }
             st.pending = null;
           }
         } else if (st.tool === "par") {
