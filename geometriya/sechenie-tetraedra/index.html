@@ -214,6 +214,17 @@
   .tools button.hintbtn .q { width: 20px; height: 20px; margin-right: 4px; font-size: 14px; }
   .hintbox { display: flex; gap: 12px; align-items: flex-start; margin: 10px 0 0; padding: 12px; border-radius: 8px; background: #fff8e1; border: 1px solid #f2c94c; font-size: 0.95rem; line-height: 1.45; }
   .hintbox[hidden] { display: none; }
+  .hintbox .hbody { flex: 1; min-width: 0; }
+  .hintbox .more { margin-top: 8px; padding: 5px 10px; font-size: 0.9rem; border-radius: 6px; border: 1px solid #e0a800; background: #fff; color: #7a5900; cursor: pointer; }
+  .hintbox .hdetail { margin-top: 8px; padding: 10px 12px; background: #fff; border-radius: 6px; border: 1px solid #f2dfa0; }
+  .hintbox .hdetail p { margin: 0 0 8px; }
+  .gloss { margin-top: 8px; font-size: 0.9rem; color: #555; }
+  .term { border-bottom: 2px dotted #e0a800; cursor: help; white-space: nowrap; }
+  .term:hover, .term:focus { background: #ffe8a3; outline: none; }
+  .termpop { position: fixed; z-index: 50; display: flex; gap: 10px; align-items: center; padding: 10px; background: #fff; border: 1px solid #e0a800; border-radius: 10px; box-shadow: 0 6px 24px rgba(0,0,0,.18); font: 0.9rem/1.4 system-ui, sans-serif; color: #222; }
+  .termpop[hidden] { display: none; }
+  .termpop .tp-img { flex: 0 0 auto; }
+  .termpop .tp-img svg { display: block; width: 110px; height: auto; }
   .hintbox .qicon { flex: 0 0 auto; width: 40px; height: 40px; font-size: 26px; box-shadow: 0 0 0 4px #ffe8a3; }
   .hintbox .todo { display: block; margin-top: 6px; padding: 6px 8px; background: #fff; border-radius: 6px; border: 1px dashed #e0a800; }
 </style>
@@ -545,6 +556,78 @@
   const redraws = new Set();
   window.addEventListener("resize", () => redraws.forEach((f) => f()));
 
+  const TP = { A: [10, 85], D: [70, 85], D1: [70, 25], A1: [10, 25], B: [40, 65], C: [100, 65], C1: [100, 5], B1: [40, 5] };
+  const tpts = (ns) => ns.map((n) => TP[n].join(",")).join(" ");
+  const tseg = (a, b, attrs) => '<line x1="' + a[0] + '" y1="' + a[1] + '" x2="' + b[0] + '" y2="' + b[1] + '" ' + attrs + "/>";
+  function miniCube(under, over) {
+    const vis = [["A", "D"], ["D", "D1"], ["D1", "A1"], ["A1", "A"], ["D", "C"], ["C", "C1"], ["C1", "B1"], ["B1", "A1"], ["D1", "C1"]];
+    const hid = [["A", "B"], ["B", "C"], ["B", "B1"]];
+    return '<svg viewBox="-6 -4 122 100" width="150" height="122">' + (under || "") +
+      hid.map(([a, b]) => tseg(TP[a], TP[b], 'stroke="#333" stroke-width="1.3" stroke-dasharray="4 3"')).join("") +
+      vis.map(([a, b]) => tseg(TP[a], TP[b], 'stroke="#222" stroke-width="1.6"')).join("") + (over || "") + "</svg>";
+  }
+  const YEL = 'fill="#ffd54f" fill-opacity="0.6"';
+  const RED = 'stroke="#c62828" stroke-width="2.6" stroke-linecap="round"';
+  const tdot = (p, c, r) => '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="' + (r || 3.5) + '" fill="' + c + '"/>';
+  const TERMS = {
+    face: { title: "Грань", text: "Плоская «стенка» многогранника. У куба 6 граней-квадратов, у тетраэдра 4 грани-треугольника. Грань называют по её вершинам, например DD₁C₁C.",
+      svg: () => miniCube('<polygon points="' + tpts(["D", "C", "C1", "D1"]) + '" ' + YEL + "/>") },
+    edge: { title: "Ребро", text: "Отрезок, по которому сходятся две соседние грани. Это «край» стенки. Называют по двум концам: DD₁, AB.",
+      svg: () => miniCube("", tseg(TP.D, TP.D1, 'stroke="#f08c00" stroke-width="4.5" stroke-linecap="round"')) },
+    plane: { title: "Секущая плоскость", text: "Плоскость, которой мы мысленно разрезаем фигуру, — как плоским ножом. Она задаётся тремя точками M, N, P и продолжается бесконечно во все стороны.",
+      svg: () => miniCube("", '<polygon points="-4,58 64,96 116,36 48,-2" fill="#0b57d0" fill-opacity="0.22" stroke="#0b57d0" stroke-width="1.2"/>') },
+    trace: { title: "След сечения", text: "Линия, по которой секущая плоскость пересекает одну грань (или её плоскость). Это «разрез» на одной стенке. Он всегда прямой, потому что пересекаются две плоскости.",
+      svg: () => miniCube('<polygon points="' + tpts(["D", "C", "C1", "D1"]) + '" ' + YEL + "/>", tseg([70, 62], [100, 22], RED) + tdot([70, 62], "#c62828") + tdot([100, 22], "#c62828")) },
+    vertex: { title: "Вершина сечения", text: "Точка, где след сечения пересекает ребро. Это «угол» многоугольника-среза. Сечение — многоугольник, а вершины лежат на рёбрах фигуры.",
+      svg: () => miniCube('<polygon points="' + tpts(["D", "C", "C1", "D1"]) + '" ' + YEL + "/>", tseg([70, 62], [100, 22], RED) + '<circle cx="100" cy="22" r="7" fill="none" stroke="#f08c00" stroke-width="2.2"/>' + tdot([100, 22], "#2e7d32")) },
+    section: { title: "Сечение", text: "Многоугольник, который получается на срезе, если разрезать фигуру секущей плоскостью. Его стороны — следы на гранях, вершины лежат на рёбрах.",
+      svg: () => miniCube('<polygon points="40,85 70,62 100,5 40,35 25,75" fill="#2e7d32" fill-opacity="0.45" stroke="#2e7d32" stroke-width="1.8"/>') },
+    extension: { title: "Продолжение ребра", text: "Ребро — отрезок, но оно лежит на прямой, которая уходит дальше бесконечно. Эту прямую можно продлить пунктиром за пределы фигуры и искать на ней точки пересечения.",
+      svg: () => '<svg viewBox="0 0 122 96" width="150" height="118">' + tseg([10, 80], [55, 50], 'stroke="#222" stroke-width="2.4"') + tdot([10, 80], "#222", 3) + tdot([55, 50], "#222", 3) +
+        tseg([55, 50], [106, 16], 'stroke="#222" stroke-width="1.6" stroke-dasharray="5 4"') + tseg([40, 92], [116, 6], 'stroke="#c62828" stroke-width="2"') +
+        tdot([102, 19], "#0b57d0", 4.5) + '<text x="80" y="14" font-size="13" font-weight="700" fill="#0b57d0">X</text></svg>' },
+    aux: { title: "Вспомогательная точка", text: "Точка, которая не является вершиной сечения, но помогает его построить. Обычно лежит на продолжении ребра, за пределами фигуры. Через неё проводят след на соседней грани.",
+      svg: () => miniCube("", tseg(TP.A1, [-4, 34], 'stroke="#222" stroke-width="1.3" stroke-dasharray="4 3"') + tseg([40, 85], [-4, 34], 'stroke="#0b57d0" stroke-width="1.6" stroke-dasharray="5 3"') + tdot([-1, 37], "#0b57d0", 4)) },
+    parallel: { title: "Параллельные грани", text: "Противоположные грани куба (верх и низ, перед и зад, лево и право) параллельны — не пересекаются. Секущая плоскость режет их по параллельным прямым.",
+      svg: () => miniCube('<polygon points="' + tpts(["A", "D", "C", "B"]) + '" ' + YEL + '/><polygon points="' + tpts(["A1", "D1", "C1", "B1"]) + '" ' + YEL + "/>",
+        tseg([22, 25], [70, 12], RED) + tseg([22, 85], [70, 72], RED)) },
+  };
+  function glossaryHtml(S) {
+    const keys = ["face", "edge", "plane", "trace", "section", "vertex", "extension", "aux"].concat(S.opposite.length ? ["parallel"] : []);
+    return '<div class="gloss"><b>Словарик</b> (наведи или нажми на слово, чтобы увидеть картинку): ' +
+      keys.map((k) => '<span class="term" data-term="' + k + '" tabindex="0">' + TERMS[k].title.toLowerCase() + "</span>").join(" · ") + "</div>";
+  }
+
+  const pop = document.createElement("div");
+  pop.className = "termpop";
+  pop.hidden = true;
+  document.body.appendChild(pop);
+  let popFor = null, popPinned = false;
+  function showPop(t) {
+    const d = TERMS[t.dataset.term];
+    if (!d) return;
+    popFor = t;
+    pop.innerHTML = '<div class="tp-img">' + d.svg() + '</div><div class="tp-txt"><b>' + d.title + "</b><br>" + d.text + "</div>";
+    pop.hidden = false;
+    const r = t.getBoundingClientRect(), pw = Math.min(340, window.innerWidth - 16);
+    pop.style.width = pw + "px";
+    let x = Math.min(Math.max(8, r.left + r.width / 2 - pw / 2), window.innerWidth - pw - 8);
+    let y = r.bottom + 8;
+    if (y + pop.offsetHeight > window.innerHeight - 8) y = Math.max(8, r.top - pop.offsetHeight - 8);
+    pop.style.left = x + "px";
+    pop.style.top = y + "px";
+  }
+  const hidePop = () => { pop.hidden = true; popFor = null; popPinned = false; };
+  document.addEventListener("mouseover", (e) => { const t = e.target.closest && e.target.closest(".term"); if (t && !popPinned) showPop(t); });
+  document.addEventListener("mouseout", (e) => { const t = e.target.closest && e.target.closest(".term"); if (t && !popPinned && !t.contains(e.relatedTarget)) hidePop(); });
+  document.addEventListener("click", (e) => {
+    const t = e.target.closest && e.target.closest(".term");
+    if (t) { if (popPinned && popFor === t) hidePop(); else { showPop(t); popPinned = true; } return; }
+    if (!pop.contains(e.target)) hidePop();
+  });
+  document.addEventListener("focusin", (e) => { if (e.target.classList && e.target.classList.contains("term")) showPop(e.target); });
+  window.addEventListener("scroll", () => { if (popFor && !popFor.isConnected) hidePop(); else if (popFor) showPop(popFor); }, { passive: true });
+
   function Board(root, task, opts) {
     const S = task.S;
     const V2 = S.v2;
@@ -569,7 +652,8 @@
       '<button data-act="view3d" class="primary"' + (demo ? "" : " disabled") + ">Посмотреть в 3D</button>" +
       (demo ? "" : '<button data-act="next">Новая задача</button>') +
       "</div>" +
-      (demo ? "" : '<div class="hintbox" hidden><div class="qicon">?</div><div class="htext"></div></div>' +
+      (demo ? "" : '<div class="hintbox" hidden><div class="qicon">?</div><div class="hbody"><div class="htext"></div>' +
+        '<button class="more" type="button">Объясни подробнее и проще</button><div class="hdetail" hidden></div></div></div>' +
         '<div class="msg">Начни с прямой через две точки, лежащие в одной грани. Не знаешь, с чего начать, — нажми «Подсказка».</div>') +
       '<ol class="steps" hidden></ol>' +
       '<div class="view3d" hidden><div class="board v3"><svg viewBox="0 0 ' + W + " " + H + '"></svg></div>' +
@@ -581,7 +665,7 @@
     const btn3d = root.querySelector('[data-act="view3d"]');
     const box3d = root.querySelector(".view3d");
     const hintBox = root.querySelector(".hintbox");
-    const st = { hintOn: false, hintStep: null, tool: "line", lines: [], points: [], history: [], pending: null, pendingLine: null, solved: false, showSol: demo, hits: [], view: { x: 0, y: 0, w: W, h: H } };
+    const st = { hintMore: false, hintOn: false, hintStep: null, tool: "line", lines: [], points: [], history: [], pending: null, pendingLine: null, solved: false, showSol: demo, hits: [], view: { x: 0, y: 0, w: W, h: H } };
     let animToken = 0;
     const setMsg = (text, cls) => { if (msg) { msg.textContent = text; msg.className = "msg" + (cls ? " " + cls : ""); } };
 
@@ -655,31 +739,57 @@
     const stepDone = (s) => (s.kind === "join" || s.kind === "par" ? hasLine(s.tr) : hasPoint(s.pt.p));
     const otherFace = (e, f) => S.faces.findIndex((fc, i) => i !== f && fc.edges.includes(e));
 
+    const T = (term, text) => '<span class="term" data-term="' + term + '" tabindex="0">' + text + "</span>";
+
     function hintHtml(s) {
       const F = S.faces[s.f].name;
       if (s.kind === "join") {
         const A = nameAt(s.tr.pts[0].p, s.tr.pts[0].name), B = nameAt(s.tr.pts[1].p, s.tr.pts[1].name);
-        return "<b>Ищем след сечения на грани " + F + "</b> (она подсвечена жёлтым). В этой грани уже есть две точки секущей плоскости — <b>" + A + "</b> и <b>" + B +
+        return "<b>Ищем " + T("trace", "след сечения") + " на " + T("face", "грани") + " " + F + "</b> (она подсвечена жёлтым). В этой грани уже есть две точки " + T("plane", "секущей плоскости") + " — <b>" + A + "</b> и <b>" + B +
           "</b>. Если две точки прямой лежат в плоскости, то и вся прямая лежит в этой плоскости. Значит, секущая плоскость пересекает грань " + F + " по прямой " + A + B + "." +
           '<span class="todo">Инструмент «Прямая»: нажми ' + A + ", затем " + B + ".</span>";
       }
       if (s.kind === "par") {
-        const G = S.faces[s.from].name, T = nameAt(s.tr.through.p, s.tr.through.name), L = trLabel(s.tr.ref);
-        return "<b>Используем параллельность граней.</b> Грани " + F + " и " + G + " противоположные — они параллельны. Если две параллельные плоскости пересечены третьей, линии пересечения параллельны. " +
-          "След на грани " + G + " уже есть — " + L + ", а в грани " + F + " (подсвечена) есть точка сечения <b>" + T + "</b>. Значит, след на " + F + " проходит через " + T + " параллельно " + L + "." +
-          '<span class="todo">Инструмент «Параллельная»: нажми на прямую ' + L + " (обведена оранжевым), затем на точку " + T + ".</span>";
+        const G = S.faces[s.from].name, Tn = nameAt(s.tr.through.p, s.tr.through.name), L = trLabel(s.tr.ref);
+        return "<b>Используем " + T("parallel", "параллельность граней") + ".</b> Грани " + F + " и " + G + " противоположные — они параллельны. Если две параллельные плоскости пересечены третьей, линии пересечения параллельны. " +
+          T("trace", "След") + " на грани " + G + " уже есть — " + L + ", а в грани " + F + " (подсвечена) есть точка сечения <b>" + Tn + "</b>. Значит, след на " + F + " проходит через " + Tn + " параллельно " + L + "." +
+          '<span class="todo">Инструмент «Параллельная»: нажми на прямую ' + L + " (обведена оранжевым), затем на точку " + Tn + ".</span>";
       }
       const L = trLabel(s.tr), E = S.edges[s.e].name;
       if (s.kind === "meet") {
-        return "<b>Находим вершину сечения на ребре " + E + ".</b> Прямая " + L + " — след сечения в грани " + F + ". Ребро " + E + " — сторона этой же грани, и прямая пересекает его внутри отрезка. " +
-          "Точка пересечения лежит и в секущей плоскости, и на ребре, — значит, это вершина сечения." +
+        return "<b>Находим " + T("vertex", "вершину сечения") + " на " + T("edge", "ребре") + " " + E + ".</b> Прямая " + L + " — " + T("trace", "след сечения") + " в грани " + F + ". Ребро " + E + " — сторона этой же грани, и прямая пересекает его внутри отрезка. " +
+          "Точка пересечения лежит и в " + T("plane", "секущей плоскости") + ", и на ребре, — значит, это вершина сечения." +
           '<span class="todo">Инструмент «Точка»: нажми в место, обведённое оранжевым.</span>';
       }
       const G = S.faces[otherFace(s.e, s.f)].name;
-      return "<b>Нужна вспомогательная точка.</b> В грани " + G + " пока не хватает второй точки сечения — прямую там не провести. " +
-        "Прямая " + L + " и прямая " + E + " лежат в одной грани " + F + " (подсвечена) и не параллельны, значит, пересекаются — здесь на продолжении ребра. " +
-        "Но прямая " + E + " лежит и в грани " + G + ", поэтому точка пересечения принадлежит сразу и секущей плоскости, и плоскости грани " + G + ". Через неё потом пройдёт след на " + G + "." +
+      return "<b>Нужна " + T("aux", "вспомогательная точка") + ".</b> В " + T("face", "грани") + " " + G + " пока не хватает второй точки сечения — прямую там не провести. " +
+        "Прямая " + L + " и прямая " + E + " лежат в одной грани " + F + " (подсвечена) и не параллельны, значит, пересекаются — здесь на " + T("extension", "продолжении ребра") + ". " +
+        "Но прямая " + E + " лежит и в грани " + G + ", поэтому точка пересечения принадлежит сразу и " + T("plane", "секущей плоскости") + ", и плоскости грани " + G + ". Через неё потом пройдёт " + T("trace", "след") + " на " + G + "." +
         '<span class="todo">Инструмент «Точка»: нажми в место, обведённое оранжевым (ребро ' + E + " продлится пунктиром).</span>";
+    }
+
+    function detailHtml(s) {
+      const F = S.faces[s.f].name;
+      const box = S.key === "cube" ? "картонная коробка" : "картонная пирамидка";
+      const intro = "<p>Представь, что фигура — это " + box + ", а " + T("plane", "секущая плоскость") + " — огромный плоский нож. Он проходит через точки M, N, P и разрезает фигуру. Наша задача — нарисовать, где нож разрежет каждую стенку.</p>";
+      if (s.kind === "join") {
+        const A = nameAt(s.tr.pts[0].p, s.tr.pts[0].name), B = nameAt(s.tr.pts[1].p, s.tr.pts[1].name);
+        return intro + "<p>Стенка " + F + " — это " + T("face", "грань") + ". На ней лежат точки " + A + " и " + B + ", и нож тоже проходит через них. Плоский нож режет плоскую стенку по прямой линии. А через две точки можно провести только одну прямую. Значит, разрез на этой стенке — ровно прямая " + A + B + ". Такой разрез называют " + T("trace", "следом") + ".</p>" +
+          "<p><b>Главное правило:</b> соединять можно только точки, которые лежат на <b>одной</b> грани. Если точки на разных гранях, линия между ними пройдёт сквозь фигуру, а не по стенке, — это ошибка.</p>";
+      }
+      if (s.kind === "par") {
+        const G = S.faces[s.from].name, Tn = nameAt(s.tr.through.p, s.tr.through.name), L = trLabel(s.tr.ref);
+        return intro + "<p>У куба противоположные стенки — как пол и потолок: они " + T("parallel", "параллельны") + ", то есть никогда не пересекаются. Если разрезать коробку плоским ножом, разрез на полу и разрез на потолке получатся параллельными, как две рельсы.</p>" +
+          "<p>Разрез на стенке " + G + " мы уже знаем — это " + L + ". На противоположной стенке " + F + " есть точка " + Tn + ". Значит, разрез на " + F + " проходит через " + Tn + " и идёт в том же направлении, что и " + L + ". Инструмент «Параллельная» как раз проводит такую прямую.</p>";
+      }
+      const L = trLabel(s.tr), E = S.edges[s.e].name;
+      if (s.kind === "meet") {
+        return intro + "<p>Прямая " + L + " — разрез на стенке " + F + ". Разрез идёт по стенке, пока не упрётся в её край — " + T("edge", "ребро") + " " + E + ". Место, где разрез доходит до края, — это угол будущего среза, " + T("vertex", "вершина сечения") + ". Отметь её точкой.</p>";
+      }
+      const G = S.faces[otherFace(s.e, s.f)].name;
+      return intro + "<p>На стенке " + G + " мы знаем слишком мало точек разреза, а чтобы провести прямую, нужны две. Где взять вторую?</p>" +
+        "<p><b>Хитрость:</b> представим, что стенки бесконечно большие. Продлим разрез " + L + " и край " + E + " за пределы фигуры (" + T("extension", "продолжение ребра") + "). Обе линии лежат на одной плоскости " + F + " и не параллельны, значит, где-то обязательно пересекутся.</p>" +
+        "<p>Край " + E + " общий: он принадлежит и стенке " + F + ", и стенке " + G + ". Поэтому точка пересечения лежит на «бесконечной» стенке " + G + " и при этом на ноже. Это и есть недостающая вторая точка для разреза на " + G + ", хоть она и находится за пределами самой фигуры. Такая точка — " + T("aux", "вспомогательная") + ".</p>";
     }
 
     function updateHint() {
@@ -688,11 +798,18 @@
       if (!st.hintOn || st.solved) { hintBox.hidden = true; return; }
       hintBox.hidden = false;
       const text = hintBox.querySelector(".htext");
+      hintBox.querySelector(".more").hidden = true;
+      hintBox.querySelector(".hdetail").hidden = true;
       if (task.unknown.every((u) => hasPoint(u.p2))) { text.innerHTML = "<b>Все вершины сечения отмечены.</b> Нажми «Проверить»."; return; }
       const s = task.sol.steps.find((x) => !stepDone(x));
       if (!s) { text.innerHTML = "Все нужные прямые проведены. Отметь вершины сечения на рёбрах и нажми «Проверить»."; return; }
       st.hintStep = s;
       text.innerHTML = hintHtml(s);
+      const more = hintBox.querySelector(".more"), det = hintBox.querySelector(".hdetail");
+      more.hidden = false;
+      det.innerHTML = detailHtml(s) + glossaryHtml(S);
+      det.hidden = !st.hintMore;
+      more.textContent = st.hintMore ? "Свернуть подробное объяснение" : "Объясни подробнее и проще";
       const want = s.kind === "join" ? "line" : s.kind === "par" ? "par" : "point";
       if (st.tool !== want && !st.pending && st.pendingLine === null) {
         st.tool = want;
@@ -881,6 +998,7 @@
           draw();
         };
       });
+      hintBox.querySelector(".more").onclick = () => { st.hintMore = !st.hintMore; updateHint(); };
       root.querySelector('[data-act="hint"]').onclick = (ev) => {
         st.hintOn = !st.hintOn;
         ev.currentTarget.classList.toggle("on", st.hintOn);
