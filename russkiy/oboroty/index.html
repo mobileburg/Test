@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Миссия «Оборот» — причастные и деепричастные обороты</title>
+<link rel="stylesheet" href="../../assets/site.css">
+<style>
+  .game {
+    --bg: #0e1330;
+    --panel: #19204a;
+    --line: #2d3770;
+    --text: #eef1ff;
+    --muted: #a9b1e0;
+    --gold: #ffc93c;
+    --ok: #3ddc97;
+    --bad: #ff5d73;
+    --blue: #6aa8ff;
+    position: relative;
+    overflow: hidden;
+    border-radius: 14px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: system-ui, sans-serif;
+    padding: 18px;
+    min-height: 560px;
+  }
+  .stars { position: absolute; inset: 0; pointer-events: none; }
+  .stars i { position: absolute; width: 2px; height: 2px; border-radius: 50%; background: #fff; opacity: 0.7; animation: tw 3s infinite ease-in-out; }
+  @keyframes tw { 50% { opacity: 0.15; } }
+  .layer { position: relative; }
+
+  .hud { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 6px; }
+  .hud .score { font-size: 1.6rem; font-weight: 800; color: var(--gold); }
+  .hud .score small { font-size: 0.9rem; color: var(--muted); font-weight: 500; }
+  .shields { display: flex; gap: 6px; }
+  .shields svg { width: 26px; height: 30px; }
+  .shields .lost { opacity: 0.18; }
+  .streak { font-size: 0.9rem; color: var(--muted); }
+  .streak b { color: var(--gold); }
+
+  .track { width: 100%; height: auto; display: block; margin: 4px 0 10px; }
+  #rocket { transition: transform 0.9s cubic-bezier(.3,1.4,.5,1); }
+
+  .row { display: grid; grid-template-columns: 96px 1fr; grid-template-areas: "bot bubble" "bot card"; column-gap: 14px; align-items: start; }
+  .row > .botbox { grid-area: bot; }
+  .row > .bubble { grid-area: bubble; }
+  .row > .card { grid-area: card; }
+  @media (max-width: 560px) {
+    .game { padding: 12px; }
+    .row { grid-template-columns: 52px 1fr; grid-template-areas: "bot bubble" "card card"; column-gap: 10px; }
+    .sent, .words { font-size: 1.2rem; }
+  }
+  .bot { width: 100%; height: auto; }
+  .bubble {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 10px 14px;
+    color: var(--muted);
+    font-size: 0.95rem;
+    margin-bottom: 12px;
+    position: relative;
+  }
+  .bubble b { color: var(--text); }
+
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+  .tag { display: inline-block; font-size: 0.78rem; letter-spacing: 0.04em; text-transform: uppercase; color: var(--bg); background: var(--blue); border-radius: 20px; padding: 3px 10px; margin-bottom: 10px; font-weight: 700; }
+  .tag .pts { margin-left: 6px; color: #1b2552; }
+  .task-q { font-size: 1.02rem; color: var(--muted); margin: 0 0 10px; }
+  .sent { font-family: Georgia, "Times New Roman", serif; font-size: 1.35rem; line-height: 1.9; margin: 0 0 14px; color: var(--text); }
+  .sent mark { background: rgba(255, 201, 60, 0.22); color: var(--gold); border-bottom: 2px solid var(--gold); padding: 0 3px; border-radius: 3px; }
+
+  .opts { display: grid; gap: 10px; }
+  .opts.two { grid-template-columns: 1fr 1fr; }
+  @media (max-width: 560px) { .opts.two { grid-template-columns: 1fr; } }
+  .opt {
+    font: inherit;
+    text-align: left;
+    padding: 12px 14px;
+    border-radius: 10px;
+    border: 1px solid var(--line);
+    background: #222b5e;
+    color: var(--text);
+    cursor: pointer;
+    font-size: 1rem;
+  }
+  .opt:hover:not(:disabled) { border-color: var(--blue); }
+  .opt small { display: block; color: var(--muted); margin-top: 2px; }
+  .opt.serif { font-family: Georgia, serif; font-size: 1.1rem; }
+  .opt.ok { border-color: var(--ok); background: rgba(61, 220, 151, 0.15); }
+  .opt.bad { border-color: var(--bad); background: rgba(255, 93, 115, 0.15); }
+  .opt:disabled { cursor: default; }
+
+  .words { font-family: Georgia, serif; font-size: 1.3rem; line-height: 2.4; margin: 0 0 14px; }
+  .w { display: inline; cursor: pointer; padding: 2px 3px; border-radius: 4px; }
+  .w:hover { background: rgba(106, 168, 255, 0.2); }
+  .w.ph { color: var(--gold); }
+  .w.ok { background: rgba(61, 220, 151, 0.3); }
+  .w.bad { background: rgba(255, 93, 115, 0.3); }
+  .gap {
+    display: inline-block;
+    width: 18px;
+    height: 30px;
+    vertical-align: middle;
+    margin: 0 1px;
+    border-radius: 5px;
+    border: 1px dashed #4a56a0;
+    background: transparent;
+    color: var(--gold);
+    font: 700 1.5rem/22px Georgia, serif;
+    cursor: pointer;
+    padding: 0;
+  }
+  .gap.on { border-style: solid; border-color: var(--gold); }
+  .gap.ok { border-color: var(--ok); color: var(--ok); }
+  .gap.bad { border-color: var(--bad); color: var(--bad); }
+  .gap.miss { border-color: var(--bad); border-style: solid; color: var(--bad); }
+
+  .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+  .btn {
+    font: inherit;
+    font-weight: 700;
+    padding: 10px 18px;
+    border-radius: 10px;
+    border: 0;
+    background: var(--gold);
+    color: #1b2552;
+    cursor: pointer;
+    font-size: 1rem;
+  }
+  .btn.ghost { background: transparent; color: var(--text); border: 1px solid var(--line); }
+
+  .why { margin-top: 12px; padding: 12px 14px; border-radius: 10px; font-size: 0.96rem; line-height: 1.5; }
+  .why.ok { background: rgba(61, 220, 151, 0.12); border: 1px solid rgba(61, 220, 151, 0.5); }
+  .why.bad { background: rgba(255, 93, 115, 0.12); border: 1px solid rgba(255, 93, 115, 0.5); }
+  .why b { color: var(--text); }
+
+  .screen { text-align: center; padding: 10px 6px 20px; }
+  .screen h2 { border: 0; color: var(--text); font-family: system-ui, sans-serif; font-size: 1.8rem; margin: 6px 0 8px; }
+  .screen p { color: var(--muted); max-width: 620px; margin: 0 auto 12px; }
+  .screen .big { width: min(420px, 90%); height: auto; }
+  .rules { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; max-width: 760px; margin: 14px auto; text-align: left; }
+  .rules div { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; font-size: 0.92rem; color: var(--muted); }
+  .rules b { display: block; color: var(--gold); margin-bottom: 2px; }
+  .meta { font-size: 0.9rem; color: var(--muted); margin-top: 10px; }
+  .starsWin { font-size: 2.6rem; letter-spacing: 6px; color: var(--gold); }
+  .pop { animation: pop 0.5s ease; }
+  @keyframes pop { 0% { transform: scale(0.85); } 60% { transform: scale(1.05); } 100% { transform: scale(1); } }
+  .shake { animation: shake 0.4s; }
+  @keyframes shake { 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+
+  .cheat h2 { margin-top: 36px; }
+  .cheat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+  .cheat-card { border: 1px solid #ddd; border-radius: 8px; padding: 4px 18px; background: #fafafa; }
+  .cheat-card h3 { margin: 14px 0 6px; font-size: 1.1rem; }
+  .cheat-card ul { padding-left: 20px; }
+  .cheat-card li { margin: 5px 0; }
+  .ex { font-style: italic; color: #333; }
+</style>
+</head>
+<body>
+
+<p class="crumbs"><a href="../../index.html">Главная</a> / <a href="../index.html">Русский язык</a> / Причастные и деепричастные обороты</p>
+<h1>Миссия «Оборот»</h1>
+<p class="lead">Причастные и деепричастные обороты в космосе. Долети до планеты «Грамотность-100» — набери 100 баллов. Помогает робот Запятыч.</p>
+
+<div class="game" id="game">
+  <div class="stars" id="stars"></div>
+  <div class="layer" id="view"></div>
+</div>
+
+<section class="cheat" id="cheat">
+  <h2>Шпаргалка</h2>
+  <div class="cheat-grid">
+    <div class="cheat-card">
+      <h3>Причастный оборот</h3>
+      <ul>
+        <li>Причастие — признак предмета по действию. Вопрос: <b>какой? что делающий? что сделавший?</b></li>
+        <li>Суффиксы: <b>-ущ-/-ющ-, -ащ-/-ящ-, -вш-, -ш-, -ем-, -им-, -нн-, -енн-, -т-</b>.</li>
+        <li>Оборот относится к существительному — <b>определяемому слову</b> — и согласуется с ним в роде, числе и падеже.</li>
+        <li class="ex">Листья, опавшие за ночь, укрыли дорожку.</li>
+      </ul>
+    </div>
+    <div class="cheat-card">
+      <h3>Деепричастный оборот</h3>
+      <ul>
+        <li>Деепричастие — добавочное действие. Вопрос: <b>что делая? что сделав?</b></li>
+        <li>Суффиксы: <b>-а-/-я-</b> (делая), <b>-в-, -вши-, -ши-</b> (сделав).</li>
+        <li>Относится к глаголу-сказуемому. Действие совершает <b>тот же, кто и подлежащее</b>.</li>
+        <li class="ex">Услышав звонок, ученики выбежали из класса.</li>
+      </ul>
+    </div>
+    <div class="cheat-card">
+      <h3>Где ставить запятые</h3>
+      <ul>
+        <li>Причастный оборот <b>после</b> определяемого слова — выделяем: <span class="ex">Ветер, дувший с моря, …</span></li>
+        <li>Причастный оборот <b>перед</b> определяемым словом — запятых нет: <span class="ex">Выпавший ночью снег …</span></li>
+        <li>Деепричастный оборот выделяем <b>всегда</b>, где бы он ни стоял.</li>
+        <li>Исключение — фразеологизмы: <span class="ex">работал не покладая рук, бежал сломя голову</span> — без запятых.</li>
+      </ul>
+    </div>
+    <div class="cheat-card">
+      <h3>Типичные ошибки</h3>
+      <ul>
+        <li><span class="ex">Подъезжая к станции, у меня слетела шляпа</span> — шляпа не подъезжала. Деепричастие должно относиться к подлежащему.</li>
+        <li>Нельзя в безличных предложениях: <span class="ex">Решая задачу, мне стало ясно…</span></li>
+        <li>Причастие согласуется с определяемым словом: <span class="ex">друзей, приехавших</span>, а не «приехавший».</li>
+        <li>Определяемое слово не ставят внутрь оборота: <span class="ex">приехавшие ребята из лагеря</span> — ошибка.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<script>
+(function () {
+  const GOAL = 100;
+  const SHIELDS = 3;
+  const PTS = { type: 5, main: 6, commas: 8, error: 8 };
+  const STREAK_BONUS = 2;
+  const LS = "missiya-oborot-v1";
+
+  const TASKS = [
+    { t: "type", s: "Листья, [опавшие за ночь], укрыли дорожку.", a: "p", why: "«Опавшие» — причастие: листья (какие?) опавшие. Оборот описывает существительное «листья»." },
+    { t: "type", s: "[Опустив голову], мальчик молча слушал.", a: "d", why: "«Опустив» — деепричастие: слушал (что сделав?) опустив. Это добавочное действие мальчика." },
+    { t: "type", s: "Солнце, [поднимающееся над лесом], слепило глаза.", a: "p", why: "Солнце (какое?) поднимающееся — причастие с суффиксом -ющ-." },
+    { t: "type", s: "Птицы летели на юг, [перекликаясь в небе].", a: "d", why: "Летели (что делая?) перекликаясь — деепричастие." },
+    { t: "type", s: "Мы шли по тропинке, [петляющей между соснами].", a: "p", why: "По тропинке (какой?) петляющей — причастие, согласовано со словом «тропинке»." },
+    { t: "type", s: "Река бежала, [сверкая на солнце].", a: "d", why: "Бежала (что делая?) сверкая — деепричастие с суффиксом -а-." },
+    { t: "type", s: "Ребята, [закончив работу], пошли купаться.", a: "d", why: "Пошли (что сделав?) закончив — деепричастие с суффиксом -в-. Стоит после «ребята», но вопрос задаём от глагола." },
+    { t: "type", s: "Дом, [построенный прадедом], стоит до сих пор.", a: "p", why: "Дом (какой?) построенный — страдательное причастие с суффиксом -енн-." },
+    { t: "type", s: "[Вернувшись домой], Таня сразу села за уроки.", a: "d", why: "Села (что сделав?) вернувшись — деепричастие с суффиксом -вши-. Не путай с причастием «вернувшаяся»." },
+    { t: "type", s: "Тучи, [нависшие над городом], обещали грозу.", a: "p", why: "Тучи (какие?) нависшие — причастие с суффиксом -ш-." },
+    { t: "type", s: "Он ответил, [не задумываясь ни секунды].", a: "d", why: "Ответил (что делая?) не задумываясь — деепричастие. «Не» с деепричастиями пишется раздельно." },
+    { t: "type", s: "[Прочитанная вчера] книга лежала на столе.", a: "p", why: "Книга (какая?) прочитанная — причастие. Оборот стоит перед определяемым словом, поэтому без запятых." },
+
+    { t: "commas", s: "Ветер дувший с моря приносил прохладу", c: [0, 3], why: "Причастный оборот «дувший с моря» стоит после слова «ветер» — выделяем с двух сторон." },
+    { t: "commas", s: "Услышав звонок ученики выбежали из класса", c: [1], why: "Деепричастный оборот «услышав звонок» выделяется всегда. В начале предложения — запятая после него." },
+    { t: "commas", s: "Выпавший ночью снег растаял к обеду", c: [], why: "Ловушка! «Выпавший ночью» стоит перед определяемым словом «снег» — запятые не нужны." },
+    { t: "commas", s: "Кот сидел на окне жмурясь от солнца", c: [3], why: "Деепричастный оборот в конце предложения: запятая перед «жмурясь»." },
+    { t: "commas", s: "Лодка подгоняемая ветром быстро шла к берегу", c: [0, 2], why: "«Подгоняемая ветром» после слова «лодка» — выделяем с двух сторон." },
+    { t: "commas", s: "Мы долго шли по лесу не встречая ни одного человека", c: [4], why: "«Не встречая ни одного человека» — деепричастный оборот, запятая перед ним." },
+    { t: "commas", s: "Освещённая луной дорога казалась серебряной", c: [], why: "Ловушка! «Освещённая луной» стоит перед словом «дорога» — без запятых." },
+    { t: "commas", s: "Старик посмотрев на небо покачал головой", c: [0, 3], why: "Деепричастный оборот «посмотрев на небо» в середине предложения — запятые с двух сторон." },
+    { t: "commas", s: "Письма написанные бабушкой хранились в шкатулке", c: [0, 2], why: "Письма (какие?) написанные бабушкой — оборот после определяемого слова, выделяем." },
+    { t: "commas", s: "Девочка шла по улице напевая песенку", c: [3], why: "Шла (что делая?) напевая песенку — запятая перед деепричастным оборотом." },
+    { t: "commas", s: "Нагруженный углём поезд медленно тронулся", c: [], why: "Ловушка! Оборот «нагруженный углём» стоит перед словом «поезд» — запятые не нужны." },
+    { t: "commas", s: "Он работал не покладая рук", c: [], why: "Ловушка! «Не покладая рук» — фразеологизм, он значит «усердно» и работает как наречие. Запятые не ставим." },
+
+    { t: "main", s: "Я увидел на столе письмо, [написанное знакомым почерком].", a: "письмо", why: "Написанное — средний род, единственное число: письмо (какое?) написанное." },
+    { t: "main", s: "Мы подошли к озеру, [окружённому высокими камышами].", a: "озеру", why: "К озеру (какому?) окружённому — совпадают род, число и падеж." },
+    { t: "main", s: "На краю поля стоял дуб, [расколотый молнией].", a: "дуб", why: "Дуб (какой?) расколотый — мужской род, именительный падеж. «Поля» не подходит: было бы «расколотого»." },
+    { t: "main", s: "Из окна открывался вид на горы, [покрытые снегом].", a: "горы", why: "На горы (какие?) покрытые — множественное число. «Вид» был бы «покрытый»." },
+    { t: "main", s: "Подарок от брата, [вернувшегося из армии], очень меня обрадовал.", a: "брата", why: "Вернувшегося — родительный падеж: от брата (какого?) вернувшегося. Подарок из армии не возвращался." },
+    { t: "main", s: "Свет фонарей, [отражённый в лужах], дрожал.", a: "свет", why: "Отражённый — мужской род, единственное число: свет (какой?) отражённый. Про фонари было бы «отражённых»." },
+
+    { t: "error", o: ["Подъезжая к станции, у меня слетела шляпа.", "Подъезжая к станции, я увидел вокзал.", "Выйдя на улицу, мы раскрыли зонты."], a: 0, why: "Деепричастие обозначает действие того же, кто выполняет главное действие. Шляпа к станции не подъезжала. Верно: «Подъезжая к станции, я потерял шляпу»." },
+    { t: "error", o: ["Прочитав книгу, она мне очень понравилась.", "Прочитав книгу, я вернул её в библиотеку.", "Закрыв окно, мама задёрнула шторы."], a: 0, why: "Книга сама себя не читала. Верно: «Когда я прочитал книгу, она мне очень понравилась»." },
+    { t: "error", o: ["Гуляя по парку, пошёл дождь.", "Гуляя по парку, мы промокли под дождём.", "Возвращаясь домой, Петя встретил друга."], a: 0, why: "Дождь по парку не гулял. Верно: «Когда мы гуляли по парку, пошёл дождь»." },
+    { t: "error", o: ["Решая задачу, мне стало ясно, где ошибка.", "Решая задачу, я понял, где ошибка.", "Дочитав главу, Оля закрыла учебник."], a: 0, why: "В безличном предложении «мне стало ясно» нет подлежащего, поэтому деепричастный оборот здесь нельзя. Верно: «Решая задачу, я понял…»." },
+    { t: "error", o: ["Увидев опасность, у оленя напряглись мышцы.", "Увидев опасность, олень замер.", "Перейдя мост, туристы сделали привал."], a: 0, why: "Мышцы опасность не видели. Верно: «Увидев опасность, олень напрягся»." },
+    { t: "error", o: ["Я встретил друзей, приехавший из Москвы.", "Я встретил друзей, приехавших из Москвы.", "Мы любовались озером, окружённым соснами."], a: 0, why: "Причастие согласуется с определяемым словом: друзей (каких?) приехавших, а не «приехавший»." },
+    { t: "error", o: ["Приехавшие ребята из лагеря рассказывали о походе.", "Ребята, приехавшие из лагеря, рассказывали о походе.", "Приехавшие из лагеря ребята рассказывали о походе."], a: 0, why: "Определяемое слово «ребята» попало внутрь оборота «приехавшие из лагеря». Так нельзя: слово ставят до или после всего оборота." },
+  ];
+
+  const CHEER = ["Точно в цель!", "Отличный манёвр!", "Запятыч доволен!", "Курс верный!", "Так держать, капитан!"];
+  const OOPS = ["Ой! Щит пробит.", "Метеорит! Минус щит.", "Мимо цели. Читай подсказку.", "Корабль тряхнуло!"];
+  const TAGS = { type: "Определи оборот", commas: "Расставь запятые", main: "Найди главное слово", error: "Найди ошибку" };
+
+  const view = document.getElementById("view");
+  const saved = JSON.parse(localStorage.getItem(LS) || "{}");
+  const meta = { attempts: saved.attempts || 0, best: saved.best || 0, won: saved.won || 0 };
+  const save = () => localStorage.setItem(LS, JSON.stringify(meta));
+
+  let st = null;
+
+  const starsEl = document.getElementById("stars");
+  for (let i = 0; i < 70; i++) {
+    const s = document.createElement("i");
+    s.style.left = Math.random() * 100 + "%";
+    s.style.top = Math.random() * 100 + "%";
+    s.style.animationDelay = (Math.random() * 3).toFixed(2) + "s";
+    if (Math.random() < 0.2) { s.style.width = s.style.height = "3px"; }
+    starsEl.appendChild(s);
+  }
+
+  const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+  const shuffle = (arr) => {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  };
+  const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;");
+  const clean = (w) => w.replace(/[\[\].,!?«»:;]/g, "").toLowerCase();
+
+  function botSvg(mood) {
+    const mouth = mood === "sad"
+      ? '<path d="M38 66 q10 -8 20 0" stroke="#1b2552" stroke-width="4" fill="none" stroke-linecap="round"/>'
+      : mood === "happy"
+        ? '<path d="M36 60 q12 14 24 0" stroke="#1b2552" stroke-width="4" fill="none" stroke-linecap="round"/>'
+        : '<path d="M38 63 h20" stroke="#1b2552" stroke-width="4" stroke-linecap="round"/>';
+    return '<svg class="bot" viewBox="0 0 96 130" aria-label="Робот Запятыч">' +
+      '<line x1="48" y1="14" x2="48" y2="2" stroke="#a9b1e0" stroke-width="3"/>' +
+      '<circle cx="48" cy="4" r="4" fill="' + (mood === "sad" ? "#ff5d73" : "#3ddc97") + '"/>' +
+      '<path d="M48 14 a34 34 0 1 1 -2 68 q8 18 -10 44 q34 -18 40 -50 a34 34 0 0 0 -28 -62z" fill="#ffc93c"/>' +
+      '<circle cx="48" cy="48" r="34" fill="#ffc93c"/>' +
+      '<rect x="22" y="34" width="52" height="22" rx="11" fill="#1b2552"/>' +
+      '<circle cx="37" cy="45" r="5" fill="#6aa8ff"/><circle cx="59" cy="45" r="5" fill="#6aa8ff"/>' +
+      mouth + "</svg>";
+  }
+
+  function shieldSvg(lost) {
+    return '<svg viewBox="0 0 26 30" class="' + (lost ? "lost" : "") + '"><path d="M13 1 L25 5 V14 C25 22 19 27 13 29 C7 27 1 22 1 14 V5 Z" fill="#6aa8ff" stroke="#cfe0ff" stroke-width="1.5"/><path d="M8 15 l4 4 l7 -8" stroke="#fff" stroke-width="2.5" fill="none" stroke-linecap="round"/></svg>';
+  }
+
+  const rocketX = (score) => 60 + 870 * Math.min(score, GOAL) / GOAL;
+
+  function trackSvg(score, rocketScore) {
+    const x0 = 60, x1 = 930;
+    const x = rocketX(score);
+    const rx = rocketX(rocketScore === undefined ? score : rocketScore);
+    const cps = [
+      { v: 25, name: "Причастие", c: "#7b64b8" },
+      { v: 50, name: "Деепричастие", c: "#2a9a8a" },
+      { v: 75, name: "Запятая", c: "#c85898" },
+    ];
+    let s = '<svg class="track" viewBox="0 0 1000 120" aria-label="Путь ракеты к планете">';
+    s += '<line x1="' + x0 + '" y1="62" x2="' + x1 + '" y2="62" stroke="#2d3770" stroke-width="4" stroke-dasharray="2 10" stroke-linecap="round"/>';
+    s += '<line x1="' + x0 + '" y1="62" x2="' + x + '" y2="62" stroke="#ffc93c" stroke-width="4" stroke-linecap="round"/>';
+    s += '<circle cx="34" cy="62" r="22" fill="#2e79b5"/><path d="M20 55 q10 -8 18 2 q6 8 14 0" fill="#3ddc97"/><path d="M22 74 q8 -6 16 0" fill="#3ddc97"/>';
+    s += '<text x="34" y="110" fill="#a9b1e0" font-size="16" text-anchor="middle">Старт</text>';
+    for (const cp of cps) {
+      const cx = x0 + (x1 - x0) * cp.v / GOAL;
+      const reached = score >= cp.v;
+      s += '<circle cx="' + cx + '" cy="62" r="14" fill="' + cp.c + '" opacity="' + (reached ? 1 : 0.45) + '"/>';
+      s += '<text x="' + cx + '" y="30" fill="' + (reached ? "#ffc93c" : "#a9b1e0") + '" font-size="17" text-anchor="middle">' + cp.name + "</text>";
+      s += '<text x="' + cx + '" y="106" fill="#a9b1e0" font-size="16" text-anchor="middle">' + cp.v + "</text>";
+    }
+    s += '<circle cx="962" cy="62" r="30" fill="#f0a040"/><ellipse cx="962" cy="62" rx="46" ry="10" fill="none" stroke="#ffe0a0" stroke-width="3" transform="rotate(-15 962 62)"/>';
+    s += '<text x="962" y="114" fill="#ffc93c" font-size="17" text-anchor="middle">100</text>';
+    s += '<g id="rocket" style="transform: translate(' + (rx - 30) + 'px, 38px)">' +
+      '<path d="M0 24 l-14 -8 v16 z" fill="#ff5d73"/>' +
+      '<path d="M4 24 q22 -22 54 0 q-32 22 -54 0z" fill="#eef1ff"/>' +
+      '<circle cx="38" cy="24" r="6" fill="#6aa8ff"/>' +
+      '<path d="M14 14 l-6 -10 h10 l8 8z M14 34 l-6 10 h10 l8 -8z" fill="#ff5d73"/>' +
+      "</g></svg>";
+    return s;
+  }
+
+  function startScreen() {
+    view.innerHTML =
+      '<div class="screen pop">' +
+      '<svg class="big" viewBox="0 0 420 200" aria-hidden="true">' +
+      '<circle cx="330" cy="90" r="60" fill="#f0a040"/><ellipse cx="330" cy="90" rx="92" ry="20" fill="none" stroke="#ffe0a0" stroke-width="5" transform="rotate(-15 330 90)"/>' +
+      '<text x="330" y="100" text-anchor="middle" font-size="30" font-weight="800" fill="#1b2552">100</text>' +
+      '<g transform="translate(60 110) rotate(-20)"><path d="M0 24 l-24 -12 v24 z" fill="#ff5d73"/><path d="M4 24 q36 -34 90 0 q-54 34 -90 0z" fill="#eef1ff"/><circle cx="62" cy="24" r="9" fill="#6aa8ff"/><path d="M20 10 l-10 -16 h16 l14 12z M20 38 l-10 16 h16 l14 -12z" fill="#ff5d73"/></g>' +
+      '<path d="M40 150 q-30 10 -40 30" stroke="#ffc93c" stroke-width="3" fill="none" stroke-dasharray="4 6"/>' +
+      "</svg>" +
+      "<h2>Миссия «Оборот»</h2>" +
+      "<p>Ракета летит к планете «Грамотность-100». Каждый верный ответ — топливо. Ошибка — удар метеорита по щиту.</p>" +
+      '<div class="rules">' +
+      "<div><b>Цель</b>Набрать 100 баллов за одну попытку.</div>" +
+      "<div><b>Щиты</b>Три щита. Потерял все — попытка окончена, начинай заново.</div>" +
+      "<div><b>Баллы</b>5 за тип оборота, 6 за главное слово, 8 за запятые и поиск ошибки.</div>" +
+      "<div><b>Серия</b>После трёх верных ответов подряд каждый следующий даёт +2 бонуса.</div>" +
+      "</div>" +
+      '<div class="actions" style="justify-content:center"><button class="btn" id="go">' + (meta.attempts ? "Новая попытка" : "Начать миссию") + "</button></div>" +
+      '<p class="meta">Попыток: ' + meta.attempts + " · Рекорд: " + meta.best + (meta.won ? " · Миссия пройдена: " + meta.won + " раз" : "") + "</p>" +
+      "</div>";
+    document.getElementById("go").onclick = startRun;
+  }
+
+  function startRun() {
+    meta.attempts++;
+    save();
+    st = { score: 0, shields: SHIELDS, streak: 0, queue: shuffle(TASKS), answered: false, mood: "calm", msg: "Я Запятыч. Отвечай внимательно — после каждого ответа я объясню правило.", n: 0 };
+    nextTask();
+  }
+
+  function nextTask() {
+    if (!st.queue.length) st.queue = shuffle(TASKS);
+    st.task = st.queue.pop();
+    st.answered = false;
+    st.n++;
+    if (st.task.t === "error") st.order = shuffle([0, 1, 2]);
+    if (st.task.t === "commas") st.marks = new Set();
+    render();
+  }
+
+  function hud() {
+    let sh = "";
+    for (let i = 0; i < SHIELDS; i++) sh += shieldSvg(i >= st.shields);
+    return '<div class="hud"><div class="score">' + st.score + " <small>/ " + GOAL + " баллов</small></div>" +
+      '<div class="streak">Серия: <b>' + st.streak + "</b>" + (st.streak >= 3 ? " · бонус +" + STREAK_BONUS : "") + "</div>" +
+      '<div class="shields" aria-label="Щиты">' + sh + "</div></div>" + trackSvg(st.score);
+  }
+
+  function taskHtml() {
+    const t = st.task;
+    let h = '<div class="tag">' + TAGS[t.t] + '<span class="pts">+' + PTS[t.t] + "</span></div>";
+    if (t.t === "type") {
+      h += '<p class="task-q">Какой оборот выделен?</p>';
+      h += '<p class="sent">' + esc(t.s).replace("[", "<mark>").replace("]", "</mark>") + "</p>";
+      h += '<div class="opts two">' +
+        '<button class="opt" data-a="p">Причастный<small>какой? — признак предмета</small></button>' +
+        '<button class="opt" data-a="d">Деепричастный<small>что делая? что сделав? — добавочное действие</small></button></div>';
+    } else if (t.t === "commas") {
+      h += '<p class="task-q">Нажимай на промежутки между словами, чтобы поставить запятую. Иногда запятые не нужны совсем.</p>';
+      const w = t.s.split(" ");
+      h += '<div class="words">';
+      w.forEach((word, i) => {
+        h += '<span class="w" style="cursor:default">' + esc(word) + "</span>";
+        if (i < w.length - 1) h += '<button class="gap" data-i="' + i + '" aria-label="Промежуток после слова ' + esc(word) + '"></button>';
+      });
+      h += ".</div>";
+      h += '<div class="actions"><button class="btn" id="check">Проверить</button></div>';
+    } else if (t.t === "main") {
+      h += '<p class="task-q">Причастный оборот выделен. Нажми на слово, к которому он относится.</p>';
+      let inPh = false;
+      const parts = t.s.split(" ").map((word, i) => {
+        if (word.startsWith("[")) inPh = true;
+        const ph = inPh;
+        if (word.includes("]")) inPh = false;
+        return '<span class="w' + (ph ? " ph" : "") + '" data-w="' + esc(clean(word)) + '" data-i="' + i + '">' + esc(word.replace(/[\[\]]/g, "")) + "</span>";
+      });
+      h += '<div class="words">' + parts.join(" ") + "</div>";
+    } else if (t.t === "error") {
+      h += '<p class="task-q">В каком предложении ошибка в употреблении оборота?</p><div class="opts">';
+      st.order.forEach((k) => { h += '<button class="opt serif" data-k="' + k + '">' + esc(t.o[k]) + "</button>"; });
+      h += "</div>";
+    }
+    h += '<div id="feedback"></div>';
+    return h;
+  }
+
+  function render() {
+    view.innerHTML = hud() +
+      '<div class="row"><div class="botbox">' + botSvg(st.mood) + "</div>" +
+      '<div class="bubble">' + st.msg + "</div>" +
+      '<div class="card" id="card">' + taskHtml() + "</div></div>";
+    bind();
+  }
+
+  function bind() {
+    const t = st.task;
+    const card = document.getElementById("card");
+    if (t.t === "type") {
+      card.querySelectorAll(".opt").forEach((b) => {
+        b.onclick = () => {
+          if (st.answered) return;
+          const ok = b.dataset.a === t.a;
+          card.querySelectorAll(".opt").forEach((x) => {
+            x.disabled = true;
+            if (x.dataset.a === t.a) x.classList.add("ok");
+          });
+          if (!ok) b.classList.add("bad");
+          finish(ok);
+        };
+      });
+    } else if (t.t === "commas") {
+      card.querySelectorAll(".gap").forEach((g) => {
+        g.onclick = () => {
+          if (st.answered) return;
+          const i = Number(g.dataset.i);
+          if (st.marks.has(i)) { st.marks.delete(i); g.classList.remove("on"); g.textContent = ""; }
+          else { st.marks.add(i); g.classList.add("on"); g.textContent = ","; }
+        };
+      });
+      document.getElementById("check").onclick = () => {
+        if (st.answered) return;
+        const need = new Set(t.c);
+        let ok = need.size === st.marks.size;
+        card.querySelectorAll(".gap").forEach((g) => {
+          const i = Number(g.dataset.i);
+          const has = st.marks.has(i), must = need.has(i);
+          if (has && must) g.classList.add("ok");
+          else if (has && !must) { g.classList.add("bad"); ok = false; }
+          else if (!has && must) { g.classList.add("miss"); g.textContent = ","; ok = false; }
+        });
+        document.getElementById("check").remove();
+        finish(ok);
+      };
+    } else if (t.t === "main") {
+      card.querySelectorAll(".w").forEach((w) => {
+        w.onclick = () => {
+          if (st.answered) return;
+          const ok = w.dataset.w === t.a;
+          card.querySelectorAll(".w").forEach((x) => { if (x.dataset.w === t.a) x.classList.add("ok"); });
+          if (!ok) w.classList.add("bad");
+          finish(ok);
+        };
+      });
+    } else if (t.t === "error") {
+      card.querySelectorAll(".opt").forEach((b) => {
+        b.onclick = () => {
+          if (st.answered) return;
+          const ok = Number(b.dataset.k) === t.a;
+          card.querySelectorAll(".opt").forEach((x) => {
+            x.disabled = true;
+            if (Number(x.dataset.k) === t.a) x.classList.add("ok");
+          });
+          if (!ok) b.classList.add("bad", "shake");
+          finish(ok);
+        };
+      });
+    }
+  }
+
+  function finish(ok) {
+    st.answered = true;
+    let gained = 0;
+    if (ok) {
+      st.streak++;
+      gained = PTS[st.task.t] + (st.streak > 3 ? STREAK_BONUS : 0);
+      st.score += gained;
+      st.mood = "happy";
+      st.msg = "<b>" + pick(CHEER) + "</b> +" + gained + " баллов" + (st.streak > 3 ? " (с бонусом за серию)" : "") + ".";
+    } else {
+      st.streak = 0;
+      st.shields--;
+      st.mood = "sad";
+      st.msg = "<b>" + pick(OOPS) + "</b> Осталось щитов: " + st.shields + ".";
+    }
+    meta.best = Math.max(meta.best, Math.min(st.score, GOAL));
+    save();
+
+    const fb = document.getElementById("feedback");
+    const over = st.shields <= 0;
+    const win = st.score >= GOAL;
+    const label = over ? "Итоги попытки" : win ? "К планете!" : "Дальше";
+    fb.innerHTML = '<div class="why ' + (ok ? "ok" : "bad") + '"><b>' + (ok ? "Верно." : "Неверно.") + "</b> " + st.task.why + "</div>" +
+      '<div class="actions"><button class="btn" id="next">' + label + "</button></div>";
+
+    const tmp = document.createElement("div");
+    tmp.innerHTML = hud();
+    view.replaceChild(tmp.querySelector(".hud"), view.querySelector(".hud"));
+    view.querySelector(".track").outerHTML = trackSvg(st.score, st.score - gained);
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      const r = document.getElementById("rocket");
+      if (r) r.style.transform = "translate(" + (rocketX(st.score) - 30) + "px, 38px)";
+    }));
+    view.querySelector(".bot").outerHTML = botSvg(st.mood);
+    view.querySelector(".bubble").innerHTML = st.msg;
+
+    document.getElementById("next").onclick = () => {
+      if (win) winScreen();
+      else if (over) loseScreen();
+      else nextTask();
+    };
+  }
+
+  function winScreen() {
+    meta.won++;
+    save();
+    const stars = st.shields === 3 ? "★★★" : st.shields === 2 ? "★★☆" : "★☆☆";
+    view.innerHTML = trackSvg(GOAL) +
+      '<div class="screen pop">' +
+      '<div style="width:110px;margin:0 auto">' + botSvg("happy") + "</div>" +
+      "<h2>Миссия выполнена!</h2>" +
+      '<div class="starsWin">' + stars + "</div>" +
+      "<p>Ракета долетела до планеты «Грамотность-100». Набрано " + st.score + " баллов, сохранено щитов: " + st.shields + " из 3. Номер попытки: " + meta.attempts + ".</p>" +
+      "<p>" + (st.shields === 3 ? "Ни одной ошибки — ты настоящий капитан пунктуации." : "Попробуй пройти миссию без потери щитов и получить три звезды.") + "</p>" +
+      '<div class="actions" style="justify-content:center"><button class="btn" id="again">Лететь ещё раз</button></div></div>';
+    document.getElementById("again").onclick = startRun;
+  }
+
+  function loseScreen() {
+    view.innerHTML = trackSvg(st.score) +
+      '<div class="screen pop">' +
+      '<div style="width:110px;margin:0 auto">' + botSvg("sad") + "</div>" +
+      "<h2>Щиты разбиты</h2>" +
+      "<p>В этой попытке набрано " + st.score + " баллов из 100. Рекорд: " + meta.best + ". Загляни в шпаргалку под игрой и попробуй снова — задания каждый раз в новом порядке.</p>" +
+      '<div class="actions" style="justify-content:center"><button class="btn" id="again">Новая попытка</button>' +
+      '<a class="btn ghost" href="#cheat" style="text-decoration:none">Открыть шпаргалку</a></div></div>';
+    document.getElementById("again").onclick = startRun;
+  }
+
+  startScreen();
+})();
+</script>
+</body>
+</html>
