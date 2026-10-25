@@ -162,7 +162,7 @@
     <h3>Как пользоваться чертежом</h3>
     <ol>
       <li><b>Прямая</b> — нажми на две точки (вершины или отмеченные точки). Через них пройдёт прямая.</li>
-      <li><b>Точка</b> — нажми рядом с местом, где пересекаются две прямые или прямая и ребро. Там появится новая точка. Если точка лежит на продолжении ребра, продолжение дорисуется пунктиром.</li>
+      <li><b>Точка</b> — нажми рядом с местом, где пересекаются две прямые или прямая и ребро. Там появится новая точка. Если точка лежит на продолжении ребра, продолжение дорисуется пунктиром. Места пересечений подсвечены пунктирными кружками, а если пересечение ушло за край, чертёж сам отдалится.</li>
       <li>Найди недостающую вершину сечения на ребре тетраэдра, отметь её и нажми <b>Проверить</b>.</li>
       <li>После решения нажми <b>Посмотреть в 3D</b> и покрути модель. Кнопка <b>Новая задача</b> даёт следующую задачу.</li>
     </ol>
@@ -292,7 +292,7 @@
     return null;
   }
 
-  function clip(p, q) {
+  function clip(p, q, v) {
     const d = sub(q, p);
     let t0 = -1e6, t1 = 1e6;
     const chk = (num, den) => {
@@ -301,7 +301,7 @@
       if (den < 0) t0 = Math.max(t0, t); else t1 = Math.min(t1, t);
       return true;
     };
-    if (!chk(p[0], -d[0]) || !chk(W - p[0], d[0]) || !chk(p[1], -d[1]) || !chk(H - p[1], d[1])) return null;
+    if (!chk(p[0] - v.x, -d[0]) || !chk(v.x + v.w - p[0], d[0]) || !chk(p[1] - v.y, -d[1]) || !chk(v.y + v.h - p[1], d[1])) return null;
     if (t0 > t1) return null;
     return [add(p, mul(d, t0)), add(p, mul(d, t1))];
   }
@@ -339,7 +339,8 @@
     const msg = root.querySelector(".msg");
     const btn3d = root.querySelector('[data-act="view3d"]');
     const box3d = root.querySelector(".view3d");
-    const st = { tool: "line", lines: [], points: [], history: [], pending: null, solved: false, showSol: false };
+    const st = { tool: "line", lines: [], points: [], history: [], pending: null, solved: false, showSol: false, view: { x: 0, y: 0, w: W, h: H } };
+    let animToken = 0;
 
     const setMsg = (text, cls) => { msg.textContent = text; msg.className = "msg" + (cls ? " " + cls : ""); };
 
@@ -373,10 +374,57 @@
       return out;
     }
 
-    const ui = () => Math.max(1, W / (svg.clientWidth || W) * 0.55);
+    const ui = () => Math.max(st.view.w / W, st.view.w / (svg.clientWidth || W) * 0.55);
+    const inView = (p, m) => p[0] > st.view.x + m && p[0] < st.view.x + st.view.w - m && p[1] > st.view.y + m && p[1] < st.view.y + st.view.h - m;
+
+    function userIntersections() {
+      const L = allLines();
+      const out = [];
+      for (let i = EDGES.length; i < L.length; i++) {
+        for (let j = 0; j < i; j++) {
+          const x = inter2(L[i][0], L[i][1], L[j][0], L[j][1]);
+          if (x && x[0] > -0.6 * W && x[0] < 1.6 * W && x[1] > -0.6 * H && x[1] < 1.6 * H) out.push(x);
+        }
+      }
+      return out;
+    }
+
+    function targetView() {
+      const extra = st.points.map((pt) => pt.p).concat(userIntersections());
+      if (st.showSol) extra.push(task.path.X);
+      if (extra.every((p) => p[0] > 12 && p[0] < W - 12 && p[1] > 12 && p[1] < H - 12)) return { x: 0, y: 0, w: W, h: H };
+      const pts = [[0, 0], [W, H]].concat(extra);
+      let x0 = Math.min(...pts.map((p) => p[0])), x1 = Math.max(...pts.map((p) => p[0]));
+      let y0 = Math.min(...pts.map((p) => p[1])), y1 = Math.max(...pts.map((p) => p[1]));
+      const pad = 0.06 * Math.max(x1 - x0, y1 - y0) + 10;
+      x0 -= pad; x1 += pad; y0 -= pad; y1 += pad;
+      let w = x1 - x0, h = y1 - y0;
+      if (w / h > W / H) { const nh = w * H / W; y0 -= (nh - h) / 2; h = nh; }
+      else { const nw = h * W / H; x0 -= (nw - w) / 2; w = nw; }
+      return { x: x0, y: y0, w, h };
+    }
 
     function draw() {
+      const to = targetView();
+      const from = Object.assign({}, st.view);
+      const same = ["x", "y", "w", "h"].every((key) => Math.abs(from[key] - to[key]) < 0.5);
+      const token = ++animToken;
+      if (same) { st.view = to; paint(); return; }
+      const t0 = performance.now();
+      const step = (now) => {
+        if (token !== animToken) return;
+        const t = Math.min(1, (now - t0) / 350);
+        const e = 1 - Math.pow(1 - t, 3);
+        st.view = { x: from.x + (to.x - from.x) * e, y: from.y + (to.y - from.y) * e, w: from.w + (to.w - from.w) * e, h: from.h + (to.h - from.h) * e };
+        paint();
+        if (t < 1) requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
+    }
+
+    function paint() {
       const k = ui();
+      svg.setAttribute("viewBox", st.view.x + " " + st.view.y + " " + st.view.w + " " + st.view.h);
       svg.textContent = "";
       const faces = el("g", {}, svg);
       FACES.forEach((f) => el("polygon", { points: f.map((v) => V2[v].join(",")).join(" "), fill: "#607080", "fill-opacity": 0.04 }, faces));
@@ -389,7 +437,7 @@
       }
 
       st.lines.forEach((l) => {
-        const c = clip(l.a.p, l.b.p);
+        const c = clip(l.a.p, l.b.p, st.view);
         if (c) el("line", { x1: c[0][0], y1: c[0][1], x2: c[1][0], y2: c[1][1], stroke: COL.line, "stroke-width": 1.4, "stroke-opacity": 0.8 }, svg);
       });
 
@@ -429,6 +477,12 @@
         label(task.path.X, "X", COL.sol, 5);
         if (!st.solved) label(task.U.p, unknownName, COL.sol, 6);
       }
+      if (st.tool === "point" && !st.solved) {
+        userIntersections().forEach((x) => {
+          if (anchors().some((a) => dist(a.p, x) < 3)) return;
+          el("circle", { cx: x[0], cy: x[1], r: 7 * k, fill: "#fff", "fill-opacity": 0.6, stroke: COL.user, "stroke-width": 1.5, "stroke-dasharray": "3 2" }, svg);
+        });
+      }
       if (st.pending) el("circle", { cx: st.pending.p[0], cy: st.pending.p[1], r: 12 * k, fill: "none", stroke: COL.user, "stroke-width": 2.5 }, svg);
       btn3d.disabled = !(st.solved || st.showSol);
     }
@@ -445,7 +499,7 @@
       for (let i = 0; i < L.length; i++) {
         for (let j = i + 1; j < L.length; j++) {
           const x = inter2(L[i][0], L[i][1], L[j][0], L[j][1]);
-          if (!x || !inBounds(x, 2)) continue;
+          if (!x || !inView(x, 2)) continue;
           const d = dist(x, p);
           if (d < bd) { bd = d; best = x; }
         }
