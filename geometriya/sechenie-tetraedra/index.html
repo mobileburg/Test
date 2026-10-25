@@ -57,6 +57,8 @@
   figure img { width: 100%; max-width: 820px; height: auto; border: 1px solid #e5e5e5; }
   figcaption { font-family: system-ui, sans-serif; font-size: 0.9rem; color: #555; }
 </style>
+<script src="../../assets/portal-config.js"></script>
+<script src="../../assets/portal.js" defer></script>
 </head>
 <body>
 
@@ -670,6 +672,8 @@
     const btn3d = root.querySelector('[data-act="view3d"]');
     const box3d = root.querySelector(".view3d");
     const hintBox = root.querySelector(".hintbox");
+    const stats = { t0: Date.now(), hints: 0, wrong: 0, sol: false };
+    const track = (type, data) => { if (!demo && window.Portal) Portal.track(type, Object.assign({ solid: S.key }, data)); };
     const st = { hover: null, hintMore: false, hintOn: false, hintStep: null, tool: "line", lines: [], points: [], history: [], pending: null, pendingLine: null, solved: false, showSol: demo, hits: [], view: { x: 0, y: 0, w: W, h: H } };
     let animToken = 0;
     const setMsg = (text, cls) => { if (msg) { msg.textContent = text; msg.className = "msg" + (cls ? " " + cls : ""); } };
@@ -1023,6 +1027,7 @@
       hintBox.querySelector(".more").onclick = () => { st.hintMore = !st.hintMore; updateHint(); };
       root.querySelector('[data-act="hint"]').onclick = (ev) => {
         st.hintOn = !st.hintOn;
+        if (st.hintOn && !st.solved) { stats.hints++; track("geo_hint"); }
         ev.currentTarget.classList.toggle("on", st.hintOn);
         draw();
       };
@@ -1045,6 +1050,9 @@
       root.querySelector('[data-act="check"]').onclick = () => {
         st.hits = task.unknown.map((u) => (st.points.find((pt) => dist(pt.p, u.p2) < 4) || {}).name);
         const found = st.hits.filter(Boolean).length;
+        if (!st.solved) track("geo_check", { ok: found === nU, found, need: nU });
+        if (found !== nU) stats.wrong++;
+        if (found === nU && !st.solved) track("geo_solved", { unknown: nU, sec: Math.round((Date.now() - stats.t0) / 1000), hints: stats.hints, wrongChecks: stats.wrong, solutionShown: stats.sol });
         if (found === nU) {
           st.solved = true;
           const names = task.sec.map((v) => {
@@ -1061,11 +1069,15 @@
       };
       root.querySelector('[data-act="solution"]').onclick = () => {
         st.showSol = !st.showSol;
+        if (st.showSol && !stats.sol && !st.solved) { stats.sol = true; track("geo_solution"); }
         stepsEl.hidden = !st.showSol;
         setMsg(st.showSol ? "Решение показано на чертеже и расписано по шагам ниже." : "Решение скрыто.");
         draw();
       };
-      root.querySelector('[data-act="next"]').onclick = opts.onNext;
+      root.querySelector('[data-act="next"]').onclick = () => {
+        if (!st.solved) track("geo_skip", { showedSolution: stats.sol, sec: Math.round((Date.now() - stats.t0) / 1000) });
+        opts.onNext();
+      };
     }
 
     stepsEl.innerHTML = task.sol.steps.map((s) => "<li>" + s.text + "</li>").join("") +

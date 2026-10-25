@@ -158,6 +158,8 @@
   .cheat-card li { margin: 5px 0; }
   .ex { font-style: italic; color: #333; }
 </style>
+<script src="../../assets/portal-config.js"></script>
+<script src="../../assets/portal.js" defer></script>
 </head>
 <body>
 
@@ -575,10 +577,13 @@
     document.getElementById("go").onclick = startRun;
   }
 
+  const track = (type, data) => window.Portal && Portal.track(type, data);
+
   function startRun() {
     meta.attempts++;
+    track("ru_start");
     save();
-    st = { score: 0, shields: SHIELDS, streak: 0, scenes: new Set(), lastKind: null, answered: false, mood: "calm", msg: "Я Запятыч. Отвечай внимательно — после каждого ответа я объясню правило.", n: 0 };
+    st = { score: 0, shields: SHIELDS, streak: 0, scenes: new Set(), lastKind: null, correct: 0, t0: Date.now(), answered: false, mood: "calm", msg: "Я Запятыч. Отвечай внимательно — после каждого ответа я объясню правило.", n: 0 };
     nextTask();
   }
 
@@ -731,6 +736,9 @@
     const fb = document.getElementById("feedback");
     const over = st.shields <= 0;
     const win = st.score >= GOAL;
+    if (ok) st.correct++;
+    track("ru_answer", { kind: st.task.t, ok, id: st.task.id });
+    if (over || win) track("ru_run", { score: st.score, win, shields: st.shields, answered: st.n, correct: st.correct, sec: Math.round((Date.now() - st.t0) / 1000) });
     const label = over ? "Итоги попытки" : win ? "К планете!" : "Дальше";
     fb.innerHTML = '<div class="why ' + (ok ? "ok" : "bad") + '"><b>' + (ok ? "Верно." : "Неверно.") + "</b> " + st.task.why + "</div>" +
       '<div class="actions"><button class="btn" id="next">' + label + "</button></div>";

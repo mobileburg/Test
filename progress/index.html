@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Прогресс обучения</title>
+<link rel="stylesheet" href="../assets/site.css">
+<script src="../assets/portal-config.js"></script>
+<script src="../assets/portal.js" defer></script>
+<style>
+  .ui, table, .cards, .src, .btns { font-family: system-ui, sans-serif; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; margin: 0 0 8px; }
+  .cardn { padding: 14px 16px; border: 1px solid #ddd; border-radius: 8px; background: #fafafa; }
+  .cardn b { display: block; font-size: 1.6rem; color: #0b57d0; }
+  .cardn small { color: #666; }
+  .src { font-size: 0.9rem; color: #666; margin: 0 0 18px; }
+  .src.warn { color: #8a5a00; background: #fff8e1; border: 1px solid #f2c94c; padding: 8px 12px; border-radius: 6px; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.92rem; margin: 6px 0 10px; }
+  th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid #eee; vertical-align: top; }
+  th { color: #555; font-weight: 600; background: #f6f7f9; }
+  td.num, th.num { text-align: right; white-space: nowrap; }
+  .ok { color: #2e7d32; } .bad { color: #b3261e; }
+  .bar { height: 10px; background: #e8ecf5; border-radius: 5px; overflow: hidden; min-width: 120px; }
+  .bar i { display: block; height: 100%; background: #2e7d32; }
+  .btns { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 16px; }
+  .btns button, .btns label { padding: 7px 12px; border: 1px solid #c9cfdb; border-radius: 6px; background: #fff; cursor: pointer; font-size: 0.9rem; }
+  .empty { color: #777; font-family: system-ui, sans-serif; }
+  .scroll { overflow-x: auto; }
+  svg.chart { width: 100%; height: auto; display: block; }
+</style>
+</head>
+<body>
+<p class="crumbs"><a href="../index.html">Главная</a> / Прогресс обучения</p>
+<h1>Прогресс обучения</h1>
+<div id="app"><p class="empty">Загрузка…</p></div>
+
+<script>
+window.addEventListener("DOMContentLoaded", async () => {
+  const app = document.getElementById("app");
+  if (!Portal.session()) {
+    app.innerHTML = '<p class="lead">Статистика ведётся только для ученика, который вошёл на сайт. <a href="../vhod/index.html?back=' + encodeURIComponent(location.href) + '">Войти</a></p>';
+    return;
+  }
+  const SECTIONS = { "/": "Главная", himiya: "Химия", geometriya: "Геометрия", russkiy: "Русский язык", algebra: "Алгебра", progress: "Прогресс", vhod: "Вход" };
+  const KINDS = { type: "Определи оборот", commas: "Расставь запятые", main: "Найди главное слово", error: "Найди ошибку" };
+  const SOLIDS = { tetra: "тетраэдр", cube: "куб" };
+  const section = (page) => SECTIONS[(page || "/").split("/").filter(Boolean)[0] || "/"] || page;
+  const pad = (n) => String(n).padStart(2, "0");
+  const dt = (ts) => { const d = new Date(ts); return pad(d.getDate()) + "." + pad(d.getMonth() + 1) + "." + d.getFullYear() + " " + pad(d.getHours()) + ":" + pad(d.getMinutes()); };
+  const dayKey = (ts) => { const d = new Date(ts); return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); };
+  const dur = (sec) => { sec = Math.round(sec || 0); if (sec < 60) return sec + " с"; const m = Math.round(sec / 60); return m < 60 ? m + " мин" : Math.floor(m / 60) + " ч " + (m % 60) + " мин"; };
+  const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;");
+
+  async function render() {
+    const { source, events } = await Portal.getEvents();
+    const by = (t) => events.filter((e) => e.type === t);
+    const visits = by("visit"), times = by("time");
+    const totalSec = times.reduce((s, e) => s + (e.data.sec || 0), 0);
+    const days = new Set(events.map((e) => dayKey(e.ts)));
+    const last = visits.length ? visits[visits.length - 1].ts : null;
+
+    const srcText = source === "server" ? "Данные загружены с сервера — видны с любого устройства."
+      : source === "local-fallback" ? "Сервер сейчас недоступен — показаны данные этого устройства."
+      : "Сервер ещё не подключён: статистика хранится только в этом браузере. Чтобы видеть её с любого устройства, подключите серверную часть (инструкция в server/README.md).";
+
+    let h = '<p class="src' + (source === "server" ? "" : " warn") + '">Ученик: <b>' + esc(Portal.session().user) + "</b>. " + srcText + "</p>";
+    h += '<div class="btns"><button id="refresh">Обновить</button><button id="csv">Скачать журнал (CSV)</button></div>';
+    h += '<div class="cards">' +
+      '<div class="cardn"><b>' + days.size + "</b><small>дней с занятиями</small></div>" +
+      '<div class="cardn"><b>' + dur(totalSec) + "</b><small>всего времени на сайте</small></div>" +
+      '<div class="cardn"><b>' + visits.length + "</b><small>открытий страниц</small></div>" +
+      '<div class="cardn"><b>' + (last ? dt(last) : "—") + "</b><small>последнее посещение</small></div></div>";
+
+    const perDay = {};
+    times.forEach((e) => { const k = dayKey(e.ts); perDay[k] = (perDay[k] || 0) + e.data.sec; });
+    const today = new Date(); today.setHours(12, 0, 0, 0);
+    const keys = []; for (let i = 13; i >= 0; i--) keys.push(dayKey(today.getTime() - i * 86400000));
+    const maxMin = Math.max(10, ...keys.map((k) => (perDay[k] || 0) / 60));
+    let svg = '<svg class="chart" viewBox="0 0 700 170">';
+    keys.forEach((k, i) => {
+      const m = (perDay[k] || 0) / 60, hgt = 120 * m / maxMin, x = 10 + i * 49;
+      svg += '<rect x="' + x + '" y="' + (135 - hgt) + '" width="36" height="' + Math.max(hgt, 1) + '" rx="4" fill="' + (m ? "#0b57d0" : "#dde3ee") + '"/>';
+      if (m) svg += '<text x="' + (x + 18) + '" y="' + (130 - hgt) + '" font-size="12" text-anchor="middle" fill="#333">' + Math.round(m) + "</text>";
+      svg += '<text x="' + (x + 18) + '" y="155" font-size="12" text-anchor="middle" fill="#777">' + k.slice(8) + "." + k.slice(5, 7) + "</text>";
+    });
+    h += "<h2>Минут занятий по дням (последние 2 недели)</h2>" + svg + "</svg>";
+
+    const sec = {};
+    visits.forEach((e) => { const s = section(e.page); (sec[s] = sec[s] || { v: 0, t: 0 }).v++; });
+    times.forEach((e) => { const s = section(e.page); (sec[s] = sec[s] || { v: 0, t: 0 }).t += e.data.sec; });
+    h += "<h2>Разделы</h2><div class='scroll'><table><tr><th>Раздел</th><th class='num'>Открытий</th><th class='num'>Время</th></tr>" +
+      Object.keys(sec).sort((a, b) => sec[b].t - sec[a].t).map((s) => "<tr><td>" + esc(s) + "</td><td class='num'>" + sec[s].v + "</td><td class='num'>" + dur(sec[s].t) + "</td></tr>").join("") + "</table></div>";
+
+    const runs = by("ru_run"), starts = by("ru_start"), answers = by("ru_answer");
+    h += "<h2>Русский язык: «Миссия „Оборот“»</h2>";
+    if (!starts.length && !runs.length) h += '<p class="empty">Пока не играл.</p>';
+    else {
+      const wins = runs.filter((r) => r.data.win).length;
+      const best = Math.max(0, ...runs.map((r) => r.data.score || 0));
+      const avg = runs.length ? Math.round(runs.reduce((s, r) => s + r.data.score, 0) / runs.length) : 0;
+      const ok = answers.filter((a) => a.data.ok).length;
+      h += '<div class="cards">' +
+        '<div class="cardn"><b>' + starts.length + "</b><small>попыток начато</small></div>" +
+        '<div class="cardn"><b>' + wins + " из " + runs.length + "</b><small>завершённых попыток — победы</small></div>" +
+        '<div class="cardn"><b>' + best + "</b><small>рекорд, баллов</small></div>" +
+        '<div class="cardn"><b>' + avg + "</b><small>средний результат</small></div>" +
+        '<div class="cardn"><b>' + (answers.length ? Math.round(100 * ok / answers.length) : 0) + "%</b><small>верных ответов (" + ok + " из " + answers.length + ")</small></div></div>";
+      h += "<table><tr><th>Тип задания</th><th class='num'>Верно</th><th>Точность</th></tr>" + Object.keys(KINDS).map((k) => {
+        const a = answers.filter((x) => x.data.kind === k), o = a.filter((x) => x.data.ok).length, p = a.length ? Math.round(100 * o / a.length) : 0;
+        return "<tr><td>" + KINDS[k] + "</td><td class='num'>" + o + " / " + a.length + "</td><td><div class='bar'><i style='width:" + p + "%;background:" + (p >= 80 ? "#2e7d32" : p >= 50 ? "#f0a040" : "#b3261e") + "'></i></div> " + (a.length ? p + "%" : "—") + "</td></tr>";
+      }).join("") + "</table>";
+      if (runs.length) h += "<div class='scroll'><table><tr><th>Когда</th><th class='num'>Баллы</th><th>Итог</th><th class='num'>Ответов</th><th class='num'>Верных</th><th class='num'>Длительность</th></tr>" +
+        runs.slice(-10).reverse().map((r) => "<tr><td>" + dt(r.ts) + "</td><td class='num'>" + r.data.score + "</td><td class='" + (r.data.win ? "ok'>Победа, щитов: " + r.data.shields : "bad'>Щиты разбиты") + "</td><td class='num'>" + r.data.answered + "</td><td class='num'>" + r.data.correct + "</td><td class='num'>" + dur(r.data.sec) + "</td></tr>").join("") + "</table></div>";
+    }
+
+    const solved = by("geo_solved"), skipped = by("geo_skip"), sols = by("geo_solution"), checks = by("geo_check");
+    h += "<h2>Геометрия: сечения</h2>";
+    if (!solved.length && !skipped.length && !checks.length) h += '<p class="empty">Пока не решал задачи в тренажёре.</p>';
+    else {
+      const self = solved.filter((s) => !s.data.solutionShown && !s.data.hints);
+      const avgT = solved.length ? solved.reduce((s, e) => s + e.data.sec, 0) / solved.length : 0;
+      h += '<div class="cards">' +
+        '<div class="cardn"><b>' + solved.length + "</b><small>задач решено (тетраэдр: " + solved.filter((s) => s.data.solid === "tetra").length + ", куб: " + solved.filter((s) => s.data.solid === "cube").length + ")</small></div>" +
+        '<div class="cardn"><b>' + self.length + "</b><small>из них полностью самостоятельно</small></div>" +
+        '<div class="cardn"><b>' + dur(avgT) + "</b><small>в среднем на задачу</small></div>" +
+        '<div class="cardn"><b>' + checks.filter((c) => !c.data.ok).length + "</b><small>неудачных проверок</small></div>" +
+        '<div class="cardn"><b>' + sols.length + " / " + skipped.length + "</b><small>подсмотрено решений / пропущено задач</small></div></div>";
+      if (solved.length) h += "<div class='scroll'><table><tr><th>Когда</th><th>Фигура</th><th class='num'>Вершин найти</th><th class='num'>Время</th><th class='num'>Подсказок</th><th class='num'>Ошибок</th><th>Решение подсмотрено</th></tr>" +
+        solved.slice(-10).reverse().map((s) => "<tr><td>" + dt(s.ts) + "</td><td>" + (SOLIDS[s.data.solid] || "") + "</td><td class='num'>" + s.data.unknown + "</td><td class='num'>" + dur(s.data.sec) + "</td><td class='num'>" + s.data.hints + "</td><td class='num'>" + s.data.wrongChecks + "</td><td>" + (s.data.solutionShown ? "да" : "нет") + "</td></tr>").join("") + "</table></div>";
+    }
+
+    const label = (e) => {
+      const d = e.data || {};
+      switch (e.type) {
+        case "visit": return "Открыл страницу «" + esc(e.title) + "»";
+        case "time": return "Провёл на странице " + dur(d.sec);
+        case "login": return "Вошёл на сайт";
+        case "logout": return "Вышел";
+        case "ru_start": return "Начал попытку в «Миссии „Оборот“»";
+        case "ru_answer": return (KINDS[d.kind] || d.kind) + ": " + (d.ok ? "<span class='ok'>верно</span>" : "<span class='bad'>ошибка</span>");
+        case "ru_run": return "Попытка завершена: " + d.score + " баллов — " + (d.win ? "<span class='ok'>победа</span>" : "<span class='bad'>щиты разбиты</span>");
+        case "geo_solved": return "<span class='ok'>Решил задачу</span> (" + SOLIDS[d.solid] + ") за " + dur(d.sec) + (d.hints ? ", с подсказкой" : "") + (d.solutionShown ? ", после просмотра решения" : "");
+        case "geo_check": return d.ok ? "Проверка: верно" : "<span class='bad'>Проверка: найдено " + d.found + " из " + d.need + "</span>";
+        case "geo_hint": return "Открыл подсказку (" + SOLIDS[d.solid] + ")";
+        case "geo_solution": return "Открыл готовое решение (" + SOLIDS[d.solid] + ")";
+        case "geo_skip": return "Перешёл к новой задаче, не решив (" + SOLIDS[d.solid] + ")";
+        default: return esc(e.type);
+      }
+    };
+    const showAll = document.getElementById("all") && document.getElementById("all").checked;
+    const jr = events.filter((e) => showAll || !["time", "ru_answer"].includes(e.type)).slice(-80).reverse();
+    h += "<h2>Журнал</h2><div class='btns'><label><input type='checkbox' id='all'" + (showAll ? " checked" : "") + "> показывать все события (каждый ответ и время на странице)</label></div>" +
+      (jr.length ? "<div class='scroll'><table><tr><th>Дата и время</th><th>Раздел</th><th>Событие</th></tr>" + jr.map((e) => "<tr><td style='white-space:nowrap'>" + dt(e.ts) + "</td><td>" + esc(section(e.page)) + "</td><td>" + label(e) + "</td></tr>").join("") + "</table></div>" : '<p class="empty">Событий пока нет.</p>');
+
+    app.innerHTML = h;
+    document.getElementById("refresh").onclick = render;
+    document.getElementById("all").onchange = render;
+    document.getElementById("csv").onclick = () => {
+      const rows = [["дата", "раздел", "страница", "событие", "данные"]].concat(events.map((e) => [dt(e.ts), section(e.page), e.title, e.type, JSON.stringify(e.data)]));
+      const csv = "\ufeff" + rows.map((r) => r.map((c) => '"' + String(c).replace(/"/g, '""') + '"').join(";")).join("\n");
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+      a.download = "progress-dima.csv";
+      a.click();
+    };
+  }
+  render();
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Вход — Учебные материалы</title>
+<link rel="stylesheet" href="../assets/site.css">
+<script src="../assets/portal-config.js"></script>
+<script src="../assets/portal.js" defer></script>
+<style>
+  .login { max-width: 380px; margin: 40px auto; padding: 24px; border: 1px solid #ddd; border-radius: 10px; background: #fafafa; font-family: system-ui, sans-serif; }
+  .login h1 { font-family: Georgia, serif; }
+  .login label { display: block; margin: 14px 0 4px; font-size: 0.95rem; color: #444; }
+  .login input { width: 100%; padding: 10px 12px; font-size: 1rem; border: 1px solid #c9cfdb; border-radius: 6px; }
+  .login button { margin-top: 18px; width: 100%; padding: 11px; font-size: 1rem; border: 0; border-radius: 6px; background: #0b57d0; color: #fff; cursor: pointer; }
+  .login .err { color: #b3261e; min-height: 1.3em; margin: 10px 0 0; font-size: 0.92rem; }
+  .login .note { color: #666; font-size: 0.88rem; margin: 16px 0 0; }
+</style>
+</head>
+<body>
+<p class="crumbs"><a href="../index.html">Главная</a> / Вход</p>
+<form class="login" id="form" autocomplete="on">
+  <h1>Вход</h1>
+  <p class="note" style="margin-top:0">Сайтом можно пользоваться и без входа. Вход нужен ученику, чтобы сохранялись журнал занятий и статистика.</p>
+  <label for="u">Логин</label>
+  <input id="u" name="username" autocomplete="username" required>
+  <label for="p">Пароль</label>
+  <input id="p" name="password" type="password" autocomplete="current-password" required>
+  <button type="submit" id="btn">Войти</button>
+  <p class="err" id="err"></p>
+</form>
+<script>
+  const back = new URLSearchParams(location.search).get("back");
+  const target = back && back.startsWith(location.origin) ? back : "../progress/index.html";
+  document.getElementById("form").onsubmit = async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById("btn"), err = document.getElementById("err");
+    btn.disabled = true;
+    err.textContent = "";
+    const res = await Portal.login(document.getElementById("u").value, document.getElementById("p").value);
+    btn.disabled = false;
+    if (res.ok) location.href = target;
+    else err.textContent = res.error;
+  };
+  window.addEventListener("DOMContentLoaded", () => {
+    if (window.Portal && Portal.session()) document.getElementById("err").innerHTML = '<span style="color:#2e7d32">Вы уже вошли. <a href="../progress/index.html">Открыть прогресс</a></span>';
+  });
+</script>
+</body>
+</html>
