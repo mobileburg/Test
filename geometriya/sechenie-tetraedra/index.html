@@ -105,25 +105,26 @@
 
 <section class="theory">
   <h2>Теория по пунктам</h2>
+  <p class="hint" style="margin-top:0">Слова, подчёркнутые жёлтым пунктиром, можно навести мышкой или нажать — появится картинка с объяснением.</p>
 
   <div class="card">
     <h3>Что нужно знать</h3>
     <ol>
-      <li><b>Аксиома 1.</b> Через три точки, не лежащие на одной прямой, проходит плоскость, и притом только одна. Значит, плоскость сечения уже задана точками M, N, P. Четвёртую точку нельзя выбрать — её можно только <b>построить</b>.</li>
+      <li><b>Аксиома 1.</b> Через три точки, не лежащие на одной прямой, проходит плоскость, и притом только одна. Значит, <span class="term" data-term="plane" tabindex="0">плоскость сечения</span> уже задана точками M, N, P. Четвёртую точку нельзя выбрать — её можно только <b>построить</b>.</li>
       <li><b>Аксиома 2.</b> Если две точки прямой лежат в плоскости, то вся прямая лежит в этой плоскости.</li>
       <li><b>Аксиома 3.</b> Если две плоскости имеют общую точку, то они пересекаются по прямой, проходящей через эту точку.</li>
-      <li><b>Сечение</b> — это многоугольник, стороны которого — отрезки, по которым секущая плоскость пересекает грани. Каждая сторона лежит в своей грани.</li>
+      <li><b><span class="term" data-term="section" tabindex="0">Сечение</span></b> — это многоугольник, стороны которого — отрезки, по которым <span class="term" data-term="plane" tabindex="0">секущая плоскость</span> пересекает <span class="term" data-term="face" tabindex="0">грани</span> (такой отрезок — <span class="term" data-term="trace" tabindex="0">след</span>). Каждая сторона лежит в своей грани.</li>
     </ol>
   </div>
 
   <div class="card good">
     <h3>Правильное построение</h3>
     <ol>
-      <li>M и N лежат в грани SBC. Соединяем: <b>MN</b> — сторона сечения.</li>
+      <li>M и N лежат в <span class="term" data-term="face" tabindex="0">грани</span> SBC. Соединяем: <b>MN</b> — сторона сечения.</li>
       <li>P и M лежат в грани SAB. Соединяем: <b>PM</b> — сторона сечения.</li>
-      <li>Прямые MN и BC лежат в одной плоскости SBC и не параллельны. Продлеваем их до пересечения: <b>X = MN ∩ BC</b>.</li>
-      <li>X лежит и в плоскости сечения, и в плоскости ABC. P тоже лежит в обеих. По аксиоме 3 плоскость сечения пересекает основание по прямой <b>PX</b>.</li>
-      <li>Прямая PX пересекает AC в точке <b>Q</b>. PQ — сторона сечения на основании.</li>
+      <li>Прямые MN и BC лежат в одной плоскости SBC и не параллельны. <span class="term" data-term="extension" tabindex="0">Продлеваем их</span> до пересечения: <b><span class="term" data-term="aux" tabindex="0">X</span> = MN ∩ BC</b>.</li>
+      <li>X лежит и в плоскости сечения, и в плоскости ABC. P тоже лежит в обеих. По аксиоме 3 плоскость сечения пересекает основание по прямой <b>PX</b> — это <span class="term" data-term="trace" tabindex="0">след</span> на основании.</li>
+      <li>Прямая PX пересекает <span class="term" data-term="edge" tabindex="0">ребро</span> AC в точке <b>Q</b> — это <span class="term" data-term="vertex" tabindex="0">вершина сечения</span>. PQ — сторона сечения на основании.</li>
       <li>N и Q лежат в грани SAC. Соединяем: <b>NQ</b>.</li>
       <li>Ответ: сечение — четырёхугольник <b>PMNQ</b>. Невидимые стороны PQ и NQ рисуют пунктиром.</li>
     </ol>
@@ -132,7 +133,7 @@
   <div class="card warn">
     <h3>Почему «F на глаз» — ошибка</h3>
     <ul>
-      <li>Если F поставить на AC произвольно, точки M, N, F, P почти никогда не лежат в одной плоскости. Получается пространственный, изогнутый четырёхугольник, а не сечение.</li>
+      <li>Если F поставить на AC произвольно, точки M, N, F, P почти никогда не лежат в одной плоскости. Получается <span class="term" data-term="warped" tabindex="0">пространственный, изогнутый четырёхугольник</span>, а не сечение.</li>
       <li>Если бы MNFP был плоским, прямые MN и PF лежали бы в одной плоскости. Тогда они либо пересекаются, либо параллельны.</li>
       <li><b>Пересекаются</b> — точка пересечения лежит и в грани SBC, и в основании ABC. Значит, она лежит на их общей прямой BC. Это и есть точка X.</li>
       <li><b>Параллельны</b> — тогда MN параллельна плоскости ABC, и по свойству MN ∥ BC. Так бывает, только если SM : MB = SN : NC. В задаче это не так.</li>
@@ -160,10 +161,10 @@
   <div class="card">
     <h3>Что добавляется для куба</h3>
     <ol>
-      <li>Всё, что работает для тетраэдра, работает и здесь. Две точки одной грани соединяем — это след сечения. След продлеваем до пересечения с прямой ребра этой же грани — полученная точка лежит сразу в двух гранях.</li>
-      <li><b>Теорема.</b> Если две параллельные плоскости пересечены третьей, то линии их пересечения параллельны. У куба противоположные грани параллельны, поэтому следы сечения на них параллельны.</li>
+      <li>Всё, что работает для тетраэдра, работает и здесь. Две точки одной <span class="term" data-term="face" tabindex="0">грани</span> соединяем — это <span class="term" data-term="trace" tabindex="0">след сечения</span>. След продлеваем до пересечения с прямой <span class="term" data-term="edge" tabindex="0">ребра</span> этой же грани (<span class="term" data-term="extension" tabindex="0">продолжение ребра</span>) — <span class="term" data-term="aux" tabindex="0">полученная точка</span> лежит сразу в двух гранях.</li>
+      <li><b>Теорема.</b> Если две параллельные плоскости пересечены третьей, то линии их пересечения параллельны. У куба <span class="term" data-term="parallel" tabindex="0">противоположные грани параллельны</span>, поэтому следы сечения на них параллельны.</li>
       <li>Отсюда приём: если след на одной грани уже построен, а на противоположной грани известна хотя бы одна точка сечения, через неё проводим прямую, параллельную построенному следу.</li>
-      <li>Сечение куба бывает треугольником, четырёхугольником, пятиугольником и шестиугольником.</li>
+      <li><span class="term" data-term="section" tabindex="0">Сечение</span> куба бывает треугольником, четырёхугольником, пятиугольником и шестиугольником.</li>
     </ol>
   </div>
   <p class="hint" style="margin-top:0">Ниже — задачи 6 и 7 из учебника. Решение нарисовано на чертеже зелёным, шаги расписаны под ним. Кнопка «Посмотреть в 3D» покажет то же сечение в объёме.</p>
@@ -219,8 +220,10 @@
   .hintbox .hdetail { margin-top: 8px; padding: 10px 12px; background: #fff; border-radius: 6px; border: 1px solid #f2dfa0; }
   .hintbox .hdetail p { margin: 0 0 8px; }
   .gloss { margin-top: 8px; font-size: 0.9rem; color: #555; }
-  .term { border-bottom: 2px dotted #e0a800; cursor: help; white-space: nowrap; }
+  .term { border-bottom: 2px dotted #e0a800; cursor: help; }
   .term:hover, .term:focus { background: #ffe8a3; outline: none; }
+  .facelink { border-bottom-color: #0288d1; }
+  .facelink:hover, .facelink:focus { background: #d4f0fc; }
   .termpop { position: fixed; z-index: 50; display: flex; gap: 10px; align-items: center; padding: 10px; background: #fff; border: 1px solid #e0a800; border-radius: 10px; box-shadow: 0 6px 24px rgba(0,0,0,.18); font: 0.9rem/1.4 system-ui, sans-serif; color: #222; }
   .termpop[hidden] { display: none; }
   .termpop .tp-img { flex: 0 0 auto; }
@@ -588,6 +591,8 @@
         tdot([102, 19], "#0b57d0", 4.5) + '<text x="80" y="14" font-size="13" font-weight="700" fill="#0b57d0">X</text></svg>' },
     aux: { title: "Вспомогательная точка", text: "Точка, которая не является вершиной сечения, но помогает его построить. Обычно лежит на продолжении ребра, за пределами фигуры. Через неё проводят след на соседней грани.",
       svg: () => miniCube("", tseg(TP.A1, [-4, 34], 'stroke="#222" stroke-width="1.3" stroke-dasharray="4 3"') + tseg([40, 85], [-4, 34], 'stroke="#0b57d0" stroke-width="1.6" stroke-dasharray="5 3"') + tdot([-1, 37], "#0b57d0", 4)) },
+    warped: { title: "Пространственный четырёхугольник", text: "Четыре точки, которые не лежат в одной плоскости. Если их соединить, получится не плоская фигура, а «согнутый лист» — как раскрытая книга. Сечением он быть не может: сечение всегда плоское.",
+      svg: () => '<svg viewBox="0 0 122 96" width="150" height="118"><polygon points="8,70 58,88 62,22" fill="#2e7d32" fill-opacity="0.45" stroke="#2e7d32" stroke-width="1.6"/><polygon points="58,88 114,52 62,22" fill="#c62828" fill-opacity="0.4" stroke="#c62828" stroke-width="1.6"/>' + tseg([58, 88], [62, 22], 'stroke="#222" stroke-width="1.4" stroke-dasharray="4 3"') + "</svg>" },
     parallel: { title: "Параллельные грани", text: "Противоположные грани куба (верх и низ, перед и зад, лево и право) параллельны — не пересекаются. Секущая плоскость режет их по параллельным прямым.",
       svg: () => miniCube('<polygon points="' + tpts(["A", "D", "C", "B"]) + '" ' + YEL + '/><polygon points="' + tpts(["A1", "D1", "C1", "B1"]) + '" ' + YEL + "/>",
         tseg([22, 25], [70, 12], RED) + tseg([22, 85], [70, 72], RED)) },
@@ -665,7 +670,7 @@
     const btn3d = root.querySelector('[data-act="view3d"]');
     const box3d = root.querySelector(".view3d");
     const hintBox = root.querySelector(".hintbox");
-    const st = { hintMore: false, hintOn: false, hintStep: null, tool: "line", lines: [], points: [], history: [], pending: null, pendingLine: null, solved: false, showSol: demo, hits: [], view: { x: 0, y: 0, w: W, h: H } };
+    const st = { hover: null, hintMore: false, hintOn: false, hintStep: null, tool: "line", lines: [], points: [], history: [], pending: null, pendingLine: null, solved: false, showSol: demo, hits: [], view: { x: 0, y: 0, w: W, h: H } };
     let animToken = 0;
     const setMsg = (text, cls) => { if (msg) { msg.textContent = text; msg.className = "msg" + (cls ? " " + cls : ""); } };
 
@@ -741,8 +746,11 @@
 
     const T = (term, text) => '<span class="term" data-term="' + term + '" tabindex="0">' + text + "</span>";
 
+    const FN = (f) => '<span class="term facelink" data-term="face" data-face="' + f + '" tabindex="0">' + S.faces[f].name + "</span>";
+    const EN = (e) => '<span class="term facelink" data-term="edge" data-edge="' + e + '" tabindex="0">' + S.edges[e].name + "</span>";
+
     function hintHtml(s) {
-      const F = S.faces[s.f].name;
+      const F = FN(s.f);
       if (s.kind === "join") {
         const A = nameAt(s.tr.pts[0].p, s.tr.pts[0].name), B = nameAt(s.tr.pts[1].p, s.tr.pts[1].name);
         return "<b>Ищем " + T("trace", "след сечения") + " на " + T("face", "грани") + " " + F + "</b> (она подсвечена жёлтым). В этой грани уже есть две точки " + T("plane", "секущей плоскости") + " — <b>" + A + "</b> и <b>" + B +
@@ -750,18 +758,18 @@
           '<span class="todo">Инструмент «Прямая»: нажми ' + A + ", затем " + B + ".</span>";
       }
       if (s.kind === "par") {
-        const G = S.faces[s.from].name, Tn = nameAt(s.tr.through.p, s.tr.through.name), L = trLabel(s.tr.ref);
+        const G = FN(s.from), Tn = nameAt(s.tr.through.p, s.tr.through.name), L = trLabel(s.tr.ref);
         return "<b>Используем " + T("parallel", "параллельность граней") + ".</b> Грани " + F + " и " + G + " противоположные — они параллельны. Если две параллельные плоскости пересечены третьей, линии пересечения параллельны. " +
           T("trace", "След") + " на грани " + G + " уже есть — " + L + ", а в грани " + F + " (подсвечена) есть точка сечения <b>" + Tn + "</b>. Значит, след на " + F + " проходит через " + Tn + " параллельно " + L + "." +
           '<span class="todo">Инструмент «Параллельная»: нажми на прямую ' + L + " (обведена оранжевым), затем на точку " + Tn + ".</span>";
       }
-      const L = trLabel(s.tr), E = S.edges[s.e].name;
+      const L = trLabel(s.tr), E = EN(s.e);
       if (s.kind === "meet") {
         return "<b>Находим " + T("vertex", "вершину сечения") + " на " + T("edge", "ребре") + " " + E + ".</b> Прямая " + L + " — " + T("trace", "след сечения") + " в грани " + F + ". Ребро " + E + " — сторона этой же грани, и прямая пересекает его внутри отрезка. " +
           "Точка пересечения лежит и в " + T("plane", "секущей плоскости") + ", и на ребре, — значит, это вершина сечения." +
           '<span class="todo">Инструмент «Точка»: нажми в место, обведённое оранжевым.</span>';
       }
-      const G = S.faces[otherFace(s.e, s.f)].name;
+      const G = FN(otherFace(s.e, s.f));
       return "<b>Нужна " + T("aux", "вспомогательная точка") + ".</b> В " + T("face", "грани") + " " + G + " пока не хватает второй точки сечения — прямую там не провести. " +
         "Прямая " + L + " и прямая " + E + " лежат в одной грани " + F + " (подсвечена) и не параллельны, значит, пересекаются — здесь на " + T("extension", "продолжении ребра") + ". " +
         "Но прямая " + E + " лежит и в грани " + G + ", поэтому точка пересечения принадлежит сразу и " + T("plane", "секущей плоскости") + ", и плоскости грани " + G + ". Через неё потом пройдёт " + T("trace", "след") + " на " + G + "." +
@@ -769,7 +777,7 @@
     }
 
     function detailHtml(s) {
-      const F = S.faces[s.f].name;
+      const F = FN(s.f);
       const box = S.key === "cube" ? "картонная коробка" : "картонная пирамидка";
       const intro = "<p>Представь, что фигура — это " + box + ", а " + T("plane", "секущая плоскость") + " — огромный плоский нож. Он проходит через точки M, N, P и разрезает фигуру. Наша задача — нарисовать, где нож разрежет каждую стенку.</p>";
       if (s.kind === "join") {
@@ -778,15 +786,15 @@
           "<p><b>Главное правило:</b> соединять можно только точки, которые лежат на <b>одной</b> грани. Если точки на разных гранях, линия между ними пройдёт сквозь фигуру, а не по стенке, — это ошибка.</p>";
       }
       if (s.kind === "par") {
-        const G = S.faces[s.from].name, Tn = nameAt(s.tr.through.p, s.tr.through.name), L = trLabel(s.tr.ref);
+        const G = FN(s.from), Tn = nameAt(s.tr.through.p, s.tr.through.name), L = trLabel(s.tr.ref);
         return intro + "<p>У куба противоположные стенки — как пол и потолок: они " + T("parallel", "параллельны") + ", то есть никогда не пересекаются. Если разрезать коробку плоским ножом, разрез на полу и разрез на потолке получатся параллельными, как две рельсы.</p>" +
           "<p>Разрез на стенке " + G + " мы уже знаем — это " + L + ". На противоположной стенке " + F + " есть точка " + Tn + ". Значит, разрез на " + F + " проходит через " + Tn + " и идёт в том же направлении, что и " + L + ". Инструмент «Параллельная» как раз проводит такую прямую.</p>";
       }
-      const L = trLabel(s.tr), E = S.edges[s.e].name;
+      const L = trLabel(s.tr), E = EN(s.e);
       if (s.kind === "meet") {
         return intro + "<p>Прямая " + L + " — разрез на стенке " + F + ". Разрез идёт по стенке, пока не упрётся в её край — " + T("edge", "ребро") + " " + E + ". Место, где разрез доходит до края, — это угол будущего среза, " + T("vertex", "вершина сечения") + ". Отметь её точкой.</p>";
       }
-      const G = S.faces[otherFace(s.e, s.f)].name;
+      const G = FN(otherFace(s.e, s.f));
       return intro + "<p>На стенке " + G + " мы знаем слишком мало точек разреза, а чтобы провести прямую, нужны две. Где взять вторую?</p>" +
         "<p><b>Хитрость:</b> представим, что стенки бесконечно большие. Продлим разрез " + L + " и край " + E + " за пределы фигуры (" + T("extension", "продолжение ребра") + "). Обе линии лежат на одной плоскости " + F + " и не параллельны, значит, где-то обязательно пересекутся.</p>" +
         "<p>Край " + E + " общий: он принадлежит и стенке " + F + ", и стенке " + G + ". Поэтому точка пересечения лежит на «бесконечной» стенке " + G + " и при этом на ноже. Это и есть недостающая вторая точка для разреза на " + G + ", хоть она и находится за пределами самой фигуры. Такая точка — " + T("aux", "вспомогательная") + ".</p>";
@@ -845,6 +853,7 @@
       const HL = "#f08c00";
       const ring = (p) => el("circle", { cx: p[0], cy: p[1], r: 14 * k, fill: "#ffd54f", "fill-opacity": 0.35, stroke: HL, "stroke-width": 3 }, svg);
       const hlLine = (a, b) => { const c = clip(a, b, st.view); if (c) el("line", { x1: c[0][0], y1: c[0][1], x2: c[1][0], y2: c[1][1], stroke: HL, "stroke-width": 3.5, "stroke-opacity": 0.6, "stroke-dasharray": "10 6" }, svg); };
+      if (st.hover && st.hover.face !== undefined) el("polygon", { points: S.faces[st.hover.face].vs.map((v) => V2[v].join(",")).join(" "), fill: "#4fc3f7", "fill-opacity": 0.55, stroke: "#0288d1", "stroke-width": 3 }, svg);
       if (hs) {
         const face = (fi, op) => el("polygon", { points: S.faces[fi].vs.map((v) => V2[v].join(",")).join(" "), fill: "#ffd54f", "fill-opacity": op, stroke: HL, "stroke-width": 2 }, svg);
         face(hs.f, 0.45);
@@ -902,6 +911,10 @@
           if (anchors().some((a) => dist(a.p, x) < 3)) return;
           el("circle", { cx: x[0], cy: x[1], r: 7 * k, fill: "#fff", "fill-opacity": 0.6, stroke: COL.user, "stroke-width": 1.5, "stroke-dasharray": "3 2" }, svg);
         });
+      }
+      if (st.hover && st.hover.edge !== undefined) {
+        const e = S.edges[st.hover.edge];
+        el("line", { x1: V2[e.a][0], y1: V2[e.a][1], x2: V2[e.b][0], y2: V2[e.b][1], stroke: "#0288d1", "stroke-width": 7 * k, "stroke-opacity": 0.7, "stroke-linecap": "round" }, svg);
       }
       if (hs) {
         if (hs.kind === "join") { ring(hs.tr.pts[0].p); ring(hs.tr.pts[1].p); }
@@ -998,6 +1011,15 @@
           draw();
         };
       });
+      const setHover = (t) => {
+        const h = t ? (t.dataset.face !== undefined ? { face: +t.dataset.face } : { edge: +t.dataset.edge }) : null;
+        if (JSON.stringify(h) === JSON.stringify(st.hover)) return;
+        st.hover = h;
+        paint();
+      };
+      hintBox.addEventListener("mouseover", (e) => setHover(e.target.closest(".facelink")));
+      hintBox.addEventListener("mouseleave", () => setHover(null));
+      hintBox.addEventListener("click", (e) => { const t = e.target.closest(".facelink"); if (t) setHover(t); });
       hintBox.querySelector(".more").onclick = () => { st.hintMore = !st.hintMore; updateHint(); };
       root.querySelector('[data-act="hint"]').onclick = (ev) => {
         st.hintOn = !st.hintOn;
