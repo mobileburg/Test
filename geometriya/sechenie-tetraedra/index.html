@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Сечение тетраэдра плоскостью MNP</title>
+<link rel="stylesheet" href="../../assets/site.css">
+<style>
+  .stage {
+    width: 100%;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background: #fcfcfc;
+    touch-action: none;
+    user-select: none;
+    cursor: grab;
+  }
+  .stage:active { cursor: grabbing; }
+  .stage svg { display: block; width: 100%; height: auto; }
+  .stage text { font-family: system-ui, sans-serif; font-weight: 600; }
+  .hint { font-family: system-ui, sans-serif; font-size: 0.92rem; color: #555; margin: 10px 0 18px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 8px 20px; font-family: system-ui, sans-serif; font-size: 0.95rem; margin: 12px 0 0; }
+  .legend span::before { content: ""; display: inline-block; width: 14px; height: 14px; border-radius: 3px; margin-right: 6px; vertical-align: -2px; background: var(--c); }
+
+  .panel { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; font-family: system-ui, sans-serif; font-size: 0.95rem; }
+  .box { border: 1px solid #ddd; border-radius: 8px; padding: 14px 16px; background: #fafafa; }
+  .box h3 { margin: 0 0 10px; font-size: 1rem; }
+  .box label { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 4px 0; cursor: pointer; }
+  .box input[type="checkbox"] { width: 18px; height: 18px; }
+  .box input[type="range"] { width: 100%; accent-color: #c62828; }
+  .btns { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 8px; }
+  button {
+    font: inherit;
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: 1px solid #0b57d0;
+    background: #fff;
+    color: #0b57d0;
+    cursor: pointer;
+  }
+  button.primary { background: #0b57d0; color: #fff; }
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .stat { border-radius: 6px; padding: 10px; background: #fff; border: 1px solid #ddd; }
+  .stat b { display: block; font-size: 1.4rem; }
+  .stat.bad b { color: #c62828; }
+  .stat.ok b { color: #2e7d32; }
+  .stat small { color: #555; }
+  .small { color: #555; font-size: 0.88rem; margin: 6px 0; }
+
+  .theory ol, .theory ul { padding-left: 22px; }
+  .theory li { margin: 6px 0; }
+  .card { border: 1px solid #ddd; border-radius: 8px; padding: 4px 18px; background: #fafafa; margin: 0 0 16px; }
+  .card.warn { border-color: #e0b4b4; background: #fff6f6; }
+  .card.good { border-color: #b7d8b9; background: #f5fbf5; }
+  .card h3 { font-size: 1.1rem; margin: 14px 0 6px; }
+  figure { margin: 0 0 20px; }
+  figure img { width: 100%; max-width: 820px; height: auto; border: 1px solid #e5e5e5; }
+  figcaption { font-family: system-ui, sans-serif; font-size: 0.9rem; color: #555; }
+</style>
+</head>
+<body>
+
+<p class="crumbs"><a href="../../index.html">Главная</a> / <a href="../index.html">Геометрия</a> / Сечение тетраэдра</p>
+<h1>Сечение тетраэдра SABC плоскостью MNP</h1>
+<p class="lead">Задача: точка M лежит на ребре SB, N — на ребре SC, P — на ребре AB. Построить сечение тетраэдра плоскостью, проходящей через M, N и P.</p>
+
+<div class="stage" id="stage">
+  <svg id="svg" viewBox="0 0 1100 560" aria-label="Трёхмерная модель тетраэдра с сечениями"></svg>
+</div>
+<div class="legend">
+  <span style="--c:#2e7d32">правильное сечение PMNQ — плоское</span>
+  <span style="--c:#c62828">ошибочный четырёхугольник PMNF — изогнут</span>
+  <span style="--c:#1565c0">вспомогательные построения</span>
+</div>
+<p class="hint">Крути модель пальцем или мышью. Нажми «Смотреть вдоль NP»: зелёное сечение превратится в отрезок, а красное — в «галочку». Значит, красная фигура не плоская.</p>
+
+<div class="panel">
+  <div class="box">
+    <h3>Вид</h3>
+    <div class="btns">
+      <button class="primary" id="alongNP">Смотреть вдоль NP</button>
+      <button id="reset">Обычный вид</button>
+    </div>
+    <label>Автовращение <input type="checkbox" id="spin" checked></label>
+    <label>Правильное сечение PMNQ <input type="checkbox" id="showRight" checked></label>
+    <label>Ошибочное PMNF <input type="checkbox" id="showWrong" checked></label>
+    <label>Плоскость MNP <input type="checkbox" id="showPlane"></label>
+    <label>Построение через точку X <input type="checkbox" id="showAux"></label>
+  </div>
+  <div class="box">
+    <h3>Где поставить точку F на AC</h3>
+    <input type="range" id="fT" min="0.05" max="0.95" step="0.005" value="0.62">
+    <p class="small" id="fInfo"></p>
+    <div class="btns"><button id="toQ">Поставить F в точку Q</button></div>
+    <p class="small">Подвигай F. Фигура станет плоской только в одном положении — когда F совпадёт с Q.</p>
+  </div>
+  <div class="box">
+    <h3>Насколько фигура PMNF изогнута</h3>
+    <div class="stats">
+      <div class="stat" id="foldBox"><b id="fold"></b><small>угол излома по диагонали NP</small></div>
+      <div class="stat" id="distBox"><b id="dist"></b><small>расстояние от F до плоскости MNP</small></div>
+    </div>
+  </div>
+</div>
+
+<section class="theory">
+  <h2>Теория по пунктам</h2>
+
+  <div class="card">
+    <h3>Что нужно знать</h3>
+    <ol>
+      <li><b>Аксиома 1.</b> Через три точки, не лежащие на одной прямой, проходит плоскость, и притом только одна. Значит, плоскость сечения уже задана точками M, N, P. Четвёртую точку нельзя выбрать — её можно только <b>построить</b>.</li>
+      <li><b>Аксиома 2.</b> Если две точки прямой лежат в плоскости, то вся прямая лежит в этой плоскости.</li>
+      <li><b>Аксиома 3.</b> Если две плоскости имеют общую точку, то они пересекаются по прямой, проходящей через эту точку.</li>
+      <li><b>Сечение</b> — это многоугольник, стороны которого — отрезки, по которым секущая плоскость пересекает грани. Каждая сторона лежит в своей грани.</li>
+    </ol>
+  </div>
+
+  <div class="card good">
+    <h3>Правильное построение</h3>
+    <ol>
+      <li>M и N лежат в грани SBC. Соединяем: <b>MN</b> — сторона сечения.</li>
+      <li>P и M лежат в грани SAB. Соединяем: <b>PM</b> — сторона сечения.</li>
+      <li>Прямые MN и BC лежат в одной плоскости SBC и не параллельны. Продлеваем их до пересечения: <b>X = MN ∩ BC</b>.</li>
+      <li>X лежит и в плоскости сечения, и в плоскости ABC. P тоже лежит в обеих. По аксиоме 3 плоскость сечения пересекает основание по прямой <b>PX</b>.</li>
+      <li>Прямая PX пересекает AC в точке <b>Q</b>. PQ — сторона сечения на основании.</li>
+      <li>N и Q лежат в грани SAC. Соединяем: <b>NQ</b>.</li>
+      <li>Ответ: сечение — четырёхугольник <b>PMNQ</b>. Невидимые стороны PQ и NQ рисуют пунктиром.</li>
+    </ol>
+  </div>
+
+  <div class="card warn">
+    <h3>Почему «F на глаз» — ошибка</h3>
+    <ul>
+      <li>Если F поставить на AC произвольно, точки M, N, F, P почти никогда не лежат в одной плоскости. Получается пространственный, изогнутый четырёхугольник, а не сечение.</li>
+      <li>Если бы MNFP был плоским, прямые MN и PF лежали бы в одной плоскости. Тогда они либо пересекаются, либо параллельны.</li>
+      <li><b>Пересекаются</b> — точка пересечения лежит и в грани SBC, и в основании ABC. Значит, она лежит на их общей прямой BC. Это и есть точка X.</li>
+      <li><b>Параллельны</b> — тогда MN параллельна плоскости ABC, и по свойству MN ∥ BC. Так бывает, только если SM : MB = SN : NC. В задаче это не так.</li>
+      <li>Вывод: точку на AC нельзя угадать, её находят только через X = MN ∩ BC.</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h3>Как проверить себя</h3>
+    <ul>
+      <li>Продли на своём чертеже MN и сторону сечения на основании. Они должны пересечься <b>на прямой BC</b>.</li>
+      <li>Если пересечение получилось не на BC, сечение построено неверно.</li>
+      <li>Частный случай: если MN ∥ BC, то через P проводят прямую, параллельную BC, до пересечения с AC.</li>
+    </ul>
+  </div>
+
+  <figure>
+    <img src="chertezh.png" alt="Плоский чертёж построения сечения PMNQ через точку X">
+    <figcaption>Так построение выглядит на плоском чертеже в тетради.</figcaption>
+  </figure>
+</section>
+
+<script>
+(function () {
+  const add = (a, b) => [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
+  const sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+  const mul = (a, k) => [a[0] * k, a[1] * k, a[2] * k];
+  const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+  const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+  const len = (a) => Math.sqrt(dot(a, a));
+  const norm = (a) => mul(a, 1 / len(a));
+  const lerp = (a, b, t) => add(a, mul(sub(b, a), t));
+  function intersect(p, d, q, e) {
+    const w = sub(q, p), dd = dot(d, d), ee = dot(e, e), de = dot(d, e);
+    const t = (dot(w, d) * ee - dot(w, e) * de) / (dd * ee - de * de);
+    return add(p, mul(d, t));
+  }
+
+  const A = [-2, 1.2, 0], B = [-0.4, -1.6, 0], C = [2.6, 0.2, 0], S = [0.1, 0.2, 3.4];
+  const M = lerp(S, B, 0.3), N = lerp(S, C, 0.45), P = lerp(A, B, 0.7);
+  const X = intersect(M, sub(N, M), B, sub(C, B));
+  const Q = intersect(P, sub(X, P), A, sub(C, A));
+  const Q_T = len(sub(Q, A)) / len(sub(C, A));
+  const NORMAL = norm(cross(sub(N, M), sub(P, M)));
+
+  let W = 1100, H = 560;
+  const COL = { edge: "#1a1a1a", face: "#607080", green: "#2e7d32", red: "#c62828", blue: "#1565c0", plane: "#0b57d0" };
+  const DEFAULT_VIEW = { yaw: -0.55, pitch: 0.32 };
+  const st = { yaw: DEFAULT_VIEW.yaw, pitch: DEFAULT_VIEW.pitch, fT: 0.62, spin: true, right: true, wrong: true, plane: false, aux: false };
+
+  const $ = (id) => document.getElementById(id);
+  const svg = $("svg");
+  const stage = $("stage");
+  const NS = "http://www.w3.org/2000/svg";
+
+  function el(name, attrs) {
+    const e = document.createElementNS(NS, name);
+    for (const k in attrs) if (attrs[k] !== undefined) e.setAttribute(k, attrs[k]);
+    return e;
+  }
+
+  function render() {
+    const narrow = stage.clientWidth < 700;
+    W = narrow ? 620 : 1100;
+    H = narrow ? (st.aux ? 520 : 600) : 560;
+    svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+    const f = [Math.sin(st.yaw) * Math.cos(st.pitch), Math.cos(st.yaw) * Math.cos(st.pitch), -Math.sin(st.pitch)];
+    const r = norm(cross(f, [0, 0, 1]));
+    const u = cross(r, f);
+    const scale = st.aux ? (narrow ? 40 : 50) : (narrow ? 115 : 100);
+    const center = st.aux ? [2.6, 0.8, 0.6] : [0.1, 0, 0.9];
+    const proj = (p) => {
+      const q = sub(p, center);
+      return { x: W / 2 + dot(q, r) * scale, y: H / 2 - dot(q, u) * scale, z: dot(q, f) };
+    };
+
+    const F = lerp(A, C, st.fT);
+    const prims = [];
+    const poly = (pts, fill, op, stroke) => prims.push({ k: "p", pts, fill, op, stroke });
+    const line = (a, b, color, w, dash) => prims.push({ k: "l", a, b, color, w, dash });
+
+    [[S, A, B], [S, B, C], [S, C, A], [A, B, C]].forEach((fc) => poly(fc, COL.face, 0.06));
+
+    if (st.plane) {
+      const c = mul(add(add(M, N), P), 1 / 3);
+      const e1 = norm(sub(N, M)), e2 = cross(NORMAL, e1), k = 3.2;
+      poly([
+        add(c, add(mul(e1, k), mul(e2, k))),
+        add(c, add(mul(e1, -k), mul(e2, k))),
+        add(c, add(mul(e1, -k), mul(e2, -k))),
+        add(c, add(mul(e1, k), mul(e2, -k))),
+      ], COL.plane, 0.1, COL.plane);
+    }
+    if (st.right) poly([P, M, N, Q], COL.green, 0.45, COL.green);
+    if (st.wrong) {
+      poly([P, M, N], COL.red, 0.3, COL.red);
+      poly([P, N, F], COL.red, 0.55, COL.red);
+    }
+
+    [[S, A], [S, B], [S, C], [A, B], [B, C], [C, A]].forEach(([a, b]) => line(a, b, COL.edge, 1.6));
+    if (st.right) [[P, M], [M, N], [N, Q], [Q, P]].forEach(([a, b]) => line(a, b, COL.green, 3));
+    if (st.wrong) {
+      line(N, F, COL.red, 3);
+      line(F, P, COL.red, 3);
+      line(P, N, COL.red, 1.4, "5 4");
+    }
+    if (st.aux) {
+      line(N, X, COL.blue, 1.4, "6 4");
+      line(C, X, COL.blue, 1.4, "6 4");
+      line(Q, X, COL.blue, 1.4, "6 4");
+      if (st.wrong) line(F, add(P, mul(sub(F, P), 3.2)), COL.red, 1.2, "2 4");
+    }
+
+    const depth = (p) => p.k === "p"
+      ? p.pts.reduce((s, v) => s + proj(v).z, 0) / p.pts.length
+      : (proj(p.a).z + proj(p.b).z) / 2 - 0.05;
+    prims.sort((a, b) => depth(b) - depth(a));
+
+    svg.textContent = "";
+    for (const p of prims) {
+      if (p.k === "p") {
+        svg.appendChild(el("polygon", {
+          points: p.pts.map(proj).map((q) => q.x + "," + q.y).join(" "),
+          fill: p.fill, "fill-opacity": p.op,
+          stroke: p.stroke || "none", "stroke-opacity": 0.5, "stroke-width": 1,
+        }));
+      } else {
+        const a = proj(p.a), b = proj(p.b);
+        svg.appendChild(el("line", {
+          x1: a.x, y1: a.y, x2: b.x, y2: b.y,
+          stroke: p.color, "stroke-width": p.w, "stroke-dasharray": p.dash, "stroke-linecap": "round",
+        }));
+      }
+    }
+
+    const labels = [
+      ["S", S, COL.edge, true], ["A", A, COL.edge, true], ["B", B, COL.edge, true], ["C", C, COL.edge, true],
+      ["M", M, COL.edge, true], ["N", N, COL.edge, true], ["P", P, COL.edge, true],
+      ["Q", Q, COL.green, st.right], ["F", F, COL.red, st.wrong], ["X", X, COL.blue, st.aux],
+    ];
+    for (const [name, pt, color, show] of labels) {
+      if (!show) continue;
+      const q = proj(pt);
+      svg.appendChild(el("circle", { cx: q.x, cy: q.y, r: 4.5, fill: color }));
+      const t = el("text", { x: q.x + 9, y: q.y - 9, fill: color, "font-size": 20 });
+      t.textContent = name;
+      svg.appendChild(t);
+    }
+
+    const distF = Math.abs(dot(sub(F, M), NORMAL));
+    const n1 = norm(cross(sub(N, P), sub(M, P)));
+    const n2 = norm(cross(sub(F, P), sub(N, P)));
+    const fold = Math.acos(Math.max(-1, Math.min(1, dot(n1, n2)))) * 180 / Math.PI;
+    $("fold").textContent = fold.toFixed(1) + "°";
+    $("dist").textContent = distF.toFixed(2);
+    $("foldBox").className = "stat " + (fold > 0.5 ? "bad" : "ok");
+    $("distBox").className = "stat " + (distF > 0.01 ? "bad" : "ok");
+    $("fInfo").textContent = "AF : AC = " + st.fT.toFixed(2) + ". Правильная точка Q: AQ : AC = " + Q_T.toFixed(2) + ".";
+  }
+
+  function setSpin(v) {
+    st.spin = v;
+    $("spin").checked = v;
+  }
+
+  let last = performance.now();
+  function tick(now) {
+    if (st.spin) {
+      st.yaw += (now - last) * 0.00045;
+      render();
+    }
+    last = now;
+    requestAnimationFrame(tick);
+  }
+
+  let drag = null;
+  stage.addEventListener("pointerdown", (e) => {
+    setSpin(false);
+    drag = { x: e.clientX, y: e.clientY };
+    stage.setPointerCapture(e.pointerId);
+  });
+  stage.addEventListener("pointermove", (e) => {
+    if (!drag) return;
+    const k = 0.006 * W / stage.clientWidth;
+    st.yaw += (e.clientX - drag.x) * k;
+    st.pitch = Math.max(-1.5, Math.min(1.5, st.pitch + (e.clientY - drag.y) * k));
+    drag = { x: e.clientX, y: e.clientY };
+    render();
+  });
+  const stop = () => { drag = null; };
+  stage.addEventListener("pointerup", stop);
+  stage.addEventListener("pointercancel", stop);
+
+  $("alongNP").onclick = () => {
+    setSpin(false);
+    const d = norm(sub(P, N));
+    st.yaw = Math.atan2(d[0], d[1]);
+    st.pitch = Math.asin(-d[2]);
+    render();
+  };
+  $("reset").onclick = () => {
+    st.yaw = DEFAULT_VIEW.yaw;
+    st.pitch = DEFAULT_VIEW.pitch;
+    render();
+  };
+  $("spin").onchange = (e) => setSpin(e.target.checked);
+  [["showRight", "right"], ["showWrong", "wrong"], ["showPlane", "plane"], ["showAux", "aux"]].forEach(([id, key]) => {
+    $(id).onchange = (e) => { st[key] = e.target.checked; render(); };
+  });
+  $("fT").oninput = (e) => { st.fT = Number(e.target.value); render(); };
+  $("toQ").onclick = () => { st.fT = Q_T; $("fT").value = Q_T; render(); };
+
+  window.addEventListener("resize", render);
+  render();
+  requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>
