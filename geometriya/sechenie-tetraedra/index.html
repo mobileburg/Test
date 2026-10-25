@@ -155,6 +155,22 @@
   </figure>
 </section>
 
+<section class="practice" id="cube">
+  <h2>Сечение куба: разбор</h2>
+  <div class="card">
+    <h3>Что добавляется для куба</h3>
+    <ol>
+      <li>Всё, что работает для тетраэдра, работает и здесь. Две точки одной грани соединяем — это след сечения. След продлеваем до пересечения с прямой ребра этой же грани — полученная точка лежит сразу в двух гранях.</li>
+      <li><b>Теорема.</b> Если две параллельные плоскости пересечены третьей, то линии их пересечения параллельны. У куба противоположные грани параллельны, поэтому следы сечения на них параллельны.</li>
+      <li>Отсюда приём: если след на одной грани уже построен, а на противоположной грани известна хотя бы одна точка сечения, через неё проводим прямую, параллельную построенному следу.</li>
+      <li>Сечение куба бывает треугольником, четырёхугольником, пятиугольником и шестиугольником.</li>
+    </ol>
+  </div>
+  <p class="hint" style="margin-top:0">Ниже — задачи 6 и 7 из учебника. Решение нарисовано на чертеже зелёным, шаги расписаны под ним. Кнопка «Посмотреть в 3D» покажет то же сечение в объёме.</p>
+  <div id="demo6"></div>
+  <div id="demo7"></div>
+</section>
+
 <section class="practice" id="practice">
   <h2>Практика: построй сечение сам</h2>
   <p class="lead" style="margin-bottom:12px">Решай на плоском чертеже, как в тетради. Каждая новая задача — точки M, N, P на других рёбрах и в других местах. После решения можно посмотреть ту же задачу в 3D.</p>
@@ -162,10 +178,14 @@
     <h3>Как пользоваться чертежом</h3>
     <ol>
       <li><b>Прямая</b> — нажми на две точки (вершины или отмеченные точки). Через них пройдёт прямая.</li>
-      <li><b>Точка</b> — нажми рядом с местом, где пересекаются две прямые или прямая и ребро. Там появится новая точка. Если точка лежит на продолжении ребра, продолжение дорисуется пунктиром. Места пересечений подсвечены пунктирными кружками, а если пересечение ушло за край, чертёж сам отдалится.</li>
-      <li>Найди недостающую вершину сечения на ребре тетраэдра, отметь её и нажми <b>Проверить</b>.</li>
-      <li>После решения нажми <b>Посмотреть в 3D</b> и покрути модель. Кнопка <b>Новая задача</b> даёт следующую задачу.</li>
+      <li><b>Параллельная</b> — нажми на прямую или ребро, а затем на точку. Через точку пройдёт прямая, параллельная выбранной. Нужна для куба: следы на параллельных гранях параллельны.</li>
+      <li><b>Точка</b> — нажми рядом с местом, где пересекаются две прямые или прямая и ребро. Места пересечений подсвечены пунктирными кружками. Если точка лежит на продолжении ребра, продолжение дорисуется пунктиром, а если пересечение ушло за край, чертёж сам отдалится.</li>
+      <li>Найди все недостающие вершины сечения, отметь их и нажми <b>Проверить</b>. После решения нажми <b>Посмотреть в 3D</b>.</li>
     </ol>
+  </div>
+  <div class="btns" id="solidSwitch" style="margin:0 0 14px">
+    <button data-solid="tetra" class="primary">Тетраэдр</button>
+    <button data-solid="cube">Куб</button>
   </div>
   <div id="tasks"></div>
 </section>
@@ -182,34 +202,43 @@
   .tools button.check { background: #2e7d32; border-color: #2e7d32; color: #fff; }
   .tools button.sol { border-color: #888; color: #555; }
   .tools button:disabled { opacity: 0.4; cursor: default; }
-  .view3d { margin-top: 12px; }
   .msg { margin: 10px 0 0; padding: 10px 12px; border-radius: 6px; font-size: 0.95rem; background: #f3f5fa; color: #333; }
   .msg.ok { background: #eef8ef; color: #1f5e22; border: 1px solid #b7d8b9; }
   .msg.bad { background: #fff3f3; color: #8a1f1f; border: 1px solid #e0b4b4; }
+  .steps { margin: 10px 0 0; padding: 10px 12px 10px 32px; border-radius: 6px; background: #f5fbf5; border: 1px solid #b7d8b9; font-size: 0.95rem; }
+  .steps li { margin: 4px 0; }
+  .view3d { margin-top: 12px; }
+  .tools button.hintbtn { border-color: #e0a800; background: #fff8e1; color: #7a5900; }
+  .tools button.hintbtn.on { background: #ffd54f; }
+  .tools button.hintbtn .q, .hintbox .qicon { display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; background: #ffc107; color: #fff; font-weight: 800; }
+  .tools button.hintbtn .q { width: 20px; height: 20px; margin-right: 4px; font-size: 14px; }
+  .hintbox { display: flex; gap: 12px; align-items: flex-start; margin: 10px 0 0; padding: 12px; border-radius: 8px; background: #fff8e1; border: 1px solid #f2c94c; font-size: 0.95rem; line-height: 1.45; }
+  .hintbox[hidden] { display: none; }
+  .hintbox .qicon { flex: 0 0 auto; width: 40px; height: 40px; font-size: 26px; box-shadow: 0 0 0 4px #ffe8a3; }
+  .hintbox .todo { display: block; margin-top: 6px; padding: 6px 8px; background: #fff; border-radius: 6px; border: 1px dashed #e0a800; }
 </style>
 
 <script>
 (function () {
   const W = 640, H = 520, SNAP = 20;
-  const V2 = { S: [300, 60], A: [110, 330], B: [250, 440], C: [520, 350] };
-  const V3 = { A: [0, 0, 0], B: [1, 0, 0], C: [0, 1, 0], S: [0, 0, 1] };
-  const EDGES = [["S", "A"], ["S", "B"], ["S", "C"], ["A", "B"], ["B", "C"], ["A", "C"]];
-  const FACES = [["S", "A", "B"], ["S", "B", "C"], ["S", "C", "A"], ["A", "B", "C"]];
-  const HIDDEN = "A-C";
-  const NAMES = ["M", "N", "P"];
-  const USER_NAMES = ["X", "Y", "Z", "K", "L", "R", "T", "U", "V", "W", "E", "D"];
   const NS = "http://www.w3.org/2000/svg";
   const COL = { edge: "#1a1a1a", given: "#c62828", user: "#0b57d0", line: "#0b57d0", sol: "#2e7d32", sec: "#2e7d32" };
+  const GIVEN_NAMES = ["M", "N", "P"];
+  const VERTEX_NAMES = ["Q", "R", "T", "K", "L"];
+  const AUX_NAMES = ["X", "Y", "Z", "U", "V", "W"];
+  const USER_NAMES = ["X", "Y", "Z", "K", "L", "R", "T", "U", "V", "W", "E", "F"];
 
   const sub = (a, b) => a.map((v, i) => v - b[i]);
   const add = (a, b) => a.map((v, i) => v + b[i]);
   const mul = (a, k) => a.map((v) => v * k);
   const dot = (a, b) => a.reduce((s, v, i) => s + v * b[i], 0);
   const cross3 = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+  const len = (a) => Math.sqrt(dot(a, a));
+  const norm = (a) => mul(a, 1 / len(a));
   const lerp = (a, b, t) => add(a, mul(sub(b, a), t));
   const dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
-  const ek = (e) => e[0] + "-" + e[1];
   const rnd = (a, b) => a + Math.random() * (b - a);
+  const disp = (name) => name.replace(/1/g, "₁");
 
   function inter2(p1, p2, p3, p4) {
     const d1 = sub(p2, p1), d2 = sub(p4, p3);
@@ -219,79 +248,19 @@
     const t = (w[0] * d2[1] - w[1] * d2[0]) / den;
     return add(p1, mul(d1, t));
   }
+  const paramOn = (p, a, b) => dot(sub(p, a), sub(b, a)) / dot(sub(b, a), sub(b, a));
   function distToLine(p, a, b) {
     const d = sub(b, a);
     return Math.abs(d[0] * (p[1] - a[1]) - d[1] * (p[0] - a[0])) / Math.hypot(d[0], d[1]);
   }
-  function angleBetween(a1, a2, b1, b2) {
-    const u = sub(a2, a1), v = sub(b2, b1);
-    const c = Math.abs(dot(u, v)) / (Math.hypot(...u) * Math.hypot(...v));
+  function distToSeg(p, a, b) {
+    const t = Math.max(0, Math.min(1, paramOn(p, a, b)));
+    return dist(p, lerp(a, b, t));
+  }
+  function angleBetween(u, v) {
+    const c = Math.abs(dot(u, v)) / (len(u) * len(v));
     return Math.acos(Math.min(1, c)) * 180 / Math.PI;
   }
-  const inBounds = (p, m) => p[0] > m && p[0] < W - m && p[1] > m && p[1] < H - m;
-  const EDGE_CROSS = inter2(V2.S, V2.B, V2.A, V2.C);
-
-  function generate() {
-    for (let tries = 0; tries < 4000; tries++) {
-      const idx = [0, 1, 2, 3, 4, 5].sort(() => Math.random() - 0.5).slice(0, 3).sort((a, b) => a - b);
-      const given = idx.map((i, k) => ({ e: EDGES[i], t: rnd(0.25, 0.75), name: NAMES[k] }));
-      const p3 = given.map((g) => lerp(V3[g.e[0]], V3[g.e[1]], g.t));
-      const n = cross3(sub(p3[1], p3[0]), sub(p3[2], p3[0]));
-      if (Math.hypot(...n) < 1e-3) continue;
-      const side = (v) => dot(n, sub(V3[v], p3[0]));
-      if (["S", "A", "B", "C"].some((v) => Math.abs(side(v)) < 0.02)) continue;
-      const unknown = [];
-      for (const e of EDGES) {
-        if (given.some((g) => g.e === e)) continue;
-        const d0 = side(e[0]), d1 = side(e[1]);
-        if (d0 * d1 < 0) unknown.push({ e, t: d0 / (d0 - d1) });
-      }
-      if (unknown.length !== 1) continue;
-      const U = unknown[0];
-      if (U.t < 0.15 || U.t > 0.85) continue;
-      given.forEach((g) => { g.p = lerp(V2[g.e[0]], V2[g.e[1]], g.t); });
-      U.p = lerp(V2[U.e[0]], V2[U.e[1]], U.t);
-
-      const secPts = given.map((g) => g.p).concat([U.p]);
-      const tri = (a, b, c) => Math.abs((b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0])) / 2;
-      let readable = true;
-      for (let i = 0; i < 4 && readable; i++) {
-        for (let j = i + 1; j < 4 && readable; j++) {
-          if (dist(secPts[i], secPts[j]) < 55) readable = false;
-          for (let m = j + 1; m < 4; m++) if (tri(secPts[i], secPts[j], secPts[m]) < 2200) readable = false;
-        }
-      }
-      if (!readable || secPts.some((p) => dist(p, EDGE_CROSS) < 35)) continue;
-
-      const onFace = (e, f) => f.includes(e[0]) && f.includes(e[1]);
-      let path = null;
-      for (const f of FACES) {
-        const inF = given.filter((g) => onFace(g.e, f));
-        if (inF.length !== 2) continue;
-        const [g1, g2] = inF;
-        for (const e of EDGES) {
-          if (!onFace(e, f) || e === g1.e || e === g2.e) continue;
-          const X = inter2(g1.p, g2.p, V2[e[0]], V2[e[1]]);
-          if (!X || !inBounds(X, 18)) continue;
-          if (Object.values(V2).some((v) => dist(v, X) < 40)) continue;
-          if (angleBetween(g1.p, g2.p, V2[e[0]], V2[e[1]]) < 12) continue;
-          const f2 = FACES.find((ff) => ff !== f && onFace(e, ff));
-          if (!onFace(U.e, f2)) continue;
-          const g3 = given.find((g) => g !== g1 && g !== g2 && onFace(g.e, f2));
-          if (!g3) continue;
-          if (distToLine(U.p, X, g3.p) > 0.5) continue;
-          if (angleBetween(X, g3.p, V2[U.e[0]], V2[U.e[1]]) < 12) continue;
-          path = { g1, g2, e, X, g3 };
-          break;
-        }
-        if (path) break;
-      }
-      if (!path) continue;
-      return { given, U, path };
-    }
-    return null;
-  }
-
   function clip(p, q, v) {
     const d = sub(q, p);
     let t0 = -1e6, t1 = 1e6;
@@ -305,7 +274,6 @@
     if (t0 > t1) return null;
     return [add(p, mul(d, t0)), add(p, mul(d, t1))];
   }
-
   function el(name, attrs, parent) {
     const e = document.createElementNS(NS, name);
     for (const k in attrs) if (attrs[k] !== undefined) e.setAttribute(k, attrs[k]);
@@ -313,47 +281,314 @@
     return e;
   }
 
-  function Board(root, task, num) {
-    const unknownName = "Q";
-    const edgeTxt = (e) => e[0] + e[1];
+  function makeSolid(def) {
+    const S = Object.assign({}, def);
+    S.edges = def.edges.map(([a, b]) => ({ a, b, key: a + "-" + b, name: disp(a) + disp(b) }));
+    const edgeIdx = (a, b) => S.edges.findIndex((e) => (e.a === a && e.b === b) || (e.a === b && e.b === a));
+    S.faces = def.faces.map((vs, i) => ({ vs, name: def.faceNames[i], edges: vs.map((v, k) => edgeIdx(v, vs[(k + 1) % vs.length])) }));
+    S.edgesAt = (v) => S.edges.map((e, i) => (e.a === v || e.b === v ? i : -1)).filter((i) => i >= 0);
+    S.crossings = [];
+    S.edges.forEach((e1, i) => S.edges.forEach((e2, j) => {
+      if (j <= i || [e1.a, e1.b].some((v) => v === e2.a || v === e2.b)) return;
+      const x = inter2(def.v2[e1.a], def.v2[e1.b], def.v2[e2.a], def.v2[e2.b]);
+      if (!x) return;
+      const t1 = paramOn(x, def.v2[e1.a], def.v2[e1.b]), t2 = paramOn(x, def.v2[e2.a], def.v2[e2.b]);
+      if (t1 > 0.02 && t1 < 0.98 && t2 > 0.02 && t2 < 0.98) S.crossings.push(x);
+    }));
+    return S;
+  }
+
+  const SOLIDS = {
+    tetra: makeSolid({
+      key: "tetra",
+      title: "тетраэдра SABC",
+      v2: { S: [300, 60], A: [110, 330], B: [250, 440], C: [520, 350] },
+      v3: { A: [-2, 1.2, 0], B: [-0.4, -1.6, 0], C: [2.6, 0.2, 0], S: [0.1, 0.2, 3.4] },
+      edges: [["S", "A"], ["S", "B"], ["S", "C"], ["A", "B"], ["B", "C"], ["A", "C"]],
+      faces: [["S", "A", "B"], ["S", "B", "C"], ["S", "C", "A"], ["A", "B", "C"]],
+      faceNames: ["SAB", "SBC", "SAC", "ABC"],
+      opposite: [],
+      hidden: ["A-C"],
+      off: { S: [-6, -14], A: [-26, 4], B: [-8, 26], C: [10, 6] },
+      unknownRange: [1, 1],
+    }),
+    cube: makeSolid({
+      key: "cube",
+      title: "куба ABCDA₁B₁C₁D₁",
+      v2: { A: [110, 430], D: [410, 430], B: [230, 350], C: [530, 350], A1: [110, 200], D1: [410, 200], B1: [230, 120], C1: [530, 120] },
+      v3: { A: [0, 0, 0], D: [1, 0, 0], B: [0, 1, 0], C: [1, 1, 0], A1: [0, 0, 1], D1: [1, 0, 1], B1: [0, 1, 1], C1: [1, 1, 1] },
+      edges: [["A", "D"], ["D", "C"], ["B", "C"], ["A", "B"], ["A1", "D1"], ["D1", "C1"], ["B1", "C1"], ["A1", "B1"], ["A", "A1"], ["D", "D1"], ["C", "C1"], ["B", "B1"]],
+      faces: [["A", "D", "C", "B"], ["A1", "D1", "C1", "B1"], ["A", "D", "D1", "A1"], ["B", "C", "C1", "B1"], ["A", "B", "B1", "A1"], ["D", "C", "C1", "D1"]],
+      faceNames: ["ABCD", "A₁B₁C₁D₁", "AA₁D₁D", "BB₁C₁C", "AA₁B₁B", "DD₁C₁C"],
+      opposite: [[0, 1], [2, 3], [4, 5]],
+      hidden: ["B-C", "A-B", "B-B1"],
+      off: { A: [-24, 20], D: [4, 24], B: [-26, -8], C: [10, 18], A1: [-32, -2], D1: [6, -10], B1: [-28, -8], C1: [10, -6] },
+      unknownRange: [1, 3],
+    }),
+  };
+
+  function pointEdges(S, e, t) {
+    if (t < 1e-6) return S.edgesAt(S.edges[e].a);
+    if (t > 1 - 1e-6) return S.edgesAt(S.edges[e].b);
+    return [e];
+  }
+
+  function buildTask(S, spec, strict) {
+    const given = spec.map((g, k) => {
+      const e = S.edges[g.e];
+      return { name: GIVEN_NAMES[k], e: g.e, t: g.t, p2: lerp(S.v2[e.a], S.v2[e.b], g.t), p3: lerp(S.v3[e.a], S.v3[e.b], g.t) };
+    });
+    const n = cross3(sub(given[1].p3, given[0].p3), sub(given[2].p3, given[0].p3));
+    if (len(n) < 1e-6) return null;
+    const nn = norm(n);
+    const side = (v) => dot(nn, sub(S.v3[v], given[0].p3));
+    const sec = [];
+    Object.keys(S.v3).forEach((v) => {
+      if (Math.abs(side(v)) < 1e-6) sec.push({ p2: S.v2[v], p3: S.v3[v], vertex: v });
+    });
+    if (strict && Object.keys(S.v3).some((v) => Math.abs(side(v)) < 0.04)) return null;
+    S.edges.forEach((e, i) => {
+      const d0 = side(e.a), d1 = side(e.b);
+      if (Math.abs(d0) < 1e-6 || Math.abs(d1) < 1e-6 || d0 * d1 > 0) return;
+      const t = d0 / (d0 - d1);
+      sec.push({ p2: lerp(S.v2[e.a], S.v2[e.b], t), p3: lerp(S.v3[e.a], S.v3[e.b], t), e: i, t });
+    });
+    const c3 = mul(sec.reduce((s, v) => add(s, v.p3), [0, 0, 0]), 1 / sec.length);
+    const ax = norm(sub(sec[0].p3, c3)), ay = cross3(nn, ax);
+    const ang = (v) => Math.atan2(dot(sub(v.p3, c3), ay), dot(sub(v.p3, c3), ax));
+    sec.sort((a, b) => ang(a) - ang(b));
+    const first = sec.findIndex((v) => dist(v.p2, given[0].p2) < 1);
+    sec.push(...sec.splice(0, first));
+    const unknown = sec.filter((v) => !given.some((g) => dist(g.p2, v.p2) < 1));
+    const sol = solve(S, given, unknown);
+    if (!sol) return null;
+    return { S, given, sec, unknown, sol };
+  }
+
+  function solve(S, given, unknown) {
+    const known = given.map((g) => ({ name: g.name, p: g.p2, p3: g.p3, edges: pointEdges(S, g.e, g.t), kind: "given" }));
+    const traces = S.faces.map(() => null);
+    const steps = [];
+    let vi = 0, ai = 0;
+    const inFace = (pt, f) => pt.edges.some((e) => S.faces[f].edges.includes(e));
+    const findKnown = (p) => known.find((k) => dist(k.p, p) < 1);
+    const done = () => unknown.every((u) => findKnown(u.p2));
+    const range = (p) => p[0] > -0.3 * W && p[0] < 1.3 * W && p[1] > -0.3 * H && p[1] < 1.3 * H;
+
+    for (let it = 0; it < 40 && !done(); it++) {
+      let did = false;
+      for (let f = 0; f < S.faces.length; f++) {
+        if (traces[f]) continue;
+        const pts = known.filter((k) => inFace(k, f));
+        let best = null, bd = 1;
+        for (let i = 0; i < pts.length; i++) for (let j = i + 1; j < pts.length; j++) {
+          const d = dist(pts[i].p, pts[j].p);
+          if (d > bd) { bd = d; best = [pts[i], pts[j]]; }
+        }
+        if (!best) continue;
+        const label = best[0].name + best[1].name;
+        traces[f] = { a: best[0].p, b: best[1].p, label, pts: best.slice(), kind: "join" };
+        steps.push({ kind: "join", f, tr: traces[f], text: "Точки " + best[0].name + " и " + best[1].name + " лежат в грани " + S.faces[f].name + ": проводим " + label + "." });
+        did = true;
+      }
+      if (did) continue;
+
+      const meets = [];
+      traces.forEach((tr, f) => {
+        if (!tr) return;
+        S.faces[f].edges.forEach((e) => {
+          const A = S.v2[S.edges[e].a], B = S.v2[S.edges[e].b];
+          const X = inter2(tr.a, tr.b, A, B);
+          if (!X || findKnown(X)) return;
+          meets.push({ f, e, X, t: paramOn(X, A, B), ang: angleBetween(sub(tr.b, tr.a), sub(B, A)) });
+        });
+      });
+
+      for (const m of meets.filter((m) => m.t > -1e-6 && m.t < 1 + 1e-6)) {
+        if (findKnown(m.X) || !unknown.some((u) => dist(u.p2, m.X) < 1)) continue;
+        const u = unknown.find((u) => dist(u.p2, m.X) < 1);
+        const pt = { name: VERTEX_NAMES[vi++], p: m.X, p3: u.p3, edges: pointEdges(S, m.e, m.t), kind: "vertex" };
+        known.push(pt);
+        traces[m.f].pts.push(pt);
+        steps.push({ kind: "meet", f: m.f, e: m.e, pt, tr: traces[m.f], text: pt.name + " = " + traces[m.f].label + " ∩ " + S.edges[m.e].name + " — вершина сечения." });
+        did = true;
+      }
+      if (did) continue;
+
+      for (const [f1, f2] of S.opposite.concat(S.opposite.map(([a, b]) => [b, a]))) {
+        if (!traces[f1] || traces[f2]) continue;
+        const pts = known.filter((k) => inFace(k, f2));
+        if (!pts.length) continue;
+        const through = pts[0];
+        const tr = traces[f1];
+        const label = "прямую через " + through.name + " ∥ " + tr.label;
+        traces[f2] = { a: through.p, b: add(through.p, sub(tr.b, tr.a)), label: "(прямая через " + through.name + " ∥ " + tr.label + ")", pts: [through], kind: "par", through, ref: tr };
+        steps.push({ kind: "par", f: f2, from: f1, tr: traces[f2], text: "Грани " + S.faces[f2].name + " и " + S.faces[f1].name + " параллельны, поэтому следы на них параллельны: проводим " + label + "." });
+        did = true;
+        break;
+      }
+      if (did) continue;
+
+      const aux = meets.filter((m) => (m.t < 0 || m.t > 1) && range(m.X) && m.ang > 10 &&
+        Object.values(S.v2).every((v) => dist(v, m.X) > 25));
+      if (!aux.length) return null;
+      const out = (m) => (m.t < 0 ? -m.t : m.t - 1);
+      aux.sort((a, b) => out(a) - out(b));
+      const m = aux[0];
+      const e = S.edges[m.e];
+      const pt = { name: AUX_NAMES[ai++ % AUX_NAMES.length], p: m.X, p3: lerp(S.v3[e.a], S.v3[e.b], m.t), edges: [m.e], kind: "aux", e: m.e };
+      known.push(pt);
+      traces[m.f].pts.push(pt);
+      steps.push({ kind: "aux", f: m.f, e: m.e, pt, tr: traces[m.f], text: pt.name + " = " + traces[m.f].label + " ∩ " + e.name + " — точка на продолжении ребра " + e.name + "; она лежит сразу в двух гранях." });
+    }
+    if (!done()) return null;
+    return { steps, known, traces };
+  }
+
+  function readable(task) {
+    const pts = task.sec.map((v) => v.p2);
+    const tri = (a, b, c) => Math.abs((b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0])) / 2;
+    for (let i = 0; i < pts.length; i++) {
+      for (let j = i + 1; j < pts.length; j++) if (dist(pts[i], pts[j]) < 45) return false;
+      if (tri(pts[i], pts[(i + 1) % pts.length], pts[(i + 2) % pts.length]) < 1300) return false;
+      if (task.S.crossings.some((x) => dist(x, pts[i]) < 30)) return false;
+    }
+    return task.sol.steps.length <= 10;
+  }
+
+  function generate(S) {
+    for (let tries = 0; tries < 6000; tries++) {
+      const idx = S.edges.map((_, i) => i).sort(() => Math.random() - 0.5).slice(0, 3).sort((a, b) => a - b);
+      const task = buildTask(S, idx.map((e) => ({ e, t: rnd(0.2, 0.8) })), true);
+      if (!task) continue;
+      const k = task.unknown.length;
+      if (k < S.unknownRange[0] || k > S.unknownRange[1]) continue;
+      if (readable(task)) return task;
+    }
+    return null;
+  }
+
+  function viewer3d(svg3, task, alive, nameAt) {
+    const S = task.S;
+    const sec = task.sec.map((v) => v.p3);
+    const auxPts = task.sol.known.filter((k) => k.kind === "aux");
+    const all = Object.values(S.v3).concat(auxPts.map((a) => a.p3));
+    const center = mul(all.reduce((s, p) => add(s, p), [0, 0, 0]), 1 / all.length);
+    const radius = Math.max(...all.map((p) => len(sub(p, center))));
+    const scale = Math.min(W, H) * 0.46 / radius;
+    const vs = { yaw: -0.55, pitch: 0.32, spin: true, drag: null };
+    const nameOf = (v) => {
+      const g = task.given.find((g) => dist(g.p2, v.p2) < 1);
+      if (g) return g.name;
+      return nameAt(v.p2, (task.sol.known.find((q) => dist(q.p, v.p2) < 1) || {}).name || "");
+    };
+
+    function render() {
+      const f = [Math.sin(vs.yaw) * Math.cos(vs.pitch), Math.cos(vs.yaw) * Math.cos(vs.pitch), -Math.sin(vs.pitch)];
+      const r = norm(cross3(f, [0, 0, 1])), u = cross3(r, f);
+      const pr = (p) => { const q = sub(p, center); return [W / 2 + dot(q, r) * scale, H / 2 - dot(q, u) * scale, dot(q, f)]; };
+      const prims = [];
+      S.faces.forEach((fc) => prims.push({ k: "p", pts: fc.vs.map((v) => S.v3[v]), fill: "#607080", op: 0.06 }));
+      prims.push({ k: "p", pts: sec, fill: COL.sec, op: 0.45, stroke: COL.sec });
+      S.edges.forEach((ed) => prims.push({ k: "l", a: S.v3[ed.a], b: S.v3[ed.b], c: COL.edge, w: 1.8 }));
+      for (let i = 0; i < sec.length; i++) prims.push({ k: "l", a: sec[i], b: sec[(i + 1) % sec.length], c: COL.sec, w: 3 });
+      auxPts.forEach((a) => {
+        const e = S.edges[a.e];
+        const near = len(sub(S.v3[e.a], a.p3)) < len(sub(S.v3[e.b], a.p3)) ? S.v3[e.a] : S.v3[e.b];
+        prims.push({ k: "l", a: near, b: a.p3, c: COL.user, w: 1.5, d: "6 4" });
+        task.sol.traces.forEach((tr) => {
+          if (!tr || !tr.pts.includes(a)) return;
+          tr.pts.forEach((q) => { if (q !== a) prims.push({ k: "l", a: q.p3, b: a.p3, c: COL.user, w: 1.5, d: "6 4" }); });
+        });
+      });
+      const depth = (p) => p.k === "p" ? p.pts.reduce((s, v) => s + pr(v)[2], 0) / p.pts.length : (pr(p.a)[2] + pr(p.b)[2]) / 2 - 0.05;
+      prims.sort((a, b) => depth(b) - depth(a));
+      svg3.textContent = "";
+      prims.forEach((p) => {
+        if (p.k === "p") el("polygon", { points: p.pts.map(pr).map((q) => q[0] + "," + q[1]).join(" "), fill: p.fill, "fill-opacity": p.op, stroke: p.stroke || "none", "stroke-opacity": 0.5 }, svg3);
+        else { const a = pr(p.a), b = pr(p.b); el("line", { x1: a[0], y1: a[1], x2: b[0], y2: b[1], stroke: p.c, "stroke-width": p.w, "stroke-dasharray": p.d, "stroke-linecap": "round" }, svg3); }
+      });
+      const lab = (p, name, color) => {
+        const q = pr(p);
+        el("circle", { cx: q[0], cy: q[1], r: 4.5, fill: color }, svg3);
+        const t = el("text", { x: q[0] + 9, y: q[1] - 9, fill: color, "font-size": 20 }, svg3);
+        t.textContent = name;
+      };
+      Object.keys(S.v3).forEach((k) => { if (!task.sec.some((v) => v.vertex === k)) lab(S.v3[k], disp(k), COL.edge); });
+      task.sec.forEach((v) => lab(v.p3, nameOf(v) + (v.vertex ? " (" + disp(v.vertex) + ")" : ""), task.given.some((g) => dist(g.p2, v.p2) < 1) ? COL.given : COL.sec));
+      auxPts.forEach((a) => lab(a.p3, nameAt(a.p, a.name), COL.user));
+    }
+
+    svg3.onpointerdown = (ev) => { vs.spin = false; vs.drag = [ev.clientX, ev.clientY]; svg3.setPointerCapture(ev.pointerId); };
+    svg3.onpointermove = (ev) => {
+      if (!vs.drag) return;
+      const k = 0.006 * W / svg3.clientWidth;
+      vs.yaw += (ev.clientX - vs.drag[0]) * k;
+      vs.pitch = Math.max(-1.5, Math.min(1.5, vs.pitch + (ev.clientY - vs.drag[1]) * k));
+      vs.drag = [ev.clientX, ev.clientY];
+      render();
+    };
+    svg3.onpointerup = svg3.onpointercancel = () => { vs.drag = null; };
+    svg3.style.touchAction = "none";
+    svg3.style.cursor = "grab";
+    let last = performance.now();
+    const tick = (now) => {
+      if (!alive()) return;
+      if (vs.spin) { vs.yaw += (now - last) * 0.0004; render(); }
+      last = now;
+      requestAnimationFrame(tick);
+    };
+    render();
+    requestAnimationFrame(tick);
+  }
+
+  const redraws = new Set();
+  window.addEventListener("resize", () => redraws.forEach((f) => f()));
+
+  function Board(root, task, opts) {
+    const S = task.S;
+    const V2 = S.v2;
+    const demo = !!opts.demo;
+    const nU = task.unknown.length;
+    const cond = opts.cond || ("Точки " + task.given.map((g) => "<b>" + g.name + "</b> ∈ " + S.edges[g.e].name).join(", ") +
+      ". Построй сечение " + S.title + " плоскостью MNP: найди " + (nU === 1 ? "недостающую вершину сечения и отметь её." : "все недостающие вершины сечения (их " + nU + ") и отметь их."));
     root.innerHTML =
-      '<div class="task"><h3>Задача ' + num + '</h3>' +
-      '<p class="cond">Точки ' + task.given.map((g) => "<b>" + g.name + "</b> ∈ " + edgeTxt(g.e)).join(", ") +
-      ". Построй сечение тетраэдра SABC плоскостью MNP: найди на ребре недостающую вершину сечения и отметь её.</p>" +
+      '<div class="task"><h3>' + opts.title + "</h3>" +
+      '<p class="cond">' + cond + "</p>" +
       '<div class="board"><svg viewBox="0 0 ' + W + " " + H + '"></svg></div>' +
       '<div class="tools">' +
-      '<button data-tool="line" class="active">Прямая</button>' +
-      '<button data-tool="point">Точка</button>' +
-      '<button data-act="undo">Отменить</button>' +
-      '<button data-act="clear">Очистить</button>' +
-      '<button data-act="check" class="check">Проверить</button>' +
-      '<button data-act="solution" class="sol">Показать решение</button>' +
-      '<button data-act="view3d" class="primary" disabled>Посмотреть в 3D</button>' +
-      '<button data-act="next">Новая задача</button>' +
+      (demo ? "" :
+        '<button data-tool="line" class="active">Прямая</button>' +
+        '<button data-tool="par">Параллельная</button>' +
+        '<button data-tool="point">Точка</button>' +
+        '<button data-act="hint" class="hintbtn"><span class="q">?</span>Подсказка</button>' +
+        '<button data-act="undo">Отменить</button>' +
+        '<button data-act="clear">Очистить</button>' +
+        '<button data-act="check" class="check">Проверить</button>' +
+        '<button data-act="solution" class="sol">Показать решение</button>') +
+      '<button data-act="view3d" class="primary"' + (demo ? "" : " disabled") + ">Посмотреть в 3D</button>" +
+      (demo ? "" : '<button data-act="next">Новая задача</button>') +
       "</div>" +
-      '<div class="msg">Начни с прямой через две точки, лежащие в одной грани.</div>' +
+      (demo ? "" : '<div class="hintbox" hidden><div class="qicon">?</div><div class="htext"></div></div>' +
+        '<div class="msg">Начни с прямой через две точки, лежащие в одной грани. Не знаешь, с чего начать, — нажми «Подсказка».</div>') +
+      '<ol class="steps" hidden></ol>' +
       '<div class="view3d" hidden><div class="board v3"><svg viewBox="0 0 ' + W + " " + H + '"></svg></div>' +
-      '<p class="small">Крути модель пальцем или мышью. Зелёным — сечение, пунктиром — вспомогательные прямые к точке X.</p></div></div>';
+      '<p class="small">Крути модель пальцем или мышью. Зелёным — сечение, синим пунктиром — вспомогательные прямые.</p></div></div>';
 
     const svg = root.querySelector(".board svg");
     const msg = root.querySelector(".msg");
+    const stepsEl = root.querySelector(".steps");
     const btn3d = root.querySelector('[data-act="view3d"]');
     const box3d = root.querySelector(".view3d");
-    const st = { tool: "line", lines: [], points: [], history: [], pending: null, solved: false, showSol: false, view: { x: 0, y: 0, w: W, h: H } };
+    const hintBox = root.querySelector(".hintbox");
+    const st = { hintOn: false, hintStep: null, tool: "line", lines: [], points: [], history: [], pending: null, pendingLine: null, solved: false, showSol: demo, hits: [], view: { x: 0, y: 0, w: W, h: H } };
     let animToken = 0;
+    const setMsg = (text, cls) => { if (msg) { msg.textContent = text; msg.className = "msg" + (cls ? " " + cls : ""); } };
 
-    const setMsg = (text, cls) => { msg.textContent = text; msg.className = "msg" + (cls ? " " + cls : ""); };
-
-    function anchors() {
-      const a = Object.keys(V2).map((k) => ({ name: k, p: V2[k] }));
-      task.given.forEach((g) => a.push({ name: g.name, p: g.p }));
-      st.points.forEach((pt) => a.push(pt));
-      return a;
-    }
-
-    function allLines() {
-      return EDGES.map((e) => [V2[e[0]], V2[e[1]]]).concat(st.lines.map((l) => [l.a.p, l.b.p]));
-    }
+    const anchors = () => Object.keys(V2).map((k) => ({ name: disp(k), p: V2[k] }))
+      .concat(task.given.map((g) => ({ name: g.name, p: g.p2 })), st.points);
+    const edgeLines = () => S.edges.map((e) => [V2[e.a], V2[e.b]]);
+    const allLines = () => edgeLines().concat(st.lines.map((l) => [l.a.p, l.b.p]));
 
     function svgPoint(evt) {
       const pt = svg.createSVGPoint();
@@ -361,26 +596,24 @@
       const r = pt.matrixTransform(svg.getScreenCTM().inverse());
       return [r.x, r.y];
     }
-
     function extensions(p) {
       const out = [];
-      for (const e of EDGES) {
-        const a = V2[e[0]], b = V2[e[1]];
-        if (distToLine(p, a, b) > 0.8) continue;
-        const t = dot(sub(p, a), sub(b, a)) / dot(sub(b, a), sub(b, a));
+      S.edges.forEach((e) => {
+        const a = V2[e.a], b = V2[e.b];
+        if (distToLine(p, a, b) > 0.8) return;
+        const t = paramOn(p, a, b);
         if (t < -0.01) out.push([a, p]);
         else if (t > 1.01) out.push([b, p]);
-      }
+      });
       return out;
     }
-
     const ui = () => Math.max(st.view.w / W, st.view.w / (svg.clientWidth || W) * 0.55);
     const inView = (p, m) => p[0] > st.view.x + m && p[0] < st.view.x + st.view.w - m && p[1] > st.view.y + m && p[1] < st.view.y + st.view.h - m;
 
     function userIntersections() {
       const L = allLines();
       const out = [];
-      for (let i = EDGES.length; i < L.length; i++) {
+      for (let i = S.edges.length; i < L.length; i++) {
         for (let j = 0; j < i; j++) {
           const x = inter2(L[i][0], L[i][1], L[j][0], L[j][1]);
           if (x && x[0] > -0.6 * W && x[0] < 1.6 * W && x[1] > -0.6 * H && x[1] < 1.6 * H) out.push(x);
@@ -390,8 +623,9 @@
     }
 
     function targetView() {
-      const extra = st.points.map((pt) => pt.p).concat(userIntersections());
-      if (st.showSol) extra.push(task.path.X);
+      const near = (p) => p[0] > -0.35 * W && p[0] < 1.35 * W && p[1] > -0.35 * H && p[1] < 1.35 * H;
+      const extra = st.points.map((pt) => pt.p).concat(userIntersections().filter(near));
+      if (st.showSol) task.sol.known.forEach((k) => extra.push(k.p));
       if (extra.every((p) => p[0] > 12 && p[0] < W - 12 && p[1] > 12 && p[1] < H - 12)) return { x: 0, y: 0, w: W, h: H };
       const pts = [[0, 0], [W, H]].concat(extra);
       let x0 = Math.min(...pts.map((p) => p[0])), x1 = Math.max(...pts.map((p) => p[0]));
@@ -404,12 +638,67 @@
       return { x: x0, y: y0, w, h };
     }
 
+    const nameAt = (p, fb) => (anchors().find((a) => dist(a.p, p) < 3) || {}).name || fb;
+    const trLabel = (tr) => tr.kind === "par"
+      ? "прямая через " + nameAt(tr.through.p, tr.through.name) + " ∥ " + trLabel(tr.ref)
+      : nameAt(tr.pts[0].p, tr.pts[0].name) + nameAt(tr.pts[1].p, tr.pts[1].name);
+    const hasLine = (tr) => st.lines.some((l) => distToLine(tr.a, l.a.p, l.b.p) < 1 && distToLine(tr.b, l.a.p, l.b.p) < 1);
+    const hasPoint = (p) => anchors().some((a) => dist(a.p, p) < 3);
+    const stepDone = (s) => (s.kind === "join" || s.kind === "par" ? hasLine(s.tr) : hasPoint(s.pt.p));
+    const otherFace = (e, f) => S.faces.findIndex((fc, i) => i !== f && fc.edges.includes(e));
+
+    function hintHtml(s) {
+      const F = S.faces[s.f].name;
+      if (s.kind === "join") {
+        const A = nameAt(s.tr.pts[0].p, s.tr.pts[0].name), B = nameAt(s.tr.pts[1].p, s.tr.pts[1].name);
+        return "<b>Ищем след сечения на грани " + F + "</b> (она подсвечена жёлтым). В этой грани уже есть две точки секущей плоскости — <b>" + A + "</b> и <b>" + B +
+          "</b>. Если две точки прямой лежат в плоскости, то и вся прямая лежит в этой плоскости. Значит, секущая плоскость пересекает грань " + F + " по прямой " + A + B + "." +
+          '<span class="todo">Инструмент «Прямая»: нажми ' + A + ", затем " + B + ".</span>";
+      }
+      if (s.kind === "par") {
+        const G = S.faces[s.from].name, T = nameAt(s.tr.through.p, s.tr.through.name), L = trLabel(s.tr.ref);
+        return "<b>Используем параллельность граней.</b> Грани " + F + " и " + G + " противоположные — они параллельны. Если две параллельные плоскости пересечены третьей, линии пересечения параллельны. " +
+          "След на грани " + G + " уже есть — " + L + ", а в грани " + F + " (подсвечена) есть точка сечения <b>" + T + "</b>. Значит, след на " + F + " проходит через " + T + " параллельно " + L + "." +
+          '<span class="todo">Инструмент «Параллельная»: нажми на прямую ' + L + " (обведена оранжевым), затем на точку " + T + ".</span>";
+      }
+      const L = trLabel(s.tr), E = S.edges[s.e].name;
+      if (s.kind === "meet") {
+        return "<b>Находим вершину сечения на ребре " + E + ".</b> Прямая " + L + " — след сечения в грани " + F + ". Ребро " + E + " — сторона этой же грани, и прямая пересекает его внутри отрезка. " +
+          "Точка пересечения лежит и в секущей плоскости, и на ребре, — значит, это вершина сечения." +
+          '<span class="todo">Инструмент «Точка»: нажми в место, обведённое оранжевым.</span>';
+      }
+      const G = S.faces[otherFace(s.e, s.f)].name;
+      return "<b>Нужна вспомогательная точка.</b> В грани " + G + " пока не хватает второй точки сечения — прямую там не провести. " +
+        "Прямая " + L + " и прямая " + E + " лежат в одной грани " + F + " (подсвечена) и не параллельны, значит, пересекаются — здесь на продолжении ребра. " +
+        "Но прямая " + E + " лежит и в грани " + G + ", поэтому точка пересечения принадлежит сразу и секущей плоскости, и плоскости грани " + G + ". Через неё потом пройдёт след на " + G + "." +
+        '<span class="todo">Инструмент «Точка»: нажми в место, обведённое оранжевым (ребро ' + E + " продлится пунктиром).</span>";
+    }
+
+    function updateHint() {
+      if (!hintBox) return;
+      st.hintStep = null;
+      if (!st.hintOn || st.solved) { hintBox.hidden = true; return; }
+      hintBox.hidden = false;
+      const text = hintBox.querySelector(".htext");
+      if (task.unknown.every((u) => hasPoint(u.p2))) { text.innerHTML = "<b>Все вершины сечения отмечены.</b> Нажми «Проверить»."; return; }
+      const s = task.sol.steps.find((x) => !stepDone(x));
+      if (!s) { text.innerHTML = "Все нужные прямые проведены. Отметь вершины сечения на рёбрах и нажми «Проверить»."; return; }
+      st.hintStep = s;
+      text.innerHTML = hintHtml(s);
+      const want = s.kind === "join" ? "line" : s.kind === "par" ? "par" : "point";
+      if (st.tool !== want && !st.pending && st.pendingLine === null) {
+        st.tool = want;
+        root.querySelectorAll("[data-tool]").forEach((x) => x.classList.toggle("active", x.dataset.tool === want));
+      }
+    }
+
     function draw() {
+      updateHint();
+      if (!root.isConnected) { redraws.delete(draw); return; }
       const to = targetView();
       const from = Object.assign({}, st.view);
-      const same = ["x", "y", "w", "h"].every((key) => Math.abs(from[key] - to[key]) < 0.5);
       const token = ++animToken;
-      if (same) { st.view = to; paint(); return; }
+      if (["x", "y", "w", "h"].every((k) => Math.abs(from[k] - to[k]) < 0.5)) { st.view = to; paint(); return; }
       const t0 = performance.now();
       const step = (now) => {
         if (token !== animToken) return;
@@ -426,37 +715,46 @@
       const k = ui();
       svg.setAttribute("viewBox", st.view.x + " " + st.view.y + " " + st.view.w + " " + st.view.h);
       svg.textContent = "";
-      const faces = el("g", {}, svg);
-      FACES.forEach((f) => el("polygon", { points: f.map((v) => V2[v].join(",")).join(" "), fill: "#607080", "fill-opacity": 0.04 }, faces));
-
-      if (st.solved || st.showSol) {
-        const pts = task.given.map((g) => g.p).concat([task.U.p]);
-        const c = mul(pts.reduce((s, p) => add(s, p), [0, 0]), 1 / pts.length);
-        pts.sort((p, q) => Math.atan2(p[1] - c[1], p[0] - c[0]) - Math.atan2(q[1] - c[1], q[0] - c[0]));
-        el("polygon", { points: pts.map((p) => p.join(",")).join(" "), fill: COL.sec, "fill-opacity": 0.22, stroke: COL.sec, "stroke-width": 2.5 }, svg);
+      S.faces.forEach((f) => el("polygon", { points: f.vs.map((v) => V2[v].join(",")).join(" "), fill: "#607080", "fill-opacity": 0.04 }, svg));
+      const hs = st.hintStep;
+      const HL = "#f08c00";
+      const ring = (p) => el("circle", { cx: p[0], cy: p[1], r: 14 * k, fill: "#ffd54f", "fill-opacity": 0.35, stroke: HL, "stroke-width": 3 }, svg);
+      const hlLine = (a, b) => { const c = clip(a, b, st.view); if (c) el("line", { x1: c[0][0], y1: c[0][1], x2: c[1][0], y2: c[1][1], stroke: HL, "stroke-width": 3.5, "stroke-opacity": 0.6, "stroke-dasharray": "10 6" }, svg); };
+      if (hs) {
+        const face = (fi, op) => el("polygon", { points: S.faces[fi].vs.map((v) => V2[v].join(",")).join(" "), fill: "#ffd54f", "fill-opacity": op, stroke: HL, "stroke-width": 2 }, svg);
+        face(hs.f, 0.45);
+        if (hs.kind === "par") face(hs.from, 0.18);
+        if (hs.kind === "par") hlLine(hs.tr.ref.a, hs.tr.ref.b);
+        if (hs.kind === "meet" || hs.kind === "aux") { hlLine(hs.tr.a, hs.tr.b); hlLine(V2[S.edges[hs.e].a], V2[S.edges[hs.e].b]); }
       }
 
-      st.lines.forEach((l) => {
+      if (st.solved || st.showSol) {
+        el("polygon", { points: task.sec.map((v) => v.p2.join(",")).join(" "), fill: COL.sec, "fill-opacity": 0.22, stroke: COL.sec, "stroke-width": 2.5 }, svg);
+      }
+
+      st.lines.forEach((l, i) => {
         const c = clip(l.a.p, l.b.p, st.view);
-        if (c) el("line", { x1: c[0][0], y1: c[0][1], x2: c[1][0], y2: c[1][1], stroke: COL.line, "stroke-width": 1.4, "stroke-opacity": 0.8 }, svg);
+        if (c) el("line", { x1: c[0][0], y1: c[0][1], x2: c[1][0], y2: c[1][1], stroke: COL.line, "stroke-width": (st.pendingLine === i ? 3 : 1.4), "stroke-opacity": 0.8 }, svg);
       });
 
       if (st.showSol) {
-        const { g1, g2, e, X, g3 } = task.path;
-        const dash = { stroke: COL.sol, "stroke-width": 2, "stroke-dasharray": "7 5" };
-        const seg = (a, b) => el("line", Object.assign({ x1: a[0], y1: a[1], x2: b[0], y2: b[1] }, dash), svg);
-        const far = (a, b) => (dist(a, X) > dist(b, X) ? a : b);
-        seg(far(g1.p, g2.p), X);
-        seg(dist(V2[e[0]], X) < dist(V2[e[1]], X) ? V2[e[0]] : V2[e[1]], X);
-        seg(X, dist(g3.p, X) > dist(task.U.p, X) ? g3.p : task.U.p);
+        task.sol.traces.forEach((tr) => {
+          if (!tr) return;
+          const d = sub(tr.b, tr.a);
+          const ts = tr.pts.map((q) => dot(sub(q.p, tr.a), d) / dot(d, d));
+          const a = add(tr.a, mul(d, Math.min(...ts))), b = add(tr.a, mul(d, Math.max(...ts)));
+          el("line", { x1: a[0], y1: a[1], x2: b[0], y2: b[1], stroke: COL.sol, "stroke-width": 2, "stroke-dasharray": "7 5" }, svg);
+        });
       }
 
-      EDGES.forEach((e) => {
-        const a = V2[e[0]], b = V2[e[1]];
-        el("line", { x1: a[0], y1: a[1], x2: b[0], y2: b[1], stroke: COL.edge, "stroke-width": 2, "stroke-dasharray": ek(e) === HIDDEN ? "8 6" : undefined, "stroke-linecap": "round" }, svg);
+      S.edges.forEach((e, i) => {
+        const a = V2[e.a], b = V2[e.b];
+        el("line", { x1: a[0], y1: a[1], x2: b[0], y2: b[1], stroke: COL.edge, "stroke-width": st.pendingLine === -1 - i ? 4 : 2, "stroke-dasharray": S.hidden.includes(e.key) ? "8 6" : undefined, "stroke-linecap": "round" }, svg);
       });
 
-      st.points.forEach((pt) => extensions(pt.p).forEach(([a, b]) =>
+      const extPts = st.points.map((pt) => pt.p);
+      if (st.showSol) task.sol.known.filter((q) => q.kind === "aux").forEach((q) => extPts.push(q.p));
+      extPts.forEach((p) => extensions(p).forEach(([a, b]) =>
         el("line", { x1: a[0], y1: a[1], x2: b[0], y2: b[1], stroke: COL.edge, "stroke-width": 1.3, "stroke-dasharray": "5 5" }, svg)));
 
       const label = (p, name, color, r) => {
@@ -465,23 +763,25 @@
         t.textContent = name;
       };
       Object.keys(V2).forEach((v) => {
-        const p = V2[v];
-        const off = { S: [-6, -14], A: [-26, 4], B: [-8, 26], C: [10, 6] }[v];
+        const p = V2[v], off = S.off[v];
         el("circle", { cx: p[0], cy: p[1], r: 4 * k, fill: COL.edge }, svg);
-        const t = el("text", { x: p[0] + off[0] * k, y: p[1] + off[1] * k, fill: COL.edge, "font-size": 22 * k }, svg);
-        t.textContent = v;
+        const t = el("text", { x: p[0] + off[0] * k, y: p[1] + off[1] * k, fill: COL.edge, "font-size": 21 * k }, svg);
+        t.textContent = disp(v);
       });
-      task.given.forEach((g) => label(g.p, g.name, COL.given, 6));
+      if (st.showSol) task.sol.known.filter((q) => q.kind !== "given").forEach((q) => label(q.p, q.name, q.kind === "aux" ? COL.user : COL.sol, 5));
+      task.given.forEach((g) => label(g.p2, g.name, COL.given, 6));
       st.points.forEach((pt) => label(pt.p, pt.name, COL.user, 5));
-      if (st.showSol) {
-        label(task.path.X, "X", COL.sol, 5);
-        if (!st.solved) label(task.U.p, unknownName, COL.sol, 6);
-      }
-      if (st.tool === "point" && !st.solved) {
+
+      if (st.tool === "point" && !st.solved && !demo) {
         userIntersections().forEach((x) => {
           if (anchors().some((a) => dist(a.p, x) < 3)) return;
           el("circle", { cx: x[0], cy: x[1], r: 7 * k, fill: "#fff", "fill-opacity": 0.6, stroke: COL.user, "stroke-width": 1.5, "stroke-dasharray": "3 2" }, svg);
         });
+      }
+      if (hs) {
+        if (hs.kind === "join") { ring(hs.tr.pts[0].p); ring(hs.tr.pts[1].p); }
+        else if (hs.kind === "par") ring(hs.tr.through.p);
+        else ring(hs.pt.p);
       }
       if (st.pending) el("circle", { cx: st.pending.p[0], cy: st.pending.p[1], r: 12 * k, fill: "none", stroke: COL.user, "stroke-width": 2.5 }, svg);
       btn3d.disabled = !(st.solved || st.showSol);
@@ -492,206 +792,170 @@
       anchors().forEach((a) => { const d = dist(a.p, p); if (d < bd) { bd = d; best = a; } });
       return best;
     }
-
     function nearestIntersection(p) {
       const L = allLines();
       let best = null, bd = SNAP * ui();
-      for (let i = 0; i < L.length; i++) {
-        for (let j = i + 1; j < L.length; j++) {
-          const x = inter2(L[i][0], L[i][1], L[j][0], L[j][1]);
-          if (!x || !inView(x, 2)) continue;
-          const d = dist(x, p);
-          if (d < bd) { bd = d; best = x; }
-        }
+      for (let i = 0; i < L.length; i++) for (let j = i + 1; j < L.length; j++) {
+        const x = inter2(L[i][0], L[i][1], L[j][0], L[j][1]);
+        if (!x || !inView(x, 2)) continue;
+        const d = dist(x, p);
+        if (d < bd) { bd = d; best = x; }
       }
       return best;
     }
+    function nearestLine(p) {
+      let best = null, bd = SNAP * ui();
+      S.edges.forEach((e, i) => { const d = distToSeg(p, V2[e.a], V2[e.b]); if (d < bd) { bd = d; best = -1 - i; } });
+      st.lines.forEach((l, i) => { const d = distToLine(p, l.a.p, l.b.p); if (d < bd) { bd = d; best = i; } });
+      return best;
+    }
+    const lineOf = (id) => (id < 0 ? [V2[S.edges[-1 - id].a], V2[S.edges[-1 - id].b]] : [st.lines[id].a.p, st.lines[id].b.p]);
+    const lineName = (id) => (id < 0 ? S.edges[-1 - id].name : st.lines[id].name);
+    function addLine(a, b, name) {
+      if (st.lines.some((l) => distToLine(a.p, l.a.p, l.b.p) < 0.5 && distToLine(b.p, l.a.p, l.b.p) < 0.5)) return false;
+      st.lines.push({ a, b, name });
+      st.history.push("line");
+      return true;
+    }
 
-    svg.addEventListener("click", (evt) => {
-      if (st.solved) return;
-      const p = svgPoint(evt);
-      if (st.tool === "line") {
-        const a = nearestAnchor(p);
-        if (!a) { setMsg("Нажми ближе к точке: прямую проводят через две отмеченные точки."); return; }
-        if (!st.pending) { st.pending = a; setMsg("Теперь нажми на вторую точку."); }
-        else if (st.pending === a) { st.pending = null; setMsg("Выбор точки отменён."); }
-        else {
-          const dup = st.lines.some((l) => distToLine(a.p, l.a.p, l.b.p) < 0.5 && distToLine(st.pending.p, l.a.p, l.b.p) < 0.5);
-          if (!dup) {
-            st.lines.push({ a: st.pending, b: a });
-            st.history.push("line");
-            setMsg("Проведена прямая " + st.pending.name + a.name + ". Чтобы отметить точку пересечения, выбери инструмент «Точка».");
+    if (!demo) {
+      svg.addEventListener("click", (evt) => {
+        if (st.solved) return;
+        const p = svgPoint(evt);
+        if (st.tool === "line") {
+          const a = nearestAnchor(p);
+          if (!a) { setMsg("Нажми ближе к точке: прямую проводят через две отмеченные точки."); return; }
+          if (!st.pending) { st.pending = a; setMsg("Теперь нажми на вторую точку."); }
+          else if (st.pending === a) { st.pending = null; setMsg("Выбор точки отменён."); }
+          else {
+            if (addLine(st.pending, a, st.pending.name + a.name)) setMsg("Проведена прямая " + st.pending.name + a.name + ". Чтобы отметить пересечение, выбери «Точка».");
+            st.pending = null;
           }
-          st.pending = null;
+        } else if (st.tool === "par") {
+          if (st.pendingLine === null) {
+            const id = nearestLine(p);
+            if (id === null) { setMsg("Сначала нажми на прямую или ребро, которому будет параллельна новая прямая."); return; }
+            st.pendingLine = id;
+            setMsg("Выбрана прямая " + lineName(id) + ". Теперь нажми на точку, через которую провести параллельную.");
+          } else {
+            const a = nearestAnchor(p);
+            if (!a) { setMsg("Нажми ближе к точке, через которую провести параллельную прямую."); return; }
+            const [l1, l2] = lineOf(st.pendingLine);
+            if (distToLine(a.p, l1, l2) < 0.5) { setMsg("Точка уже лежит на этой прямой. Выбери другую точку."); return; }
+            const name = "через " + a.name + " ∥ " + lineName(st.pendingLine);
+            if (addLine(a, { name: "", p: add(a.p, sub(l2, l1)) }, name)) setMsg("Проведена прямая " + name + ".");
+            st.pendingLine = null;
+          }
+        } else {
+          const x = nearestIntersection(p);
+          if (!x) { setMsg("Здесь нет пересечения прямых. Точку можно поставить только там, где пересекаются две прямые или прямая и ребро."); return; }
+          if (anchors().some((a) => dist(a.p, x) < 3)) { setMsg("Эта точка уже отмечена."); return; }
+          const name = USER_NAMES[st.points.length % USER_NAMES.length] + (st.points.length >= USER_NAMES.length ? "1" : "");
+          st.points.push({ name, p: x });
+          st.history.push("point");
+          setMsg("Отмечена точка " + name + ". Через неё можно проводить новые прямые.");
         }
-      } else {
-        const x = nearestIntersection(p);
-        if (!x) { setMsg("Здесь нет пересечения прямых. Точку можно поставить только там, где пересекаются две прямые или прямая и ребро."); return; }
-        if (anchors().some((a) => dist(a.p, x) < 3)) { setMsg("Эта точка уже отмечена."); return; }
-        const name = USER_NAMES[st.points.length % USER_NAMES.length] + (st.points.length >= USER_NAMES.length ? "1" : "");
-        st.points.push({ name, p: x });
-        st.history.push("point");
-        setMsg("Отмечена точка " + name + ". Через неё можно проводить новые прямые.");
-      }
-      draw();
-    });
+        draw();
+      });
 
-    root.querySelectorAll("[data-tool]").forEach((b) => {
-      b.onclick = () => {
-        st.tool = b.dataset.tool;
-        st.pending = null;
-        root.querySelectorAll("[data-tool]").forEach((x) => x.classList.toggle("active", x === b));
-        setMsg(st.tool === "line" ? "Инструмент «Прямая»: нажми на две точки." : "Инструмент «Точка»: нажми рядом с пересечением двух прямых.");
+      root.querySelectorAll("[data-tool]").forEach((b) => {
+        b.onclick = () => {
+          st.tool = b.dataset.tool;
+          st.pending = null;
+          st.pendingLine = null;
+          root.querySelectorAll("[data-tool]").forEach((x) => x.classList.toggle("active", x === b));
+          setMsg({ line: "Инструмент «Прямая»: нажми на две точки.", par: "Инструмент «Параллельная»: нажми на прямую или ребро, затем на точку.", point: "Инструмент «Точка»: нажми рядом с пересечением — они подсвечены кружками." }[st.tool]);
+          draw();
+        };
+      });
+      root.querySelector('[data-act="hint"]').onclick = (ev) => {
+        st.hintOn = !st.hintOn;
+        ev.currentTarget.classList.toggle("on", st.hintOn);
         draw();
       };
-    });
+      root.querySelector('[data-act="undo"]').onclick = () => {
+        const last = st.history.pop();
+        if (last === "line") st.lines.pop();
+        if (last === "point") {
+          const removed = st.points.pop();
+          st.lines = st.lines.filter((l) => l.a !== removed && l.b !== removed);
+        }
+        st.pending = null; st.pendingLine = null; st.solved = false;
+        draw();
+      };
+      root.querySelector('[data-act="clear"]').onclick = () => {
+        Object.assign(st, { lines: [], points: [], history: [], pending: null, pendingLine: null, solved: false, showSol: false, hits: [] });
+        stepsEl.hidden = true;
+        setMsg("Чертёж очищен.");
+        draw();
+      };
+      root.querySelector('[data-act="check"]').onclick = () => {
+        st.hits = task.unknown.map((u) => (st.points.find((pt) => dist(pt.p, u.p2) < 4) || {}).name);
+        const found = st.hits.filter(Boolean).length;
+        if (found === nU) {
+          st.solved = true;
+          const names = task.sec.map((v) => {
+            const g = task.given.find((g) => dist(g.p2, v.p2) < 1);
+            return g ? g.name : st.hits[task.unknown.indexOf(v)];
+          });
+          setMsg("Верно! Сечение закрашено зелёным: это " + ["", "", "", "треугольник", "четырёхугольник", "пятиугольник", "шестиугольник"][task.sec.length] + " " + names.join("") + ". Теперь нажми «Посмотреть в 3D».", "ok");
+        } else if (found > 0) {
+          setMsg("Найдено вершин сечения: " + found + " из " + nU + ". Продолжай: ищи следы сечения на соседних гранях.", "bad");
+        } else {
+          setMsg("Вершина сечения ещё не найдена. Подсказка: продли прямую через две точки одной грани до пересечения с прямой ребра этой грани" + (S.opposite.length ? " или используй параллельность противоположных граней." : "."), "bad");
+        }
+        draw();
+      };
+      root.querySelector('[data-act="solution"]').onclick = () => {
+        st.showSol = !st.showSol;
+        stepsEl.hidden = !st.showSol;
+        setMsg(st.showSol ? "Решение показано на чертеже и расписано по шагам ниже." : "Решение скрыто.");
+        draw();
+      };
+      root.querySelector('[data-act="next"]').onclick = opts.onNext;
+    }
 
-    root.querySelector('[data-act="undo"]').onclick = () => {
-      const last = st.history.pop();
-      if (last === "line") st.lines.pop();
-      if (last === "point") {
-        const removed = st.points.pop();
-        st.lines = st.lines.filter((l) => l.a !== removed && l.b !== removed);
-      }
-      st.pending = null;
-      st.solved = false;
-      draw();
-    };
-    root.querySelector('[data-act="clear"]').onclick = () => {
-      Object.assign(st, { lines: [], points: [], history: [], pending: null, solved: false, showSol: false });
-      setMsg("Чертёж очищен.");
-      draw();
-    };
-    root.querySelector('[data-act="check"]').onclick = () => {
-      const hit = st.points.find((pt) => dist(pt.p, task.U.p) < 4);
-      if (hit) {
-        st.solved = true;
-        st.hitName = hit.name;
-        setMsg("Верно! Точка " + hit.name + " — вершина сечения на ребре " + edgeTxt(task.U.e) + ". Сечение закрашено зелёным: это четырёхугольник с вершинами " + task.given.map((g) => g.name).join(", ") + " и " + hit.name + ". Теперь нажми «Посмотреть в 3D».", "ok");
-      } else if (st.points.some((pt) => distToLine(pt.p, V2[task.U.e[0]], V2[task.U.e[1]]) < 1 && dist(pt.p, task.U.p) >= 4)) {
-        setMsg("Точка на нужном ребре, но не в том месте. Проверь, через какие точки проведена прямая: обе должны лежать в плоскости сечения и в одной грани.", "bad");
-      } else {
-        setMsg("Вершина сечения ещё не найдена. Подсказка: продли прямую через две данные точки одной грани до пересечения с прямой ребра этой грани.", "bad");
-      }
-      draw();
-    };
-    root.querySelector('[data-act="solution"]').onclick = () => {
-      st.showSol = !st.showSol;
-      const { g1, g2, e, g3 } = task.path;
-      setMsg(st.showSol
-        ? "Решение: X = " + g1.name + g2.name + " ∩ " + edgeTxt(e) + ". Затем прямая X" + g3.name + " пересекает ребро " + edgeTxt(task.U.e) + " в точке Q."
-        : "Решение скрыто.");
-      draw();
-    };
+    stepsEl.innerHTML = task.sol.steps.map((s) => "<li>" + s.text + "</li>").join("") +
+      "<li>Соединяем вершины по граням: сечение — " + ["", "", "", "треугольник", "четырёхугольник", "пятиугольник", "шестиугольник"][task.sec.length] + " " +
+      task.sec.map((v) => (task.sol.known.find((q) => dist(q.p, v.p2) < 1) || {}).name).join("") + ".</li>";
+    stepsEl.hidden = !demo;
 
     btn3d.onclick = () => {
       box3d.hidden = !box3d.hidden;
       btn3d.textContent = box3d.hidden ? "Посмотреть в 3D" : "Скрыть 3D";
-      if (!box3d.hidden) viewer3d(box3d.querySelector("svg"), task, () => !box3d.hidden && root.isConnected, st.solved ? st.hitName : "Q");
+      if (!box3d.hidden) viewer3d(box3d.querySelector("svg"), task, () => !box3d.hidden && root.isConnected, (p, fb) => (st.solved ? nameAt(p, fb) : fb));
     };
-    root.querySelector('[data-act="next"]').onclick = () => { taskNo++; renderOne(); };
-    redraw = draw;
 
+    redraws.add(draw);
     draw();
   }
 
-  const P3 = { A: [-2, 1.2, 0], B: [-0.4, -1.6, 0], C: [2.6, 0.2, 0], S: [0.1, 0.2, 3.4] };
+  const cube = SOLIDS.cube;
+  const ei = (a, b) => cube.edges.findIndex((e) => e.a === a && e.b === b);
+  const demo6 = buildTask(cube, [{ e: ei("A", "D"), t: 0.5 }, { e: ei("D", "D1"), t: 0.3 }, { e: ei("C", "C1"), t: 1 }], false);
+  const demo7 = buildTask(cube, [{ e: ei("A1", "D1"), t: 0.2 }, { e: ei("B1", "C1"), t: 0.65 }, { e: ei("D", "C"), t: 0.7 }], false);
+  if (demo6) Board(document.getElementById("demo6"), demo6, { demo: true, title: "Задача 6", cond: "Куб ABCDA₁B₁C₁D₁. Точка <b>M</b> ∈ AD, <b>N</b> ∈ DD₁, точка <b>P</b> совпадает с вершиной C₁. Построить сечение плоскостью MNP." });
+  if (demo7) Board(document.getElementById("demo7"), demo7, { demo: true, title: "Задача 7", cond: "Куб ABCDA₁B₁C₁D₁. Точка <b>M</b> ∈ A₁D₁, <b>N</b> ∈ B₁C₁, <b>P</b> ∈ DC. Построить сечение плоскостью MNP." });
 
-  function inter3(p, d, q, e) {
-    const w = sub(q, p), dd = dot(d, d), ee = dot(e, e), de = dot(d, e);
-    const t = (dot(w, d) * ee - dot(w, e) * de) / (dd * ee - de * de);
-    return add(p, mul(d, t));
-  }
-  const norm3 = (a) => mul(a, 1 / Math.hypot(...a));
-
-  function viewer3d(svg3, task, alive, qName) {
-    const at = (e, t) => lerp(P3[e[0]], P3[e[1]], t);
-    const G = task.given.map((g) => ({ name: g.name, p: at(g.e, g.t) }));
-    const Q = at(task.U.e, task.U.t);
-    const { g1, g2, e, g3 } = task.path;
-    const pg = (g) => at(g.e, g.t);
-    const X = inter3(pg(g1), sub(pg(g2), pg(g1)), P3[e[0]], sub(P3[e[1]], P3[e[0]]));
-    const sec = G.map((g) => g.p).concat([Q]);
-    const c3 = mul(sec.reduce((s, p) => add(s, p), [0, 0, 0]), 1 / 4);
-    const nrm = norm3(cross3(sub(sec[1], sec[0]), sub(sec[2], sec[0])));
-    const ax = norm3(sub(sec[0], c3)), ay = cross3(nrm, ax);
-    sec.sort((p, q) => Math.atan2(dot(sub(p, c3), ay), dot(sub(p, c3), ax)) - Math.atan2(dot(sub(q, c3), ay), dot(sub(q, c3), ax)));
-
-    const all = Object.values(P3).concat([X]);
-    const center = mul(all.reduce((s, p) => add(s, p), [0, 0, 0]), 1 / all.length);
-    const radius = Math.max(...all.map((p) => Math.hypot(...sub(p, center))));
-    const scale = Math.min(W, H) * 0.46 / radius;
-    const vs = { yaw: -0.55, pitch: 0.32, spin: true, drag: null };
-
-    function render() {
-      const f = [Math.sin(vs.yaw) * Math.cos(vs.pitch), Math.cos(vs.yaw) * Math.cos(vs.pitch), -Math.sin(vs.pitch)];
-      const r = norm3(cross3(f, [0, 0, 1])), u = cross3(r, f);
-      const pr = (p) => { const q = sub(p, center); return [W / 2 + dot(q, r) * scale, H / 2 - dot(q, u) * scale, dot(q, f)]; };
-      const prims = [];
-      FACES.forEach((fc) => prims.push({ k: "p", pts: fc.map((v) => P3[v]), fill: "#607080", op: 0.06 }));
-      prims.push({ k: "p", pts: sec, fill: COL.sec, op: 0.45, stroke: COL.sec });
-      EDGES.forEach((ed) => prims.push({ k: "l", a: P3[ed[0]], b: P3[ed[1]], c: COL.edge, w: 1.8 }));
-      for (let i = 0; i < 4; i++) prims.push({ k: "l", a: sec[i], b: sec[(i + 1) % 4], c: COL.sec, w: 3 });
-      const near = (a, b) => (Math.hypot(...sub(a, X)) < Math.hypot(...sub(b, X)) ? a : b);
-      prims.push({ k: "l", a: near(pg(g1), pg(g2)), b: X, c: COL.user, w: 1.5, d: "6 4" });
-      prims.push({ k: "l", a: near(P3[e[0]], P3[e[1]]), b: X, c: COL.user, w: 1.5, d: "6 4" });
-      prims.push({ k: "l", a: near(pg(g3), Q), b: X, c: COL.user, w: 1.5, d: "6 4" });
-      const depth = (p) => p.k === "p" ? p.pts.reduce((s, v) => s + pr(v)[2], 0) / p.pts.length : (pr(p.a)[2] + pr(p.b)[2]) / 2 - 0.05;
-      prims.sort((a, b) => depth(b) - depth(a));
-      svg3.textContent = "";
-      prims.forEach((p) => {
-        if (p.k === "p") el("polygon", { points: p.pts.map(pr).map((q) => q[0] + "," + q[1]).join(" "), fill: p.fill, "fill-opacity": p.op, stroke: p.stroke || "none", "stroke-opacity": 0.5 }, svg3);
-        else { const a = pr(p.a), b = pr(p.b); el("line", { x1: a[0], y1: a[1], x2: b[0], y2: b[1], stroke: p.c, "stroke-width": p.w, "stroke-dasharray": p.d, "stroke-linecap": "round" }, svg3); }
-      });
-      const lab = (p, name, color) => {
-        const q = pr(p);
-        el("circle", { cx: q[0], cy: q[1], r: 4.5, fill: color }, svg3);
-        const t = el("text", { x: q[0] + 9, y: q[1] - 9, fill: color, "font-size": 20 }, svg3);
-        t.textContent = name;
-      };
-      Object.keys(P3).forEach((k) => lab(P3[k], k, COL.edge));
-      G.forEach((g) => lab(g.p, g.name, COL.given));
-      lab(Q, qName, COL.sec);
-      lab(X, "X", COL.user);
-    }
-
-    svg3.onpointerdown = (ev) => { vs.spin = false; vs.drag = [ev.clientX, ev.clientY]; svg3.setPointerCapture(ev.pointerId); };
-    svg3.onpointermove = (ev) => {
-      if (!vs.drag) return;
-      const k = 0.006 * W / svg3.clientWidth;
-      vs.yaw += (ev.clientX - vs.drag[0]) * k;
-      vs.pitch = Math.max(-1.5, Math.min(1.5, vs.pitch + (ev.clientY - vs.drag[1]) * k));
-      vs.drag = [ev.clientX, ev.clientY];
-      render();
-    };
-    svg3.onpointerup = svg3.onpointercancel = () => { vs.drag = null; };
-    svg3.style.touchAction = "none";
-    svg3.style.cursor = "grab";
-
-    let last = performance.now();
-    const tick = (now) => {
-      if (!alive()) return;
-      if (vs.spin) { vs.yaw += (now - last) * 0.0004; render(); }
-      last = now;
-      requestAnimationFrame(tick);
-    };
-    render();
-    requestAnimationFrame(tick);
-  }
-
+  let solidKey = "tetra";
   let taskNo = 1;
-  let redraw = null;
-  window.addEventListener("resize", () => { if (redraw) redraw(); });
   function renderOne() {
     const box = document.getElementById("tasks");
     box.innerHTML = "";
-    const task = generate();
+    const task = generate(SOLIDS[solidKey]);
     if (!task) return;
     const div = document.createElement("div");
     box.appendChild(div);
-    Board(div, task, taskNo);
+    Board(div, task, { title: "Задача " + taskNo + (solidKey === "cube" ? " · куб" : " · тетраэдр"), onNext: () => { taskNo++; renderOne(); } });
   }
-
+  document.querySelectorAll("#solidSwitch [data-solid]").forEach((b) => {
+    b.onclick = () => {
+      solidKey = b.dataset.solid;
+      document.querySelectorAll("#solidSwitch [data-solid]").forEach((x) => x.classList.toggle("primary", x === b));
+      taskNo++;
+      renderOne();
+    };
+  });
   renderOne();
 })();
 </script>
