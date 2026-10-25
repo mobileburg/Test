@@ -155,6 +155,493 @@
   </figure>
 </section>
 
+<section class="practice" id="practice">
+  <h2>Практика: построй сечение сам</h2>
+  <p class="lead" style="margin-bottom:12px">Решай на плоском чертеже, как в тетради. Каждая новая задача — точки M, N, P на других рёбрах и в других местах. После решения можно посмотреть ту же задачу в 3D.</p>
+  <div class="card">
+    <h3>Как пользоваться чертежом</h3>
+    <ol>
+      <li><b>Прямая</b> — нажми на две точки (вершины или отмеченные точки). Через них пройдёт прямая.</li>
+      <li><b>Точка</b> — нажми рядом с местом, где пересекаются две прямые или прямая и ребро. Там появится новая точка. Если точка лежит на продолжении ребра, продолжение дорисуется пунктиром.</li>
+      <li>Найди недостающую вершину сечения на ребре тетраэдра, отметь её и нажми <b>Проверить</b>.</li>
+      <li>После решения нажми <b>Посмотреть в 3D</b> и покрути модель. Кнопка <b>Новая задача</b> даёт следующую задачу.</li>
+    </ol>
+  </div>
+  <div id="tasks"></div>
+</section>
+
+<style>
+  .task { border: 1px solid #ddd; border-radius: 8px; padding: 14px 16px 16px; margin: 0 0 22px; background: #fff; font-family: system-ui, sans-serif; }
+  .task h3 { margin: 0 0 6px; font-size: 1.1rem; }
+  .task .cond { margin: 0 0 10px; font-size: 0.98rem; }
+  .board { width: 100%; border: 1px solid #e3e3e3; border-radius: 8px; background: #fcfcfc; touch-action: manipulation; user-select: none; }
+  .board svg { display: block; width: 100%; height: auto; }
+  .board text { font-family: system-ui, sans-serif; font-weight: 600; pointer-events: none; }
+  .tools { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 0; }
+  .tools button.active { background: #0b57d0; color: #fff; }
+  .tools button.check { background: #2e7d32; border-color: #2e7d32; color: #fff; }
+  .tools button.sol { border-color: #888; color: #555; }
+  .tools button:disabled { opacity: 0.4; cursor: default; }
+  .view3d { margin-top: 12px; }
+  .msg { margin: 10px 0 0; padding: 10px 12px; border-radius: 6px; font-size: 0.95rem; background: #f3f5fa; color: #333; }
+  .msg.ok { background: #eef8ef; color: #1f5e22; border: 1px solid #b7d8b9; }
+  .msg.bad { background: #fff3f3; color: #8a1f1f; border: 1px solid #e0b4b4; }
+</style>
+
+<script>
+(function () {
+  const W = 640, H = 520, SNAP = 20;
+  const V2 = { S: [300, 60], A: [110, 330], B: [250, 440], C: [520, 350] };
+  const V3 = { A: [0, 0, 0], B: [1, 0, 0], C: [0, 1, 0], S: [0, 0, 1] };
+  const EDGES = [["S", "A"], ["S", "B"], ["S", "C"], ["A", "B"], ["B", "C"], ["A", "C"]];
+  const FACES = [["S", "A", "B"], ["S", "B", "C"], ["S", "C", "A"], ["A", "B", "C"]];
+  const HIDDEN = "A-C";
+  const NAMES = ["M", "N", "P"];
+  const USER_NAMES = ["X", "Y", "Z", "K", "L", "R", "T", "U", "V", "W", "E", "D"];
+  const NS = "http://www.w3.org/2000/svg";
+  const COL = { edge: "#1a1a1a", given: "#c62828", user: "#0b57d0", line: "#0b57d0", sol: "#2e7d32", sec: "#2e7d32" };
+
+  const sub = (a, b) => a.map((v, i) => v - b[i]);
+  const add = (a, b) => a.map((v, i) => v + b[i]);
+  const mul = (a, k) => a.map((v) => v * k);
+  const dot = (a, b) => a.reduce((s, v, i) => s + v * b[i], 0);
+  const cross3 = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+  const lerp = (a, b, t) => add(a, mul(sub(b, a), t));
+  const dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
+  const ek = (e) => e[0] + "-" + e[1];
+  const rnd = (a, b) => a + Math.random() * (b - a);
+
+  function inter2(p1, p2, p3, p4) {
+    const d1 = sub(p2, p1), d2 = sub(p4, p3);
+    const den = d1[0] * d2[1] - d1[1] * d2[0];
+    if (Math.abs(den) < 1e-9) return null;
+    const w = sub(p3, p1);
+    const t = (w[0] * d2[1] - w[1] * d2[0]) / den;
+    return add(p1, mul(d1, t));
+  }
+  function distToLine(p, a, b) {
+    const d = sub(b, a);
+    return Math.abs(d[0] * (p[1] - a[1]) - d[1] * (p[0] - a[0])) / Math.hypot(d[0], d[1]);
+  }
+  function angleBetween(a1, a2, b1, b2) {
+    const u = sub(a2, a1), v = sub(b2, b1);
+    const c = Math.abs(dot(u, v)) / (Math.hypot(...u) * Math.hypot(...v));
+    return Math.acos(Math.min(1, c)) * 180 / Math.PI;
+  }
+  const inBounds = (p, m) => p[0] > m && p[0] < W - m && p[1] > m && p[1] < H - m;
+  const EDGE_CROSS = inter2(V2.S, V2.B, V2.A, V2.C);
+
+  function generate() {
+    for (let tries = 0; tries < 4000; tries++) {
+      const idx = [0, 1, 2, 3, 4, 5].sort(() => Math.random() - 0.5).slice(0, 3).sort((a, b) => a - b);
+      const given = idx.map((i, k) => ({ e: EDGES[i], t: rnd(0.25, 0.75), name: NAMES[k] }));
+      const p3 = given.map((g) => lerp(V3[g.e[0]], V3[g.e[1]], g.t));
+      const n = cross3(sub(p3[1], p3[0]), sub(p3[2], p3[0]));
+      if (Math.hypot(...n) < 1e-3) continue;
+      const side = (v) => dot(n, sub(V3[v], p3[0]));
+      if (["S", "A", "B", "C"].some((v) => Math.abs(side(v)) < 0.02)) continue;
+      const unknown = [];
+      for (const e of EDGES) {
+        if (given.some((g) => g.e === e)) continue;
+        const d0 = side(e[0]), d1 = side(e[1]);
+        if (d0 * d1 < 0) unknown.push({ e, t: d0 / (d0 - d1) });
+      }
+      if (unknown.length !== 1) continue;
+      const U = unknown[0];
+      if (U.t < 0.15 || U.t > 0.85) continue;
+      given.forEach((g) => { g.p = lerp(V2[g.e[0]], V2[g.e[1]], g.t); });
+      U.p = lerp(V2[U.e[0]], V2[U.e[1]], U.t);
+
+      const secPts = given.map((g) => g.p).concat([U.p]);
+      const tri = (a, b, c) => Math.abs((b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0])) / 2;
+      let readable = true;
+      for (let i = 0; i < 4 && readable; i++) {
+        for (let j = i + 1; j < 4 && readable; j++) {
+          if (dist(secPts[i], secPts[j]) < 55) readable = false;
+          for (let m = j + 1; m < 4; m++) if (tri(secPts[i], secPts[j], secPts[m]) < 2200) readable = false;
+        }
+      }
+      if (!readable || secPts.some((p) => dist(p, EDGE_CROSS) < 35)) continue;
+
+      const onFace = (e, f) => f.includes(e[0]) && f.includes(e[1]);
+      let path = null;
+      for (const f of FACES) {
+        const inF = given.filter((g) => onFace(g.e, f));
+        if (inF.length !== 2) continue;
+        const [g1, g2] = inF;
+        for (const e of EDGES) {
+          if (!onFace(e, f) || e === g1.e || e === g2.e) continue;
+          const X = inter2(g1.p, g2.p, V2[e[0]], V2[e[1]]);
+          if (!X || !inBounds(X, 18)) continue;
+          if (Object.values(V2).some((v) => dist(v, X) < 40)) continue;
+          if (angleBetween(g1.p, g2.p, V2[e[0]], V2[e[1]]) < 12) continue;
+          const f2 = FACES.find((ff) => ff !== f && onFace(e, ff));
+          if (!onFace(U.e, f2)) continue;
+          const g3 = given.find((g) => g !== g1 && g !== g2 && onFace(g.e, f2));
+          if (!g3) continue;
+          if (distToLine(U.p, X, g3.p) > 0.5) continue;
+          if (angleBetween(X, g3.p, V2[U.e[0]], V2[U.e[1]]) < 12) continue;
+          path = { g1, g2, e, X, g3 };
+          break;
+        }
+        if (path) break;
+      }
+      if (!path) continue;
+      return { given, U, path };
+    }
+    return null;
+  }
+
+  function clip(p, q) {
+    const d = sub(q, p);
+    let t0 = -1e6, t1 = 1e6;
+    const chk = (num, den) => {
+      if (Math.abs(den) < 1e-12) return num >= 0;
+      const t = num / den;
+      if (den < 0) t0 = Math.max(t0, t); else t1 = Math.min(t1, t);
+      return true;
+    };
+    if (!chk(p[0], -d[0]) || !chk(W - p[0], d[0]) || !chk(p[1], -d[1]) || !chk(H - p[1], d[1])) return null;
+    if (t0 > t1) return null;
+    return [add(p, mul(d, t0)), add(p, mul(d, t1))];
+  }
+
+  function el(name, attrs, parent) {
+    const e = document.createElementNS(NS, name);
+    for (const k in attrs) if (attrs[k] !== undefined) e.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(e);
+    return e;
+  }
+
+  function Board(root, task, num) {
+    const unknownName = "Q";
+    const edgeTxt = (e) => e[0] + e[1];
+    root.innerHTML =
+      '<div class="task"><h3>Задача ' + num + '</h3>' +
+      '<p class="cond">Точки ' + task.given.map((g) => "<b>" + g.name + "</b> ∈ " + edgeTxt(g.e)).join(", ") +
+      ". Построй сечение тетраэдра SABC плоскостью MNP: найди на ребре недостающую вершину сечения и отметь её.</p>" +
+      '<div class="board"><svg viewBox="0 0 ' + W + " " + H + '"></svg></div>' +
+      '<div class="tools">' +
+      '<button data-tool="line" class="active">Прямая</button>' +
+      '<button data-tool="point">Точка</button>' +
+      '<button data-act="undo">Отменить</button>' +
+      '<button data-act="clear">Очистить</button>' +
+      '<button data-act="check" class="check">Проверить</button>' +
+      '<button data-act="solution" class="sol">Показать решение</button>' +
+      '<button data-act="view3d" class="primary" disabled>Посмотреть в 3D</button>' +
+      '<button data-act="next">Новая задача</button>' +
+      "</div>" +
+      '<div class="msg">Начни с прямой через две точки, лежащие в одной грани.</div>' +
+      '<div class="view3d" hidden><div class="board v3"><svg viewBox="0 0 ' + W + " " + H + '"></svg></div>' +
+      '<p class="small">Крути модель пальцем или мышью. Зелёным — сечение, пунктиром — вспомогательные прямые к точке X.</p></div></div>';
+
+    const svg = root.querySelector(".board svg");
+    const msg = root.querySelector(".msg");
+    const btn3d = root.querySelector('[data-act="view3d"]');
+    const box3d = root.querySelector(".view3d");
+    const st = { tool: "line", lines: [], points: [], history: [], pending: null, solved: false, showSol: false };
+
+    const setMsg = (text, cls) => { msg.textContent = text; msg.className = "msg" + (cls ? " " + cls : ""); };
+
+    function anchors() {
+      const a = Object.keys(V2).map((k) => ({ name: k, p: V2[k] }));
+      task.given.forEach((g) => a.push({ name: g.name, p: g.p }));
+      st.points.forEach((pt) => a.push(pt));
+      return a;
+    }
+
+    function allLines() {
+      return EDGES.map((e) => [V2[e[0]], V2[e[1]]]).concat(st.lines.map((l) => [l.a.p, l.b.p]));
+    }
+
+    function svgPoint(evt) {
+      const pt = svg.createSVGPoint();
+      pt.x = evt.clientX; pt.y = evt.clientY;
+      const r = pt.matrixTransform(svg.getScreenCTM().inverse());
+      return [r.x, r.y];
+    }
+
+    function extensions(p) {
+      const out = [];
+      for (const e of EDGES) {
+        const a = V2[e[0]], b = V2[e[1]];
+        if (distToLine(p, a, b) > 0.8) continue;
+        const t = dot(sub(p, a), sub(b, a)) / dot(sub(b, a), sub(b, a));
+        if (t < -0.01) out.push([a, p]);
+        else if (t > 1.01) out.push([b, p]);
+      }
+      return out;
+    }
+
+    const ui = () => Math.max(1, W / (svg.clientWidth || W) * 0.55);
+
+    function draw() {
+      const k = ui();
+      svg.textContent = "";
+      const faces = el("g", {}, svg);
+      FACES.forEach((f) => el("polygon", { points: f.map((v) => V2[v].join(",")).join(" "), fill: "#607080", "fill-opacity": 0.04 }, faces));
+
+      if (st.solved || st.showSol) {
+        const pts = task.given.map((g) => g.p).concat([task.U.p]);
+        const c = mul(pts.reduce((s, p) => add(s, p), [0, 0]), 1 / pts.length);
+        pts.sort((p, q) => Math.atan2(p[1] - c[1], p[0] - c[0]) - Math.atan2(q[1] - c[1], q[0] - c[0]));
+        el("polygon", { points: pts.map((p) => p.join(",")).join(" "), fill: COL.sec, "fill-opacity": 0.22, stroke: COL.sec, "stroke-width": 2.5 }, svg);
+      }
+
+      st.lines.forEach((l) => {
+        const c = clip(l.a.p, l.b.p);
+        if (c) el("line", { x1: c[0][0], y1: c[0][1], x2: c[1][0], y2: c[1][1], stroke: COL.line, "stroke-width": 1.4, "stroke-opacity": 0.8 }, svg);
+      });
+
+      if (st.showSol) {
+        const { g1, g2, e, X, g3 } = task.path;
+        const dash = { stroke: COL.sol, "stroke-width": 2, "stroke-dasharray": "7 5" };
+        const seg = (a, b) => el("line", Object.assign({ x1: a[0], y1: a[1], x2: b[0], y2: b[1] }, dash), svg);
+        const far = (a, b) => (dist(a, X) > dist(b, X) ? a : b);
+        seg(far(g1.p, g2.p), X);
+        seg(dist(V2[e[0]], X) < dist(V2[e[1]], X) ? V2[e[0]] : V2[e[1]], X);
+        seg(X, dist(g3.p, X) > dist(task.U.p, X) ? g3.p : task.U.p);
+      }
+
+      EDGES.forEach((e) => {
+        const a = V2[e[0]], b = V2[e[1]];
+        el("line", { x1: a[0], y1: a[1], x2: b[0], y2: b[1], stroke: COL.edge, "stroke-width": 2, "stroke-dasharray": ek(e) === HIDDEN ? "8 6" : undefined, "stroke-linecap": "round" }, svg);
+      });
+
+      st.points.forEach((pt) => extensions(pt.p).forEach(([a, b]) =>
+        el("line", { x1: a[0], y1: a[1], x2: b[0], y2: b[1], stroke: COL.edge, "stroke-width": 1.3, "stroke-dasharray": "5 5" }, svg)));
+
+      const label = (p, name, color, r) => {
+        el("circle", { cx: p[0], cy: p[1], r: (r || 5) * k, fill: color }, svg);
+        const t = el("text", { x: p[0] + 9 * k, y: p[1] - 9 * k, fill: color, "font-size": 20 * k }, svg);
+        t.textContent = name;
+      };
+      Object.keys(V2).forEach((v) => {
+        const p = V2[v];
+        const off = { S: [-6, -14], A: [-26, 4], B: [-8, 26], C: [10, 6] }[v];
+        el("circle", { cx: p[0], cy: p[1], r: 4 * k, fill: COL.edge }, svg);
+        const t = el("text", { x: p[0] + off[0] * k, y: p[1] + off[1] * k, fill: COL.edge, "font-size": 22 * k }, svg);
+        t.textContent = v;
+      });
+      task.given.forEach((g) => label(g.p, g.name, COL.given, 6));
+      st.points.forEach((pt) => label(pt.p, pt.name, COL.user, 5));
+      if (st.showSol) {
+        label(task.path.X, "X", COL.sol, 5);
+        if (!st.solved) label(task.U.p, unknownName, COL.sol, 6);
+      }
+      if (st.pending) el("circle", { cx: st.pending.p[0], cy: st.pending.p[1], r: 12 * k, fill: "none", stroke: COL.user, "stroke-width": 2.5 }, svg);
+      btn3d.disabled = !(st.solved || st.showSol);
+    }
+
+    function nearestAnchor(p) {
+      let best = null, bd = SNAP * ui();
+      anchors().forEach((a) => { const d = dist(a.p, p); if (d < bd) { bd = d; best = a; } });
+      return best;
+    }
+
+    function nearestIntersection(p) {
+      const L = allLines();
+      let best = null, bd = SNAP * ui();
+      for (let i = 0; i < L.length; i++) {
+        for (let j = i + 1; j < L.length; j++) {
+          const x = inter2(L[i][0], L[i][1], L[j][0], L[j][1]);
+          if (!x || !inBounds(x, 2)) continue;
+          const d = dist(x, p);
+          if (d < bd) { bd = d; best = x; }
+        }
+      }
+      return best;
+    }
+
+    svg.addEventListener("click", (evt) => {
+      if (st.solved) return;
+      const p = svgPoint(evt);
+      if (st.tool === "line") {
+        const a = nearestAnchor(p);
+        if (!a) { setMsg("Нажми ближе к точке: прямую проводят через две отмеченные точки."); return; }
+        if (!st.pending) { st.pending = a; setMsg("Теперь нажми на вторую точку."); }
+        else if (st.pending === a) { st.pending = null; setMsg("Выбор точки отменён."); }
+        else {
+          const dup = st.lines.some((l) => distToLine(a.p, l.a.p, l.b.p) < 0.5 && distToLine(st.pending.p, l.a.p, l.b.p) < 0.5);
+          if (!dup) {
+            st.lines.push({ a: st.pending, b: a });
+            st.history.push("line");
+            setMsg("Проведена прямая " + st.pending.name + a.name + ". Чтобы отметить точку пересечения, выбери инструмент «Точка».");
+          }
+          st.pending = null;
+        }
+      } else {
+        const x = nearestIntersection(p);
+        if (!x) { setMsg("Здесь нет пересечения прямых. Точку можно поставить только там, где пересекаются две прямые или прямая и ребро."); return; }
+        if (anchors().some((a) => dist(a.p, x) < 3)) { setMsg("Эта точка уже отмечена."); return; }
+        const name = USER_NAMES[st.points.length % USER_NAMES.length] + (st.points.length >= USER_NAMES.length ? "1" : "");
+        st.points.push({ name, p: x });
+        st.history.push("point");
+        setMsg("Отмечена точка " + name + ". Через неё можно проводить новые прямые.");
+      }
+      draw();
+    });
+
+    root.querySelectorAll("[data-tool]").forEach((b) => {
+      b.onclick = () => {
+        st.tool = b.dataset.tool;
+        st.pending = null;
+        root.querySelectorAll("[data-tool]").forEach((x) => x.classList.toggle("active", x === b));
+        setMsg(st.tool === "line" ? "Инструмент «Прямая»: нажми на две точки." : "Инструмент «Точка»: нажми рядом с пересечением двух прямых.");
+        draw();
+      };
+    });
+
+    root.querySelector('[data-act="undo"]').onclick = () => {
+      const last = st.history.pop();
+      if (last === "line") st.lines.pop();
+      if (last === "point") {
+        const removed = st.points.pop();
+        st.lines = st.lines.filter((l) => l.a !== removed && l.b !== removed);
+      }
+      st.pending = null;
+      st.solved = false;
+      draw();
+    };
+    root.querySelector('[data-act="clear"]').onclick = () => {
+      Object.assign(st, { lines: [], points: [], history: [], pending: null, solved: false, showSol: false });
+      setMsg("Чертёж очищен.");
+      draw();
+    };
+    root.querySelector('[data-act="check"]').onclick = () => {
+      const hit = st.points.find((pt) => dist(pt.p, task.U.p) < 4);
+      if (hit) {
+        st.solved = true;
+        st.hitName = hit.name;
+        setMsg("Верно! Точка " + hit.name + " — вершина сечения на ребре " + edgeTxt(task.U.e) + ". Сечение закрашено зелёным: это четырёхугольник с вершинами " + task.given.map((g) => g.name).join(", ") + " и " + hit.name + ". Теперь нажми «Посмотреть в 3D».", "ok");
+      } else if (st.points.some((pt) => distToLine(pt.p, V2[task.U.e[0]], V2[task.U.e[1]]) < 1 && dist(pt.p, task.U.p) >= 4)) {
+        setMsg("Точка на нужном ребре, но не в том месте. Проверь, через какие точки проведена прямая: обе должны лежать в плоскости сечения и в одной грани.", "bad");
+      } else {
+        setMsg("Вершина сечения ещё не найдена. Подсказка: продли прямую через две данные точки одной грани до пересечения с прямой ребра этой грани.", "bad");
+      }
+      draw();
+    };
+    root.querySelector('[data-act="solution"]').onclick = () => {
+      st.showSol = !st.showSol;
+      const { g1, g2, e, g3 } = task.path;
+      setMsg(st.showSol
+        ? "Решение: X = " + g1.name + g2.name + " ∩ " + edgeTxt(e) + ". Затем прямая X" + g3.name + " пересекает ребро " + edgeTxt(task.U.e) + " в точке Q."
+        : "Решение скрыто.");
+      draw();
+    };
+
+    btn3d.onclick = () => {
+      box3d.hidden = !box3d.hidden;
+      btn3d.textContent = box3d.hidden ? "Посмотреть в 3D" : "Скрыть 3D";
+      if (!box3d.hidden) viewer3d(box3d.querySelector("svg"), task, () => !box3d.hidden && root.isConnected, st.solved ? st.hitName : "Q");
+    };
+    root.querySelector('[data-act="next"]').onclick = () => { taskNo++; renderOne(); };
+    redraw = draw;
+
+    draw();
+  }
+
+  const P3 = { A: [-2, 1.2, 0], B: [-0.4, -1.6, 0], C: [2.6, 0.2, 0], S: [0.1, 0.2, 3.4] };
+
+  function inter3(p, d, q, e) {
+    const w = sub(q, p), dd = dot(d, d), ee = dot(e, e), de = dot(d, e);
+    const t = (dot(w, d) * ee - dot(w, e) * de) / (dd * ee - de * de);
+    return add(p, mul(d, t));
+  }
+  const norm3 = (a) => mul(a, 1 / Math.hypot(...a));
+
+  function viewer3d(svg3, task, alive, qName) {
+    const at = (e, t) => lerp(P3[e[0]], P3[e[1]], t);
+    const G = task.given.map((g) => ({ name: g.name, p: at(g.e, g.t) }));
+    const Q = at(task.U.e, task.U.t);
+    const { g1, g2, e, g3 } = task.path;
+    const pg = (g) => at(g.e, g.t);
+    const X = inter3(pg(g1), sub(pg(g2), pg(g1)), P3[e[0]], sub(P3[e[1]], P3[e[0]]));
+    const sec = G.map((g) => g.p).concat([Q]);
+    const c3 = mul(sec.reduce((s, p) => add(s, p), [0, 0, 0]), 1 / 4);
+    const nrm = norm3(cross3(sub(sec[1], sec[0]), sub(sec[2], sec[0])));
+    const ax = norm3(sub(sec[0], c3)), ay = cross3(nrm, ax);
+    sec.sort((p, q) => Math.atan2(dot(sub(p, c3), ay), dot(sub(p, c3), ax)) - Math.atan2(dot(sub(q, c3), ay), dot(sub(q, c3), ax)));
+
+    const all = Object.values(P3).concat([X]);
+    const center = mul(all.reduce((s, p) => add(s, p), [0, 0, 0]), 1 / all.length);
+    const radius = Math.max(...all.map((p) => Math.hypot(...sub(p, center))));
+    const scale = Math.min(W, H) * 0.46 / radius;
+    const vs = { yaw: -0.55, pitch: 0.32, spin: true, drag: null };
+
+    function render() {
+      const f = [Math.sin(vs.yaw) * Math.cos(vs.pitch), Math.cos(vs.yaw) * Math.cos(vs.pitch), -Math.sin(vs.pitch)];
+      const r = norm3(cross3(f, [0, 0, 1])), u = cross3(r, f);
+      const pr = (p) => { const q = sub(p, center); return [W / 2 + dot(q, r) * scale, H / 2 - dot(q, u) * scale, dot(q, f)]; };
+      const prims = [];
+      FACES.forEach((fc) => prims.push({ k: "p", pts: fc.map((v) => P3[v]), fill: "#607080", op: 0.06 }));
+      prims.push({ k: "p", pts: sec, fill: COL.sec, op: 0.45, stroke: COL.sec });
+      EDGES.forEach((ed) => prims.push({ k: "l", a: P3[ed[0]], b: P3[ed[1]], c: COL.edge, w: 1.8 }));
+      for (let i = 0; i < 4; i++) prims.push({ k: "l", a: sec[i], b: sec[(i + 1) % 4], c: COL.sec, w: 3 });
+      const near = (a, b) => (Math.hypot(...sub(a, X)) < Math.hypot(...sub(b, X)) ? a : b);
+      prims.push({ k: "l", a: near(pg(g1), pg(g2)), b: X, c: COL.user, w: 1.5, d: "6 4" });
+      prims.push({ k: "l", a: near(P3[e[0]], P3[e[1]]), b: X, c: COL.user, w: 1.5, d: "6 4" });
+      prims.push({ k: "l", a: near(pg(g3), Q), b: X, c: COL.user, w: 1.5, d: "6 4" });
+      const depth = (p) => p.k === "p" ? p.pts.reduce((s, v) => s + pr(v)[2], 0) / p.pts.length : (pr(p.a)[2] + pr(p.b)[2]) / 2 - 0.05;
+      prims.sort((a, b) => depth(b) - depth(a));
+      svg3.textContent = "";
+      prims.forEach((p) => {
+        if (p.k === "p") el("polygon", { points: p.pts.map(pr).map((q) => q[0] + "," + q[1]).join(" "), fill: p.fill, "fill-opacity": p.op, stroke: p.stroke || "none", "stroke-opacity": 0.5 }, svg3);
+        else { const a = pr(p.a), b = pr(p.b); el("line", { x1: a[0], y1: a[1], x2: b[0], y2: b[1], stroke: p.c, "stroke-width": p.w, "stroke-dasharray": p.d, "stroke-linecap": "round" }, svg3); }
+      });
+      const lab = (p, name, color) => {
+        const q = pr(p);
+        el("circle", { cx: q[0], cy: q[1], r: 4.5, fill: color }, svg3);
+        const t = el("text", { x: q[0] + 9, y: q[1] - 9, fill: color, "font-size": 20 }, svg3);
+        t.textContent = name;
+      };
+      Object.keys(P3).forEach((k) => lab(P3[k], k, COL.edge));
+      G.forEach((g) => lab(g.p, g.name, COL.given));
+      lab(Q, qName, COL.sec);
+      lab(X, "X", COL.user);
+    }
+
+    svg3.onpointerdown = (ev) => { vs.spin = false; vs.drag = [ev.clientX, ev.clientY]; svg3.setPointerCapture(ev.pointerId); };
+    svg3.onpointermove = (ev) => {
+      if (!vs.drag) return;
+      const k = 0.006 * W / svg3.clientWidth;
+      vs.yaw += (ev.clientX - vs.drag[0]) * k;
+      vs.pitch = Math.max(-1.5, Math.min(1.5, vs.pitch + (ev.clientY - vs.drag[1]) * k));
+      vs.drag = [ev.clientX, ev.clientY];
+      render();
+    };
+    svg3.onpointerup = svg3.onpointercancel = () => { vs.drag = null; };
+    svg3.style.touchAction = "none";
+    svg3.style.cursor = "grab";
+
+    let last = performance.now();
+    const tick = (now) => {
+      if (!alive()) return;
+      if (vs.spin) { vs.yaw += (now - last) * 0.0004; render(); }
+      last = now;
+      requestAnimationFrame(tick);
+    };
+    render();
+    requestAnimationFrame(tick);
+  }
+
+  let taskNo = 1;
+  let redraw = null;
+  window.addEventListener("resize", () => { if (redraw) redraw(); });
+  function renderOne() {
+    const box = document.getElementById("tasks");
+    box.innerHTML = "";
+    const task = generate();
+    if (!task) return;
+    const div = document.createElement("div");
+    box.appendChild(div);
+    Board(div, task, taskNo);
+  }
+
+  renderOne();
+})();
+</script>
+
 <script>
 (function () {
   const add = (a, b) => [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
