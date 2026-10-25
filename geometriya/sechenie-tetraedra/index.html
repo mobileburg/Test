@@ -182,6 +182,7 @@
     <ol>
       <li><b>Прямая</b> — нажми на две точки (вершины или отмеченные точки). Через них пройдёт прямая.</li>
       <li><b>Параллельная</b> — нажми на прямую или ребро, а затем на точку. Через точку пройдёт прямая, параллельная выбранной. Нужна для куба: следы на параллельных гранях параллельны.</li>
+      <li><b>Масштаб</b> — кнопки «+», «−» и «Весь чертёж» в углу чертежа. На телефоне можно разводить и сводить два пальца, на компьютере — Ctrl + колёсико мыши. Перетаскивай чертёж мышью или двумя пальцами. Когда чертёж отдаляется, точки становятся мельче и не закрывают построение.</li>
       <li><b>Точка</b> — нажми рядом с местом, где пересекаются две прямые или прямая и ребро. Места пересечений подсвечены пунктирными кружками. Если точка лежит на продолжении ребра, продолжение дорисуется пунктиром, а если пересечение ушло за край, чертёж сам отдалится.</li>
       <li>Найди все недостающие вершины сечения, отметь их и нажми <b>Проверить</b>. После решения нажми <b>Посмотреть в 3D</b>.</li>
     </ol>
@@ -207,6 +208,11 @@
     background-size: 22px 22px; background-position: -1px -1px;
     box-shadow: 0 1px 2px rgba(0,0,0,.06), 0 6px 16px -8px rgba(60,50,20,.25);
   }
+  .board.paper svg { touch-action: pan-x pan-y; }
+  .board.paper svg * { pointer-events: none; }
+  .zoombox { position: absolute; top: 8px; left: 8px; z-index: 2; display: flex; gap: 4px; }
+  .zoombox button { min-width: 34px; height: 34px; padding: 0 10px; border: 1px solid #c9cfdb; border-radius: 8px; background: rgba(255,255,255,.92); font: 600 18px/1 system-ui, sans-serif; color: #0b57d0; cursor: pointer; }
+  .zoombox button[data-z="fit"] { font-size: 13px; }
   .board.paper::after { content: ""; position: absolute; top: 0; bottom: 0; right: 7%; border-left: 2px solid rgba(230,90,90,.55); pointer-events: none; }
   .board.paper text { font-family: "Segoe Print", "Bradley Hand", "Comic Sans MS", "Comic Neue", cursive; font-weight: 700; paint-order: stroke; stroke: #fffef7; stroke-width: 4px; stroke-linejoin: round; }
   @media (max-width: 600px) { .board.paper { background-size: 14px 14px; } }
@@ -685,7 +691,7 @@
     const stats = { t0: Date.now(), hints: 0, wrong: 0, sol: false };
     const track = (type, data) => { if (!demo && window.Portal) Portal.track(type, Object.assign({ solid: S.key }, data)); };
     const st = { hover: null, hintMore: false, hintOn: false, hintStep: null, tool: "line", lines: [], points: [], history: [], pending: null, pendingLine: null, solved: false, showSol: demo, hits: [], view: { x: 0, y: 0, w: W, h: H } };
-    let animToken = 0;
+    let animToken = 0, goal = null;
     const setMsg = (text, cls) => { if (msg) { msg.textContent = text; msg.className = "msg" + (cls ? " " + cls : ""); } };
 
     const anchors = () => Object.keys(V2).map((k) => ({ name: disp(k), p: V2[k] }))
@@ -842,10 +848,15 @@
     function draw() {
       updateHint();
       if (!root.isConnected) { redraws.delete(draw); return; }
-      const to = targetView();
+      animateTo(st.manual ? st.view : targetView());
+    }
+
+    function animateTo(to) {
       const from = Object.assign({}, st.view);
       const token = ++animToken;
+      goal = null;
       if (["x", "y", "w", "h"].every((k) => Math.abs(from[k] - to[k]) < 0.5)) { st.view = to; paint(); return; }
+      goal = to;
       const t0 = performance.now();
       const step = (now) => {
         if (token !== animToken) return;
@@ -854,12 +865,14 @@
         st.view = { x: from.x + (to.x - from.x) * e, y: from.y + (to.y - from.y) * e, w: from.w + (to.w - from.w) * e, h: from.h + (to.h - from.h) * e };
         paint();
         if (t < 1) requestAnimationFrame(step);
+        else goal = null;
       };
       requestAnimationFrame(step);
     }
 
     function paint() {
-      const k = ui();
+      const shrink = Math.min(1, Math.max(0.55, Math.pow(W / st.view.w, 0.5)));
+      const k = ui() * shrink, kt = ui() * Math.max(0.8, shrink);
       svg.setAttribute("viewBox", st.view.x + " " + st.view.y + " " + st.view.w + " " + st.view.h);
       svg.textContent = "";
       S.faces.forEach((f) => el("polygon", { points: f.vs.map((v) => V2[v].join(",")).join(" "), fill: "#8a94a6", "fill-opacity": 0.05 }, svg));
@@ -907,13 +920,13 @@
 
       const label = (p, name, color, r) => {
         el("circle", { cx: p[0], cy: p[1], r: (r || 5) * k, fill: color }, svg);
-        const t = el("text", { x: p[0] + 9 * k, y: p[1] - 9 * k, fill: color, "font-size": 20 * k }, svg);
+        const t = el("text", { x: p[0] + 9 * kt, y: p[1] - 9 * kt, fill: color, "font-size": 20 * kt }, svg);
         t.textContent = name;
       };
       Object.keys(V2).forEach((v) => {
         const p = V2[v], off = S.off[v];
         el("circle", { cx: p[0], cy: p[1], r: 4 * k, fill: COL.edge }, svg);
-        const t = el("text", { x: p[0] + off[0] * k, y: p[1] + off[1] * k, fill: COL.edge, "font-size": 21 * k }, svg);
+        const t = el("text", { x: p[0] + off[0] * kt, y: p[1] + off[1] * kt, fill: COL.edge, "font-size": 21 * kt }, svg);
         t.textContent = disp(v);
       });
       if (st.showSol) task.sol.known.filter((q) => q.kind !== "given").forEach((q) => label(q.p, q.name, q.kind === "aux" ? COL.user : COL.sol, 5));
@@ -970,8 +983,91 @@
       return true;
     }
 
+    const MIN_W = W * 0.2, MAX_W = W * 6;
+    function zoomAt(f, c, animate) {
+      const v = animate && goal ? goal : st.view;
+      const nw = Math.min(MAX_W, Math.max(MIN_W, v.w * f)), r = nw / v.w;
+      const nv = { x: c[0] - (c[0] - v.x) * r, y: c[1] - (c[1] - v.y) * r, w: nw, h: nw * H / W };
+      st.manual = true;
+      if (animate) animateTo(nv);
+      else { animToken++; st.view = nv; paint(); }
+    }
+    function panBy(dx, dy) {
+      animToken++;
+      st.manual = true;
+      st.view = Object.assign({}, st.view, { x: st.view.x - dx, y: st.view.y - dy });
+      paint();
+    }
+    const unitsPerPx = () => st.view.w / (svg.clientWidth || W);
+    const center = () => [st.view.x + st.view.w / 2, st.view.y + st.view.h / 2];
+    const toSvg = (cx, cy) => { const r = svg.getBoundingClientRect(); return [st.view.x + (cx - r.left) * unitsPerPx(), st.view.y + (cy - r.top) * unitsPerPx()]; };
+
+    const zoomBox = document.createElement("div");
+    zoomBox.className = "zoombox";
+    zoomBox.innerHTML = '<button type="button" data-z="in" title="Приблизить">+</button><button type="button" data-z="out" title="Отдалить">−</button><button type="button" data-z="fit" title="Показать весь чертёж">Весь чертёж</button>';
+    svg.parentNode.appendChild(zoomBox);
+    zoomBox.querySelector('[data-z="in"]').onclick = () => zoomAt(1 / 1.4, center(), true);
+    zoomBox.querySelector('[data-z="out"]').onclick = () => zoomAt(1.4, center(), true);
+    zoomBox.querySelector('[data-z="fit"]').onclick = () => { st.manual = false; draw(); };
+
+    svg.addEventListener("wheel", (e) => {
+      if (!e.ctrlKey && !e.metaKey) return;
+      e.preventDefault();
+      zoomAt(Math.exp(e.deltaY * 0.004), toSvg(e.clientX, e.clientY), false);
+    }, { passive: false });
+
+    let pinch = null;
+    const touchGeom = (t) => {
+      const a = t[0], b = t[1];
+      return { d: Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY), c: [(a.clientX + b.clientX) / 2, (a.clientY + b.clientY) / 2] };
+    };
+    svg.addEventListener("touchstart", (e) => {
+      if (e.touches.length !== 2) return;
+      e.preventDefault();
+      pinch = touchGeom(e.touches);
+    }, { passive: false });
+    svg.addEventListener("touchmove", (e) => {
+      if (!pinch || e.touches.length !== 2) return;
+      e.preventDefault();
+      const g = touchGeom(e.touches), u = unitsPerPx();
+      panBy((g.c[0] - pinch.c[0]) * u, (g.c[1] - pinch.c[1]) * u);
+      if (g.d > 10) zoomAt(pinch.d / g.d, toSvg(g.c[0], g.c[1]), false);
+      pinch = g;
+      st.ignoreClick = Date.now();
+    }, { passive: false });
+    const endTouch = (e) => { if (e.touches.length < 2 && pinch) { pinch = null; st.ignoreClick = Date.now(); } };
+    svg.addEventListener("touchend", endTouch);
+    svg.addEventListener("touchcancel", endTouch);
+
+    let drag = null;
+    svg.addEventListener("pointerdown", (e) => {
+      if (e.pointerType === "mouse" && e.button === 0) drag = { start: [e.clientX, e.clientY], last: [e.clientX, e.clientY], moved: false };
+    });
+    svg.addEventListener("pointermove", (e) => {
+      if (!drag || !(e.buttons & 1)) return;
+      if (!drag.moved && Math.hypot(e.clientX - drag.start[0], e.clientY - drag.start[1]) > 6) {
+        drag.moved = true;
+        svg.setPointerCapture(e.pointerId);
+      }
+      if (drag.moved) {
+        const u = unitsPerPx();
+        panBy((e.clientX - drag.last[0]) * u, (e.clientY - drag.last[1]) * u);
+        svg.style.cursor = "grabbing";
+      }
+      drag.last = [e.clientX, e.clientY];
+    });
+    const endDrag = () => {
+      if (!drag) return;
+      if (drag.moved) st.ignoreClick = Date.now();
+      drag = null;
+      svg.style.cursor = "";
+    };
+    svg.addEventListener("pointerup", endDrag);
+    svg.addEventListener("pointercancel", endDrag);
+
     if (!demo) {
       svg.addEventListener("click", (evt) => {
+        if (st.ignoreClick && Date.now() - st.ignoreClick < 400) return;
         if (st.solved) return;
         const p = svgPoint(evt);
         if (st.tool === "line") {
@@ -984,7 +1080,9 @@
               const far = farCrossings(st.lines[st.lines.length - 1]);
               setMsg("Проведена прямая " + st.pending.name + a.name + ". " + (far
                 ? "С некоторыми прямыми она параллельна или почти параллельна — их пересечение так далеко, что его не показать на чертеже."
-                : "Чертёж сам отдалится, чтобы были видны все пересечения. Чтобы отметить пересечение, выбери «Точка»."));
+                : st.manual
+                  ? "Если пересечение не видно, нажми «Весь чертёж». Чтобы отметить пересечение, выбери «Точка»."
+                  : "Чертёж сам отдалится, чтобы были видны все пересечения. Чтобы отметить пересечение, выбери «Точка»."));
             }
             st.pending = null;
           }
@@ -1052,7 +1150,7 @@
         draw();
       };
       root.querySelector('[data-act="clear"]').onclick = () => {
-        Object.assign(st, { lines: [], points: [], history: [], pending: null, pendingLine: null, solved: false, showSol: false, hits: [] });
+        Object.assign(st, { lines: [], points: [], history: [], pending: null, pendingLine: null, solved: false, showSol: false, hits: [], manual: false });
         stepsEl.hidden = true;
         setMsg("Чертёж очищен.");
         draw();
