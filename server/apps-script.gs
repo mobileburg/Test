@@ -104,6 +104,7 @@ const SYSTEM = [
     "Геометрия → «Сечения тетраэдра и куба» (geometriya/sechenie-tetraedra/): метод следов, параллельные грани, тренажёр с подсказками и 3D. " +
     "Русский язык → «Миссия „Оборот“» (russkiy/oboroty/): причастный и деепричастный обороты, запятые. Алгебра (algebra/). «Прогресс обучения» (progress/) — статистика занятий.",
   "К вопросу приложена страница, с которой его задали, — используй её как контекст.",
+  "Дима может прикладывать файлы, фото и снимки своего экрана. Внимательно смотри на них и отвечай по их содержанию; если на снимке задача — помоги с ней по правилам выше. Если на картинке ничего не разобрать, так и скажи.",
 ].join("\n");
 
 function chatSheet_() {
@@ -133,7 +134,8 @@ function ask_(body) {
   const key = props.getProperty("GEMINI_KEY");
   if (!key) return { ok: false, error: "Помощник ещё не подключён." };
   const chatId = String(body.chatId || "");
-  const message = String(body.message || "").trim().slice(0, 4000);
+  const hasFiles = Array.isArray(body.files) && body.files.length > 0;
+  const message = String(body.message || "").trim().slice(0, 4000) || (hasFiles ? (body.screen ? "Посмотри на мой экран и помоги разобраться." : "Посмотри, что я приложил, и помоги разобраться.") : "");
   if (!/^[A-Za-z0-9_-]{1,64}$/.test(chatId) || !message) return { ok: false, error: "Пустой вопрос." };
 
   const dayKey = "asks:" + Utilities.formatDate(new Date(), "Asia/Yekaterinburg", "yyyy-MM-dd");
@@ -141,15 +143,46 @@ function ask_(body) {
   if (used >= ASK_PER_DAY) return { ok: false, error: "На сегодня лимит вопросов исчерпан. Продолжим завтра!" };
   props.setProperty(dayKey, String(used + 1));
 
+  const files = files_(body.files), keep = files_(body.keep);
+  if (files.error || keep.error) return { ok: false, error: files.error || keep.error };
+  if (files.size + keep.size > MAX_FILES_CHARS) return { ok: false, error: "Файлы слишком большие: вместе не больше 10 МБ." };
   const contents = history_(chatId);
   const where = [String(body.title || "").slice(0, 200), String(body.page || "").slice(0, 200)].filter(String).join(", ");
-  contents.push({ role: "user", parts: [{ text: (where ? "[Страница: " + where + "]\n" : "") + message }] });
+  const parts = [{ text: (where ? "[Страница: " + where + "]\n" : "") + (body.screen ? "[Приложен снимок экрана Димы]\n" : "") + message }].concat(files.parts);
+  if (keep.parts.length) parts.push({ text: "Файлы, приложенные ранее в этом разговоре:" }, ...keep.parts);
+  contents.push({ role: "user", parts });
   const reqId = Utilities.getUuid().replace(/-/g, "");
-  appendChat_([[reqId, chatId, new Date(), "q", message, Date.now()]]);
+  appendChat_([[reqId, chatId, new Date(), "q", message + (files.names.length ? "\n[вложения: " + files.names.join(", ") + "]" : ""), Date.now()]]);
 
   const res = gemini_(key, contents);
   appendChat_([[reqId, chatId, new Date(), res.text ? "a" : "err", res.text || res.error, Date.now()]]);
-  return res.text ? { ok: true, reqId, done: true, text: res.text } : { ok: false, error: "Помощник сейчас недоступен, попробуй через минуту." };
+  if (res.text) return { ok: true, reqId, done: true, text: res.text };
+  return { ok: false, error: res.code === 400 && (files.parts.length || keep.parts.length) ? "Не получилось прочитать вложение. Попробуй другой файл или сделай скриншот." : "Помощник сейчас недоступен, попробуй через минуту." };
+}
+
+const MAX_FILES = 6;
+const MAX_FILES_CHARS = 14000000;
+const FILE_TYPES = /^(image\/(png|jpeg|webp|heic|heif)|application\/pdf|text\/plain)$/;
+
+function files_(list) {
+  const out = { parts: [], names: [], size: 0 };
+  if (!list) return out;
+  if (!Array.isArray(list) || list.length > MAX_FILES) return { error: "Можно приложить не больше " + MAX_FILES + " файлов." };
+  for (const f of list) {
+    if (!f || typeof f !== "object") return { error: "Неверное вложение." };
+    const name = String(f.name || "файл").slice(0, 120);
+    if (typeof f.text === "string") {
+      out.parts.push({ text: "Файл «" + name + "»:\n" + f.text.slice(0, 200000) });
+      out.size += Math.min(f.text.length, 200000);
+    } else {
+      const mime = String(f.mime || ""), data = String(f.data || "");
+      if (!FILE_TYPES.test(mime) || !/^[A-Za-z0-9+/=]+$/.test(data)) return { error: "Формат файла «" + name + "» не поддерживается." };
+      out.parts.push({ inlineData: { mimeType: mime, data } });
+      out.size += data.length;
+    }
+    out.names.push(name);
+  }
+  return out;
 }
 
 function history_(chatId) {
@@ -175,7 +208,7 @@ function gemini_(key, contents) {
     contents,
     generationConfig: { maxOutputTokens: 2048, thinkingConfig: { thinkingLevel: "low" } },
   });
-  let error = "";
+  let error = "", lastCode = 0;
   for (let attempt = 0; attempt < MODELS.length * 2; attempt++) {
     const model = MODELS[attempt % MODELS.length];
     const res = UrlFetchApp.fetch("https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent", {
@@ -186,6 +219,7 @@ function gemini_(key, contents) {
       muteHttpExceptions: true,
     });
     const code = res.getResponseCode();
+    lastCode = code;
     let j = {};
     try { j = JSON.parse(res.getContentText()); } catch (err) { j = {}; }
     const c = (j.candidates || [])[0];
@@ -195,7 +229,7 @@ function gemini_(key, contents) {
     if (code === 400 || code === 401 || code === 403) break;
     if (attempt >= MODELS.length - 1) Utilities.sleep(1500);
   }
-  return { error };
+  return { error, code: lastCode };
 }
 
 function answer_(reqId) {

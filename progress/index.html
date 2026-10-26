@@ -145,7 +145,7 @@ window.addEventListener("DOMContentLoaded", async () => {
         case "geo_hint": return "Открыл подсказку (" + SOLIDS[d.solid] + ")";
         case "geo_solution": return "Открыл готовое решение (" + SOLIDS[d.solid] + ")";
         case "geo_skip": return "Перешёл к новой задаче, не решив (" + SOLIDS[d.solid] + ")";
-        case "ai_ask": return "Спросил помощника" + (d.voice ? " голосом" : "");
+        case "ai_ask": return "Спросил помощника" + (d.voice ? " голосом" : "") + (d.screen ? ", показал экран" : d.files ? ", приложил файлы: " + d.files : "");
         case "ai_answer": return d.ok ? "Помощник ответил за " + dur(d.sec) : "<span class='bad'>Помощник не ответил</span>";
         default: return esc(e.type);
       }
@@ -154,6 +154,7 @@ window.addEventListener("DOMContentLoaded", async () => {
     const asks = by("ai_ask");
     h += "<h2>Помощник</h2>" + (asks.length
       ? '<div class="cards"><div class="cardn"><b>' + asks.length + "</b><small>вопросов задано (голосом: " + asks.filter((a) => a.data.voice).length + ")</small></div>" +
+        '<div class="cardn"><b>' + asks.filter((a) => a.data.files).length + "</b><small>с файлами (экран: " + asks.filter((a) => a.data.screen).length + ")</small></div>" +
         '<div class="cardn"><b>' + new Set(asks.map((a) => dayKey(a.ts))).size + "</b><small>дней с вопросами</small></div></div>"
       : '<p class="empty">Пока не задавал вопросов.</p>');
 
