@@ -41,7 +41,7 @@ window.addEventListener("DOMContentLoaded", async () => {
     app.innerHTML = '<p class="lead">Статистика ведётся только для ученика, который вошёл на сайт. <a href="../vhod/index.html?back=' + encodeURIComponent(location.href) + '">Войти</a></p>';
     return;
   }
-  const SECTIONS = { "/": "Главная", himiya: "Химия", geometriya: "Геометрия", russkiy: "Русский язык", algebra: "Алгебра", progress: "Прогресс", vhod: "Вход" };
+  const SECTIONS = { "/": "Главная", himiya: "Химия", geometriya: "Геометрия", russkiy: "Русский язык", literatura: "Литература", algebra: "Алгебра", progress: "Прогресс", vhod: "Вход" };
   const KINDS = { type: "Определи оборот", commas: "Расставь запятые", main: "Найди главное слово", error: "Найди ошибку" };
   const SOLIDS = { tetra: "тетраэдр", cube: "куб" };
   const section = (page) => SECTIONS[(page || "/").split("/").filter(Boolean)[0] || "/"] || page;
@@ -130,6 +130,27 @@ window.addEventListener("DOMContentLoaded", async () => {
         solved.slice(-10).reverse().map((s) => "<tr><td>" + dt(s.ts) + "</td><td>" + (SOLIDS[s.data.solid] || "") + "</td><td class='num'>" + s.data.unknown + "</td><td class='num'>" + dur(s.data.sec) + "</td><td class='num'>" + s.data.hints + "</td><td class='num'>" + s.data.wrongChecks + "</td><td>" + (s.data.solutionShown ? "да" : "нет") + "</td></tr>").join("") + "</table></div>";
     }
 
+    const litRuns = by("lit_run").filter((e) => !e.data.work || e.data.work === "vechera");
+    h += "<h2>Литература: «Вечера на хуторе близ Диканьки»</h2>";
+    if (!litRuns.length) h += '<p class="empty">Пока не проходил тест по пересказу.</p>';
+    else {
+      const best = Math.max(...litRuns.map((e) => e.data.correct || 0));
+      const totalQ = litRuns[litRuns.length - 1].data.total || 8;
+      const sum = litRuns.reduce((s, e) => s + (e.data.correct || 0), 0);
+      const avg = Math.round(10 * sum / litRuns.length) / 10;
+      const last = litRuns[litRuns.length - 1];
+      h += '<div class="cards">' +
+        '<div class="cardn"><b>' + litRuns.length + "</b><small>попыток теста</small></div>" +
+        '<div class="cardn"><b>' + best + " из " + totalQ + "</b><small>лучший результат</small></div>" +
+        '<div class="cardn"><b>' + avg + "</b><small>в среднем верных ответов</small></div>" +
+        '<div class="cardn"><b>' + last.data.correct + " из " + (last.data.total || totalQ) + "</b><small>последний раз, " + dt(last.ts) + "</small></div></div>";
+      h += "<div class='scroll'><table><tr><th>Когда</th><th class='num'>Верных</th><th class='num'>Из</th><th>Точность</th><th class='num'>Время</th></tr>" +
+        litRuns.slice(-10).reverse().map((e) => {
+          const p = e.data.total ? Math.round(100 * e.data.correct / e.data.total) : 0;
+          return "<tr><td>" + dt(e.ts) + "</td><td class='num'>" + e.data.correct + "</td><td class='num'>" + e.data.total + "</td><td><div class='bar'><i style='width:" + p + "%;background:" + (p >= 80 ? "#2e7d32" : p >= 50 ? "#f0a040" : "#b3261e") + "'></i></div> " + p + "%</td><td class='num'>" + dur(e.data.sec) + "</td></tr>";
+        }).join("") + "</table></div>";
+    }
+
     const label = (e) => {
       const d = e.data || {};
       switch (e.type) {
@@ -147,6 +168,7 @@ window.addEventListener("DOMContentLoaded", async () => {
         case "geo_skip": return "Перешёл к новой задаче, не решив (" + SOLIDS[d.solid] + ")";
         case "ai_ask": return "Спросил помощника" + (d.voice ? " голосом" : "") + (d.screen ? ", показал экран" : d.files ? ", приложил файлы: " + d.files : "");
         case "ai_answer": return d.ok ? "Помощник ответил за " + dur(d.sec) : "<span class='bad'>Помощник не ответил</span>";
+        case "lit_run": return "Тест «" + esc(d.title || "Литература") + "»: " + d.correct + " из " + d.total + (d.correct === d.total ? " — <span class='ok'>всё верно</span>" : "");
         default: return esc(e.type);
       }
     };
