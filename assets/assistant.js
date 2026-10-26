@@ -171,7 +171,8 @@
         body: JSON.stringify({ action: "ask", token: s.token, chatId: c.chatId, message: text, page: location.pathname, title: document.title }),
       }).then((x) => x.json());
       if (!r.ok) throw new Error(r.error === "auth" ? "Сессия устарела. Выйди и войди снова." : r.error || "Помощник не ответил.");
-      while (Date.now() - t0 < WAIT_MS) {
+      if (r.done) reply = { role: "a", text: r.text };
+      while (!reply && Date.now() - t0 < WAIT_MS) {
         await sleep(POLL_MS);
         const a = await fetch(api() + "?action=answer&token=" + encodeURIComponent(s.token) + "&reqId=" + encodeURIComponent(r.reqId)).then((x) => x.json()).catch(() => null);
         if (a && a.ok && a.done) { reply = a.error ? { role: "err", text: a.error } : { role: "a", text: a.text }; break; }
