@@ -138,7 +138,14 @@
   window.addEventListener("pagehide", leave);
 
   window.Portal = { track, session, login, logout, getEvents, flush, base: BASE, user: USER };
-  const start = () => { widget(); track("visit"); flush(false); };
+  function loadAssistant() {
+    if (!session() || !window.PORTAL_ASSISTANT) return;
+    const s = document.createElement("script");
+    s.src = BASE + "assets/assistant.js";
+    s.defer = true;
+    document.body.appendChild(s);
+  }
+  const start = () => { widget(); track("visit"); flush(false); loadAssistant(); };
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start);
   else start();
 })();
