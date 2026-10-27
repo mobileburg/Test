@@ -8,7 +8,7 @@
   const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
   const chat = () => {
     let c = read(CKEY, null);
-    if (!c || !c.chatId) { c = { chatId: newId(), messages: [], speak: false }; write(CKEY, c); }
+    if (!c || !c.chatId) { c = { chatId: newId(), messages: [] }; write(CKEY, c); }
     return c;
   };
   const save = (c) => { c.messages = c.messages.slice(-60); write(CKEY, c); };
@@ -22,13 +22,11 @@
   .ai-head { display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: #0b57d0; color: #fff; }
   .ai-head b { flex: 1; font-size: 16px; }
   .ai-head button { border: 0; background: rgba(255,255,255,.16); color: #fff; border-radius: 8px; padding: 6px 9px; font: 600 13px system-ui, sans-serif; cursor: pointer; }
-  .ai-head button[aria-pressed="true"] { background: #fff; color: #0b57d0; }
   .ai-log { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 10px; background: #f6f8fc; scroll-behavior: smooth; }
   .ai-msg { max-width: 88%; padding: 9px 12px; border-radius: 14px; white-space: pre-wrap; word-wrap: break-word; }
   .ai-msg.q { align-self: flex-end; background: #0b57d0; color: #fff; border-bottom-right-radius: 4px; }
   .ai-msg.a { align-self: flex-start; background: #fff; border: 1px solid #e1e6f0; border-bottom-left-radius: 4px; }
   .ai-msg.err { align-self: flex-start; background: #fdecea; color: #8a1c13; }
-  .ai-msg .say { display: inline-block; margin-top: 6px; border: 0; background: none; color: #0b57d0; font: 600 12px system-ui, sans-serif; cursor: pointer; padding: 0; }
   .ai-msg ul { margin: 4px 0; padding-left: 20px; white-space: normal; }
   .ai-hello { color: #5f6b7a; font-size: 14px; }
   .ai-hello button { display: block; margin: 6px 0 0; border: 1px solid #c9d6f0; background: #fff; color: #0b57d0; border-radius: 10px; padding: 6px 10px; font: 14px system-ui, sans-serif; cursor: pointer; text-align: left; }
@@ -84,7 +82,6 @@
   panel.setAttribute("aria-label", "Помощник");
   panel.innerHTML =
     '<div class="ai-head"><b>Помощник</b>' +
-    '<button type="button" data-speak title="Читать ответы вслух">Голос</button>' +
     '<button type="button" data-new title="Начать новый разговор">Новый</button>' +
     '<button type="button" data-close title="Закрыть">✕</button></div>' +
     '<div class="ai-log" aria-live="polite"></div>' +
@@ -103,7 +100,6 @@
   const input = form.querySelector("textarea");
   const sendBtn = form.querySelector('button[type="submit"]');
   const micBtn = form.querySelector(".mic");
-  const speakBtn = panel.querySelector("[data-speak]");
   const fileBtn = panel.querySelector("[data-file]");
   const screenBtn = panel.querySelector("[data-screen]");
   const unshareBtn = panel.querySelector("[data-unshare]");
@@ -273,7 +269,6 @@
     if (inList) out += "</ul>";
     return out.replace(/\n+$/, "");
   }
-  const plain = (text) => String(text).replace(/\*\*|`|#+\s/g, "").replace(/^\s*[-*•]\s+/gm, "");
 
   function bubble(m) {
     const d = document.createElement("div");
@@ -288,15 +283,6 @@
         box.appendChild(el);
       });
       d.prepend(box);
-    }
-    if (m.role === "a" && "speechSynthesis" in window) {
-      const b = document.createElement("button");
-      b.type = "button";
-      b.className = "say";
-      b.textContent = "Прочитать вслух";
-      b.onclick = () => say(m.text);
-      d.appendChild(document.createElement("br"));
-      d.appendChild(b);
     }
     log.appendChild(d);
     return d;
@@ -318,18 +304,7 @@
       log.appendChild(h);
     }
     c.messages.forEach(bubble);
-    speakBtn.setAttribute("aria-pressed", c.speak ? "true" : "false");
     log.scrollTop = log.scrollHeight;
-  }
-
-  function say(text) {
-    if (!("speechSynthesis" in window)) return;
-    speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(plain(text));
-    u.lang = "ru-RU";
-    const v = speechSynthesis.getVoices().find((x) => /^ru/i.test(x.lang));
-    if (v) u.voice = v;
-    speechSynthesis.speak(u);
   }
 
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -399,7 +374,6 @@
     busy = false;
     sendBtn.disabled = false;
     Portal.track("ai_answer", { ok: reply.role === "a", sec: Math.round((Date.now() - t0) / 1000) });
-    if (reply.role === "a" && (c2.speak || byVoice)) say(reply.text);
   }
 
   form.addEventListener("submit", (e) => { e.preventDefault(); ask(input.value, false); });
@@ -410,7 +384,6 @@
   if (!SR) micBtn.hidden = true;
   micBtn.onclick = () => {
     if (rec) { rec.stop(); return; }
-    if ("speechSynthesis" in window) speechSynthesis.cancel();
     rec = new SR();
     rec.lang = "ru-RU";
     rec.interimResults = true;
@@ -433,17 +406,9 @@
     rec.start();
   };
 
-  speakBtn.onclick = () => {
-    const c = chat();
-    c.speak = !c.speak;
-    save(c);
-    speakBtn.setAttribute("aria-pressed", c.speak ? "true" : "false");
-    if (!c.speak && "speechSynthesis" in window) speechSynthesis.cancel();
-  };
   panel.querySelector("[data-new]").onclick = () => {
     if (busy) return;
-    const c = chat();
-    write(CKEY, { chatId: newId(), messages: [], speak: c.speak });
+    write(CKEY, { chatId: newId(), messages: [] });
     pending = [];
     kept = [];
     chips();
@@ -453,7 +418,6 @@
     panel.hidden = !on;
     fab.hidden = on;
     if (on) { render(); input.focus(); }
-    else if ("speechSynthesis" in window) speechSynthesis.cancel();
   };
   fab.onclick = () => open(true);
   panel.querySelector("[data-close]").onclick = () => open(false);
