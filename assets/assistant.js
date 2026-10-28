@@ -334,6 +334,7 @@
     save(c);
     render();
     input.value = "";
+    input.style.height = "";
     busy = true;
     sendBtn.disabled = true;
     const typing = document.createElement("div");
@@ -376,6 +377,8 @@
     Portal.track("ai_answer", { ok: reply.role === "a", sec: Math.round((Date.now() - t0) / 1000) });
   }
 
+  const grow = () => { input.style.height = ""; input.style.height = Math.min(120, Math.max(44, input.scrollHeight + 2)) + "px"; };
+  input.addEventListener("input", grow);
   form.addEventListener("submit", (e) => { e.preventDefault(); ask(input.value, false); });
   input.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); ask(input.value, false); } });
 
@@ -422,4 +425,17 @@
   fab.onclick = () => open(true);
   panel.querySelector("[data-close]").onclick = () => open(false);
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !panel.hidden) open(false); });
+
+  window.PortalAssistant = {
+    ask(text, opts) {
+      open(true);
+      if (opts && opts.send) { ask(text, false); return; }
+      input.value = text;
+      input.focus();
+      input.setSelectionRange(text.length, text.length);
+      grow();
+      input.scrollTop = input.scrollHeight;
+    },
+  };
+  document.dispatchEvent(new Event("portal-assistant-ready"));
 })();

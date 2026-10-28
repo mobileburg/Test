@@ -44,6 +44,9 @@ window.addEventListener("DOMContentLoaded", async () => {
   const SECTIONS = { "/": "Главная", himiya: "Химия", geometriya: "Геометрия", russkiy: "Русский язык", literatura: "Литература", algebra: "Алгебра", progress: "Прогресс", vhod: "Вход" };
   const KINDS = { type: "Определи оборот", commas: "Расставь запятые", main: "Найди главное слово", error: "Найди ошибку" };
   const SOLIDS = { tetra: "тетраэдр", cube: "куб" };
+  const ALG = { lin: "Линейные", quad: "Квадратные", inc: "Неполные квадратные", rat: "Дробные (ОДЗ)", exp: "Показательные", log: "Логарифмические",
+    prim: "y′ = f(x)", sep: "Разделяющиеся переменные", lin1: "Линейные 1-го порядка", hom2: "2-го порядка, однородные", inh2: "2-го порядка, с правой частью", cauchy: "Задача Коши" };
+  const ALG_MASTER = 3;
   const section = (page) => SECTIONS[(page || "/").split("/").filter(Boolean)[0] || "/"] || page;
   const pad = (n) => String(n).padStart(2, "0");
   const dt = (ts) => { const d = new Date(ts); return pad(d.getDate()) + "." + pad(d.getMonth() + 1) + "." + d.getFullYear() + " " + pad(d.getHours()) + ":" + pad(d.getMinutes()); };
@@ -130,6 +133,31 @@ window.addEventListener("DOMContentLoaded", async () => {
         solved.slice(-10).reverse().map((s) => "<tr><td>" + dt(s.ts) + "</td><td>" + (SOLIDS[s.data.solid] || "") + "</td><td class='num'>" + s.data.unknown + "</td><td class='num'>" + dur(s.data.sec) + "</td><td class='num'>" + s.data.hints + "</td><td class='num'>" + s.data.wrongChecks + "</td><td>" + (s.data.solutionShown ? "да" : "нет") + "</td></tr>").join("") + "</table></div>";
     }
 
+    const aSolved = by("alg_solved"), aChecks = by("alg_check"), aSols = by("alg_solution"), aHints = by("alg_hint");
+    h += "<h2>Алгебра: тренажёр уравнений</h2>";
+    if (!aSolved.length && !aChecks.length && !aHints.length) h += '<p class="empty">Пока не решал уравнения в тренажёре.</p>';
+    else {
+      const self = aSolved.filter((e) => !e.data.hint && !e.data.solution);
+      const avgT = aSolved.length ? aSolved.reduce((s, e) => s + (e.data.sec || 0), 0) / aSolved.length : 0;
+      const g = (grp) => aSolved.filter((e) => e.data.group === grp).length;
+      h += '<div class="cards">' +
+        '<div class="cardn"><b>' + aSolved.length + "</b><small>уравнений решено (обычных: " + g("eq") + ", дифференциальных: " + g("ode") + ")</small></div>" +
+        '<div class="cardn"><b>' + self.length + "</b><small>из них сам, без подсказок</small></div>" +
+        '<div class="cardn"><b>' + aSolved.filter((e) => e.data.hint === 1 && !e.data.solution).length + " / " + aSolved.filter((e) => e.data.hint > 1 && !e.data.solution).length + "</b><small>с лёгкой / с подробной подсказкой</small></div>" +
+        '<div class="cardn"><b>' + aSols.length + "</b><small>раз подсмотрено решение</small></div>" +
+        '<div class="cardn"><b>' + dur(avgT) + "</b><small>в среднем на уравнение</small></div>" +
+        '<div class="cardn"><b>' + aChecks.filter((c) => !c.data.ok).length + "</b><small>неверных ответов</small></div></div>";
+      const topics = Object.keys(ALG).filter((t) => aSolved.some((e) => e.data.topic === t) || aChecks.some((e) => e.data.topic === t) || aHints.some((e) => e.data.topic === t));
+      h += "<div class='scroll'><table><tr><th>Тема</th><th class='num'>Решено</th><th class='num'>Сам</th><th class='num'>С подсказкой</th><th class='num'>С решением</th><th>Освоение</th></tr>" + topics.map((t) => {
+        const sv = aSolved.filter((e) => e.data.topic === t), sf = sv.filter((e) => !e.data.hint && !e.data.solution).length;
+        const p = Math.min(100, Math.round(100 * sf / ALG_MASTER));
+        return "<tr><td>" + ALG[t] + "</td><td class='num'>" + sv.length + "</td><td class='num'>" + sf + "</td><td class='num'>" + sv.filter((e) => e.data.hint && !e.data.solution).length + "</td><td class='num'>" + sv.filter((e) => e.data.solution).length +
+          "</td><td><div class='bar'><i style='width:" + p + "%;background:" + (p >= 100 ? "#2e7d32" : p >= 34 ? "#f0a040" : "#b3261e") + "'></i></div> " + (p >= 100 ? "<span class='ok'>освоено</span>" : sf + " из " + ALG_MASTER + " сам") + "</td></tr>";
+      }).join("") + "</table></div>";
+      if (aSolved.length) h += "<div class='scroll'><table><tr><th>Когда</th><th>Тема</th><th class='num'>Время</th><th>Подсказки</th><th class='num'>Ошибок</th><th>Решение подсмотрено</th></tr>" +
+        aSolved.slice(-10).reverse().map((e) => "<tr><td>" + dt(e.ts) + "</td><td>" + (ALG[e.data.topic] || e.data.topic) + "</td><td class='num'>" + dur(e.data.sec) + "</td><td>" + (e.data.hint ? "открыто " + e.data.hint + " из 3" : e.data.solution ? "—" : "<span class='ok'>без подсказок</span>") + "</td><td class='num'>" + (e.data.wrong || 0) + "</td><td>" + (e.data.solution ? "да" : "нет") + "</td></tr>").join("") + "</table></div>";
+    }
+
     const litRuns = by("lit_run").filter((e) => !e.data.work || e.data.work === "vechera");
     h += "<h2>Литература: «Вечера на хуторе близ Диканьки»</h2>";
     if (!litRuns.length) h += '<p class="empty">Пока не проходил тест по пересказу.</p>';
@@ -168,6 +196,12 @@ window.addEventListener("DOMContentLoaded", async () => {
         case "geo_skip": return "Перешёл к новой задаче, не решив (" + SOLIDS[d.solid] + ")";
         case "ai_ask": return "Спросил помощника" + (d.voice ? " голосом" : "") + (d.screen ? ", показал экран" : d.files ? ", приложил файлы: " + d.files : "");
         case "ai_answer": return d.ok ? "Помощник ответил за " + dur(d.sec) : "<span class='bad'>Помощник не ответил</span>";
+        case "alg_solved": return "<span class='ok'>Решил уравнение</span> (" + (ALG[d.topic] || d.topic) + ") за " + dur(d.sec) + (d.hint ? ", подсказок: " + d.hint : ", без подсказок") + (d.solution ? ", после просмотра решения" : "");
+        case "alg_check": return "Уравнение (" + (ALG[d.topic] || d.topic) + "): " + (d.ok ? "<span class='ok'>верно</span>" : "<span class='bad'>неверный ответ</span>");
+        case "alg_hint": return "Открыл подсказку " + d.level + " из 3 (" + (ALG[d.topic] || d.topic) + ")";
+        case "alg_solution": return "Открыл решение уравнения (" + (ALG[d.topic] || d.topic) + ")";
+        case "alg_skip": return "Перешёл к другому уравнению, не решив (" + (ALG[d.topic] || d.topic) + ")";
+        case "alg_ai": return "Спросил помощника про уравнение (" + (ALG[d.topic] || d.topic) + ")";
         case "lit_run": return "Тест «" + esc(d.title || "Литература") + "»: " + d.correct + " из " + d.total + (d.correct === d.total ? " — <span class='ok'>всё верно</span>" : "");
         default: return esc(e.type);
       }
@@ -180,7 +214,7 @@ window.addEventListener("DOMContentLoaded", async () => {
         '<div class="cardn"><b>' + new Set(asks.map((a) => dayKey(a.ts))).size + "</b><small>дней с вопросами</small></div></div>"
       : '<p class="empty">Пока не задавал вопросов.</p>');
 
-    const jr = events.filter((e) => showAll || !["time", "ru_answer", "ai_answer"].includes(e.type)).slice(-80).reverse();
+    const jr = events.filter((e) => showAll || !["time", "ru_answer", "ai_answer", "alg_check"].includes(e.type)).slice(-80).reverse();
     h += "<h2>Журнал</h2><div class='btns'><label><input type='checkbox' id='all'" + (showAll ? " checked" : "") + "> показывать все события (каждый ответ и время на странице)</label></div>" +
       (jr.length ? "<div class='scroll'><table><tr><th>Дата и время</th><th>Раздел</th><th>Событие</th></tr>" + jr.map((e) => "<tr><td style='white-space:nowrap'>" + dt(e.ts) + "</td><td>" + esc(section(e.page)) + "</td><td>" + label(e) + "</td></tr>").join("") + "</table></div>" : '<p class="empty">Событий пока нет.</p>');
 

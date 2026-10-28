@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Тренажёр: уравнения</title>
+<link rel="stylesheet" href="../../assets/site.css">
+<script src="../../assets/portal-config.js"></script>
+<script src="../../assets/portal.js" defer></script>
+<style>
+  .ui, .groups, .topics, .task, .howto { font-family: system-ui, sans-serif; }
+  .howto { font-size: 0.93rem; color: #444; background: #f6f8fc; border: 1px solid #dde3ee; border-radius: 8px; padding: 10px 14px; margin: 0 0 18px; }
+  .howto summary { cursor: pointer; font-weight: 600; color: #0b57d0; }
+  .howto ul { margin: 8px 0 2px; padding-left: 20px; }
+  .groups { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 12px; }
+  .groups button { padding: 10px 16px; border: 1px solid #c9cfdb; border-radius: 22px; background: #fff; font: 600 15px system-ui, sans-serif; cursor: pointer; }
+  .groups button.on { background: #0b57d0; border-color: #0b57d0; color: #fff; }
+  .topics { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; margin: 0 0 18px; }
+  .topics button { position: relative; text-align: left; padding: 10px 12px; border: 1px solid #dde3ee; border-radius: 10px; background: #fafbfd; cursor: pointer; font: 14px/1.3 system-ui, sans-serif; color: #222; }
+  .topics button b { display: block; font-size: 15px; margin-bottom: 3px; }
+  .topics button small { color: #666; font-family: Georgia, serif; font-size: 14px; }
+  .topics button.on { border-color: #0b57d0; background: #eef3fd; box-shadow: 0 0 0 2px #0b57d0 inset; }
+  .topics button.has { padding-right: 58px; }
+  .topics .badge { position: absolute; top: 8px; right: 8px; font-size: 12px; padding: 2px 7px; border-radius: 10px; background: #e6f4ea; color: #137333; }
+  .topics .badge.done { background: #137333; color: #fff; }
+  .task { border: 1px solid #dde3ee; border-radius: 12px; padding: 16px 18px 18px; background: #fff; box-shadow: 0 2px 12px rgba(20,40,80,.05); }
+  .task .top { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; color: #666; font-size: 0.9rem; }
+  .task .ask { margin: 10px 0 4px; font-size: 1rem; color: #333; }
+  .task .big { font-family: Georgia, "Times New Roman", serif; font-size: 1.7rem; margin: 4px 0 14px; overflow-x: auto; padding: 4px 0; white-space: nowrap; }
+  .fr { display: inline-flex; flex-direction: column; vertical-align: middle; text-align: center; font-size: 0.85em; line-height: 1.15; margin: 0 2px; }
+  .fr > span:first-child { border-bottom: 1.5px solid currentColor; padding: 0 4px 1px; }
+  .fr > span:last-child { padding: 1px 4px 0; }
+  .eq { font-family: Georgia, "Times New Roman", serif; white-space: nowrap; font-size: 1.05em; }
+  sup { font-size: 0.7em; }
+  .answer { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .answer label { font: 1.3rem Georgia, serif; }
+  .answer input { flex: 1 1 260px; min-width: 0; padding: 10px 12px; font: 1.15rem Georgia, serif; border: 1px solid #b9c2d3; border-radius: 8px; }
+  .answer input:focus { outline: 2px solid #0b57d0; border-color: #0b57d0; }
+  .answer button.check { padding: 11px 18px; border: 0; border-radius: 8px; background: #2e7d32; color: #fff; font: 600 15px system-ui, sans-serif; cursor: pointer; }
+  .preview { min-height: 1.4em; margin: 6px 0 0; font-size: 0.92rem; color: #555; }
+  .preview .eq { color: #0b57d0; }
+  .preview.err { color: #a05a00; }
+  .keys { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 0; }
+  .keys button { min-width: 40px; padding: 6px 10px; border: 1px solid #c9cfdb; border-radius: 6px; background: #f6f8fc; font: 15px Georgia, serif; cursor: pointer; }
+  .fmt { font-size: 0.85rem; color: #666; margin: 6px 0 0; }
+  .tools { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 0; }
+  .tools button { padding: 8px 12px; border: 1px solid #c9cfdb; border-radius: 8px; background: #fff; font: 14px system-ui, sans-serif; cursor: pointer; }
+  .tools button.hintbtn { border-color: #e0a800; background: #fff8e1; color: #7a5900; font-weight: 600; }
+  .tools button.hintbtn .q { display: inline-flex; width: 20px; height: 20px; margin-right: 5px; align-items: center; justify-content: center; border-radius: 50%; background: #ffc107; color: #fff; font-weight: 800; }
+  .tools button.ai { border-color: #0b57d0; color: #0b57d0; font-weight: 600; }
+  .tools button.next { background: #0b57d0; border-color: #0b57d0; color: #fff; font-weight: 600; }
+  .tools button:disabled { opacity: .45; cursor: default; }
+  .msg { margin: 12px 0 0; padding: 10px 12px; border-radius: 8px; font-size: 0.95rem; }
+  .msg:empty { display: none; }
+  .msg.ok { background: #eef8ef; color: #1f5e22; border: 1px solid #b7d8b9; }
+  .msg.bad { background: #fff3f3; color: #8a1f1f; border: 1px solid #e0b4b4; }
+  .msg.info { background: #f3f5fa; color: #333; }
+  .hints { margin: 12px 0 0; display: flex; flex-direction: column; gap: 8px; }
+  .hint { display: flex; gap: 12px; padding: 12px; border-radius: 8px; background: #fff8e1; border: 1px solid #f2c94c; font-size: 0.95rem; line-height: 1.5; }
+  .hint .qicon { flex: none; width: 34px; height: 34px; display: grid; place-items: center; border-radius: 50%; background: #ffc107; color: #fff; font-weight: 800; font-size: 18px; box-shadow: 0 0 0 4px #ffe8a3; }
+  .hint .lvl { display: block; font-size: 0.8rem; font-weight: 700; letter-spacing: .02em; color: #7a5900; text-transform: uppercase; margin-bottom: 3px; }
+  .hint ol, .hint ul, .solution ol { margin: 6px 0; padding-left: 22px; }
+  .hint li, .solution li { margin: 3px 0; }
+  .hint p { margin: 8px 0 0; }
+  .hint.l3 { background: #fffdf3; }
+  .hintmore { align-self: flex-start; padding: 6px 12px; border: 1px solid #e0a800; border-radius: 8px; background: #fff; color: #7a5900; font: 600 14px system-ui, sans-serif; cursor: pointer; }
+  .solution { margin: 12px 0 0; padding: 12px 14px; border-radius: 8px; background: #f5fbf5; border: 1px solid #b7d8b9; font-size: 0.96rem; line-height: 1.5; }
+  .solution h4 { margin: 0 0 4px; font-size: 0.95rem; }
+  .solution p { margin: 6px 0 0; }
+  .typed { font-size: 0.85rem; color: #555; }
+  .typed code { background: #fff; border: 1px solid #dde3ee; border-radius: 4px; padding: 1px 5px; }
+  @media (max-width: 600px) {
+    .task { padding: 12px; }
+    .task .big { font-size: 1.35rem; }
+    .topics { grid-template-columns: repeat(2, 1fr); }
+    .topics button small { display: none; }
+  }
+</style>
+</head>
+<body>
+<p class="crumbs"><a href="../../index.html">Главная</a> / <a href="../index.html">Алгебра</a> / Тренажёр: уравнения</p>
+<h1>Тренажёр: уравнения</h1>
+<p class="lead">Обычные и дифференциальные уравнения. Решай сам, а если застрял — открывай подсказки: каждая следующая объясняет подробнее предыдущей.</p>
+
+<details class="howto">
+  <summary>Как пользоваться</summary>
+  <ul>
+    <li>Выбери тему — появится уравнение. Каждый раз оно новое.</li>
+    <li>Реши в тетради и впиши ответ. Тренажёр проверит его сам: корни — подстановкой, решения дифференциальных уравнений — подстановкой в уравнение.</li>
+    <li>«Подсказка» открывает помощь по ступенькам: 1 — с чего начать, 2 — подробный план с числами, 3 — объяснение с нуля с примером. Последний шаг — полное решение.</li>
+    <li>«Спросить помощника» откроет чат с этой задачей: напиши, что именно непонятно.</li>
+    <li>Корни пиши через точку с запятой: <code>2; -3</code>. Дроби — <code>1/2</code> или <code>0.5</code>. Если корней нет — нажми «нет корней».</li>
+    <li>Функции пиши так: <code>C*e^(3x)</code>, <code>C1*e^x + C2*e^(2x)</code>, <code>x^3 + C</code>, <code>sin(2x)</code>. Под полем видно, как тренажёр понял запись.</li>
+  </ul>
+</details>
+
+<div class="groups" role="tablist">
+  <button type="button" data-group="eq" class="on">Уравнения</button>
+  <button type="button" data-group="ode">Дифференциальные уравнения</button>
+</div>
+<div class="topics"></div>
+<div class="task" id="task" aria-live="polite"></div>
+
+<script src="tasks.js"></script>
+<script>
+(function () {
+  const E = window.EqTasks;
+  const SKEY = "uchportal-alg";
+  const LEVELS = ["С чего начать", "Подробный план", "Объясняю с нуля"];
+  const read = () => { try { return JSON.parse(localStorage.getItem(SKEY)) || {}; } catch (e) { return {}; } };
+  const write = (v) => { try { localStorage.setItem(SKEY, JSON.stringify(v)); } catch (e) { /* storage full */ } };
+  const track = (type, data) => { if (window.Portal) Portal.track(type, data); };
+  const topicsBox = document.querySelector(".topics");
+  const box = document.getElementById("task");
+  const MASTER = 3;
+
+  const params = new URLSearchParams(location.search);
+  let group = params.get("g") === "ode" ? "ode" : "eq";
+  let topic = E.TOPICS.find((t) => t.id === params.get("t")) ? params.get("t") : null;
+  if (topic) group = E.TOPICS.find((t) => t.id === topic).group;
+  if (!topic) topic = E.TOPICS.find((t) => t.group === group).id;
+
+  let task, st, counter = 0;
+
+  function plain(html) {
+    const d = document.createElement("div");
+    d.innerHTML = html;
+    d.querySelectorAll("sup").forEach((s) => s.replaceWith("^(" + s.textContent + ")"));
+    d.querySelectorAll("sub").forEach((s) => s.replaceWith("_" + s.textContent));
+    d.querySelectorAll(".fr").forEach((f) => f.replaceWith("(" + f.children[0].textContent + ")/(" + f.children[1].textContent + ")"));
+    return d.textContent.replace(/\s+/g, " ").trim();
+  }
+
+  function drawTopics() {
+    document.querySelectorAll(".groups button").forEach((b) => b.classList.toggle("on", b.dataset.group === group));
+    const stats = read();
+    topicsBox.textContent = "";
+    E.TOPICS.filter((t) => t.group === group).forEach((t) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = (t.id === topic ? "on " : "") + ((stats[t.id] || {}).solved ? "has" : "");
+      const s = stats[t.id] || {};
+      b.innerHTML = "<b></b><small></small>" + (s.solved ? '<span class="badge' + ((s.self || 0) >= MASTER ? " done" : "") + '">' + ((s.self || 0) >= MASTER ? "освоено" : "✓ " + s.solved) + "</span>" : "");
+      b.querySelector("b").textContent = t.title;
+      b.querySelector("small").textContent = t.sample;
+      b.title = s.solved ? "Решено: " + s.solved + ", из них сам: " + (s.self || 0) : "Ещё не решал";
+      b.onclick = () => { if (topic !== t.id) { leaveTask(); topic = t.id; newTask(); } };
+      topicsBox.appendChild(b);
+    });
+  }
+
+  function leaveTask() {
+    if (!task || st.left) return;
+    st.left = true;
+    if (!st.solved && (st.tries || st.hint || st.sol)) track("alg_skip", { topic: task.topic, group: task.group, sec: Math.round((Date.now() - st.t0) / 1000), hint: st.hint, solution: st.sol });
+  }
+
+  function newTask() {
+    task = E.make(topic);
+    counter++;
+    st = { t0: Date.now(), hint: 0, sol: false, tries: 0, wrong: 0, solved: false, last: "", lastMsg: "" };
+    history.replaceState(null, "", "?t=" + topic);
+    drawTopics();
+    draw();
+  }
+
+  function draw() {
+    const tp = E.TOPICS.find((t) => t.id === topic);
+    const ode = task.kind === "ode";
+    box.innerHTML =
+      '<div class="top"><span>' + (tp.group === "ode" ? "Дифференциальные уравнения" : "Уравнения") + " · <b></b></span><span>Задача " + counter + "</span></div>" +
+      '<div class="ask">' + task.ask + ":</div>" +
+      '<div class="big">' + task.eq + "</div>" +
+      '<form class="answer"><label>' + (ode ? "y =" : "x =") + '</label><input autocomplete="off" autocapitalize="off" spellcheck="false" inputmode="text" placeholder="' + (ode ? "например, C*e^(2x)" : "например, 2; -3") + '"><button class="check" type="submit">Проверить</button></form>' +
+      '<div class="preview"></div>' +
+      '<div class="keys"></div>' +
+      '<div class="tools">' +
+        '<button type="button" class="hintbtn" data-act="hint"><span class="q">?</span><span class="t">Подсказка</span></button>' +
+        '<button type="button" data-act="sol">Показать решение</button>' +
+        '<button type="button" class="ai" data-act="ai" hidden>Спросить помощника</button>' +
+        '<button type="button" data-act="next">Другое уравнение</button>' +
+      "</div>" +
+      '<div class="msg"></div><div class="hints"></div><div class="sol"></div>';
+    box.querySelector(".top b").textContent = tp.title;
+    const input = box.querySelector("input");
+    const keys = ode
+      ? [["C", "C"], ["C₁", "C1"], ["C₂", "C2"], ["x", "x"], ["eˣ", "e^()"], ["xⁿ", "^"], ["sin", "sin()"], ["cos", "cos()"], ["ln", "ln()"], ["√", "sqrt()"], ["·", "*"], ["/", "/"], ["( )", "()"]]
+      : [["нет корней", "!none"], [";", "; "], ["/", "/"], ["√", "sqrt()"], ["−", "-"]];
+    const kb = box.querySelector(".keys");
+    keys.forEach(([label, ins]) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.textContent = label;
+      b.onclick = () => {
+        if (ins === "!none") { input.value = "нет корней"; }
+        else {
+          const a = input.selectionStart ?? input.value.length, z = input.selectionEnd ?? a;
+          input.value = input.value.slice(0, a) + ins + input.value.slice(z);
+          const pos = a + (ins.endsWith("()") ? ins.length - 1 : ins.length);
+          input.setSelectionRange(pos, pos);
+        }
+        input.focus();
+        showPreview();
+      };
+      kb.appendChild(b);
+    });
+    const pv = box.querySelector(".preview");
+    function showPreview() {
+      const p = E.preview(task, input.value);
+      pv.className = "preview" + (p === null ? " err" : "");
+      if (!input.value.trim()) pv.textContent = "";
+      else if (p === null) pv.textContent = "Запись пока непонятна — проверь скобки и знаки.";
+      else pv.innerHTML = "Ты вводишь: <span class=\"eq\">" + p + "</span>";
+    }
+    input.addEventListener("input", showPreview);
+    box.querySelector("form").onsubmit = (e) => { e.preventDefault(); checkAnswer(input.value); };
+    box.querySelector('[data-act="hint"]').onclick = moreHint;
+    box.querySelector('[data-act="sol"]').onclick = showSolution;
+    box.querySelector('[data-act="next"]').onclick = () => { leaveTask(); newTask(); };
+    box.querySelector('[data-act="ai"]').onclick = askAssistant;
+    aiButton();
+    drawHints();
+    if (matchMedia("(pointer: fine)").matches) input.focus({ preventScroll: true });
+  }
+
+  function setMsg(text, kind) {
+    const m = box.querySelector(".msg");
+    m.className = "msg " + (kind || "info");
+    m.innerHTML = text;
+  }
+
+  function checkAnswer(value) {
+    if (!value.trim()) { setMsg("Сначала впиши ответ.", "bad"); return; }
+    const r = E.check(task, value);
+    st.last = value;
+    st.lastMsg = r.ok ? "" : plain(r.msg);
+    if (r.parse) { setMsg(r.msg, "bad"); return; }
+    st.tries++;
+    if (!r.ok) {
+      st.wrong++;
+      track("alg_check", { topic: task.topic, group: task.group, ok: false, hint: st.hint });
+      setMsg(r.msg + (st.hint < LEVELS.length ? " Нужна помощь — нажми «Подсказка»." : ""), "bad");
+      return;
+    }
+    const first = !st.solved;
+    st.solved = true;
+    const sec = Math.round((Date.now() - st.t0) / 1000);
+    const self = !st.hint && !st.sol;
+    if (first) {
+      track("alg_check", { topic: task.topic, group: task.group, ok: true, hint: st.hint });
+      track("alg_solved", { topic: task.topic, group: task.group, sec, hint: st.hint, solution: st.sol, wrong: st.wrong });
+      const stats = read(), s = stats[task.topic] || { solved: 0, self: 0 };
+      s.solved++;
+      if (self) s.self = (s.self || 0) + 1;
+      stats[task.topic] = s;
+      write(stats);
+      drawTopics();
+    }
+    const s = read()[task.topic] || {};
+    const praise = self ? (st.wrong ? "Верно! Ты нашёл ошибку и исправил её сам." : "Верно, и без подсказок!") : st.sol ? "Верно. В следующий раз попробуй сначала подсказки — так лучше запоминается." : "Верно! Подсказка помогла.";
+    const left = MASTER - (s.self || 0);
+    setMsg("<b>" + praise + "</b>" + (left > 0 ? " До «освоено» в этой теме: решить сам ещё " + left + "." : " Тема освоена — можно переходить к следующей."), "ok");
+    const next = box.querySelector('[data-act="next"]');
+    next.textContent = "Следующее уравнение →";
+    next.classList.add("next");
+    next.focus({ preventScroll: true });
+    if (!st.sol) renderSolution(true);
+  }
+
+  function drawHints() {
+    const h = box.querySelector(".hints");
+    h.textContent = "";
+    for (let i = 0; i < st.hint; i++) {
+      const d = document.createElement("div");
+      d.className = "hint l" + (i + 1);
+      d.innerHTML = '<div class="qicon">' + (i + 1) + '</div><div><span class="lvl">Подсказка ' + (i + 1) + " из " + LEVELS.length + " · " + LEVELS[i] + "</span>" + task.hints[i] + "</div>";
+      h.appendChild(d);
+    }
+    if (st.hint && !st.solved) {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "hintmore";
+      b.textContent = st.hint < LEVELS.length ? (st.hint === 1 ? "Не понятно — объясни подробнее" : "Всё ещё сложно — объясни с самого начала") : "Покажи полное решение";
+      b.onclick = st.hint < LEVELS.length ? moreHint : showSolution;
+      h.appendChild(b);
+    }
+    const hb = box.querySelector('[data-act="hint"]');
+    hb.querySelector(".t").textContent = st.hint ? "Подсказка · " + st.hint + " из " + LEVELS.length : "Подсказка";
+    hb.disabled = st.hint >= LEVELS.length;
+  }
+
+  function moreHint() {
+    if (st.hint >= LEVELS.length) return;
+    st.hint++;
+    if (!st.solved) track("alg_hint", { topic: task.topic, group: task.group, level: st.hint });
+    drawHints();
+    const last = box.querySelectorAll(".hint");
+    if (last.length) last[last.length - 1].scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }
+
+  function renderSolution(afterSolve) {
+    const s = box.querySelector(".sol");
+    s.innerHTML = '<div class="solution"><h4>' + (afterSolve ? "Разбор решения" : "Решение") + "</h4>" + task.solution +
+      (task.kind === "ode" ? '<p class="typed">В поле ответа это вводится так: <code></code></p>' : "") + "</div>";
+    if (task.kind === "ode") s.querySelector("code").textContent = task.answer.t;
+    if (afterSolve) {
+      const d = s.querySelector(".solution");
+      const det = document.createElement("details");
+      det.innerHTML = "<summary>Посмотреть разбор решения</summary>";
+      d.querySelector("h4").remove();
+      det.appendChild(d);
+      s.appendChild(det);
+    }
+    box.querySelector('[data-act="sol"]').disabled = true;
+  }
+
+  function showSolution() {
+    if (!st.solved && !st.sol) { st.sol = true; track("alg_solution", { topic: task.topic, group: task.group, hint: st.hint }); }
+    renderSolution(false);
+    drawHints();
+    box.querySelector(".sol").scrollIntoView({ block: "nearest", behavior: "smooth" });
+    setMsg("Разбери решение, а потом введи ответ сам — или возьми новое уравнение и попробуй без подсказок.", "info");
+  }
+
+  function aiButton() {
+    const b = box.querySelector('[data-act="ai"]');
+    if (b) b.hidden = !window.PortalAssistant;
+  }
+  document.addEventListener("portal-assistant-ready", aiButton);
+
+  function askAssistant() {
+    if (!window.PortalAssistant) return;
+    const tp = E.TOPICS.find((t) => t.id === topic);
+    let ctx = "[Тренажёр уравнений, тема «" + tp.title + "». " + task.ask + ": " + plain(task.eq) + ".";
+    if (st.hint) ctx += " Открыто подсказок: " + st.hint + " из " + LEVELS.length + ".";
+    if (st.sol) ctx += " Решение уже показано.";
+    if (st.last) ctx += " Мой последний ответ: " + st.last + (st.lastMsg ? " — тренажёр ответил: «" + (st.lastMsg.length > 160 ? st.lastMsg.slice(0, 157) + "…" : st.lastMsg) + "»" : " — верно") + ".";
+    ctx += "]\nМне непонятно: ";
+    track("alg_ai", { topic: task.topic, group: task.group, hint: st.hint });
+    PortalAssistant.ask(ctx);
+  }
+
+  document.querySelectorAll(".groups button").forEach((b) => {
+    b.onclick = () => {
+      if (b.dataset.group === group) return;
+      leaveTask();
+      group = b.dataset.group;
+      topic = E.TOPICS.find((t) => t.group === group).id;
+      newTask();
+    };
+  });
+  window.addEventListener("pagehide", leaveTask);
+  newTask();
+})();
+</script>
+</body>
+</html>
