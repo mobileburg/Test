@@ -17,6 +17,7 @@
     background-color: #fffef7; background-image: linear-gradient(rgba(90,130,200,.16) 1px, transparent 1px), linear-gradient(90deg, rgba(90,130,200,.16) 1px, transparent 1px); background-size: 22px 22px; }
   .sk-wrap canvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; }
   .sk-wrap.eraser { cursor: cell; }
+  .sk-empty[hidden] { display: none; }
   .sk-empty { position: absolute; inset: 0; display: grid; place-items: center; color: #9aa6b8; font-size: 15px; pointer-events: none; text-align: center; padding: 12px; }
   .sk.fs { position: fixed; inset: 0; z-index: 9500; border-radius: 0; border: 0; display: flex; flex-direction: column; }
   .sk.fs .sk-wrap { flex: 1; height: auto; }
