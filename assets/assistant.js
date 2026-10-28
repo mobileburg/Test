@@ -429,6 +429,7 @@
   window.PortalAssistant = {
     ask(text, opts) {
       open(true);
+      if (opts && opts.files && opts.files.length) { pending = pending.concat(opts.files).slice(-MAX_FILES); chips(); }
       if (opts && opts.send) { ask(text, false); return; }
       input.value = text;
       input.focus();

@@ -146,7 +146,8 @@ window.addEventListener("DOMContentLoaded", async () => {
         '<div class="cardn"><b>' + aSolved.filter((e) => e.data.hint === 1 && !e.data.solution).length + " / " + aSolved.filter((e) => e.data.hint > 1 && !e.data.solution).length + "</b><small>с лёгкой / с подробной подсказкой</small></div>" +
         '<div class="cardn"><b>' + aSols.length + "</b><small>раз подсмотрено решение</small></div>" +
         '<div class="cardn"><b>' + dur(avgT) + "</b><small>в среднем на уравнение</small></div>" +
-        '<div class="cardn"><b>' + aChecks.filter((c) => !c.data.ok).length + "</b><small>неверных ответов</small></div></div>";
+        '<div class="cardn"><b>' + aChecks.filter((c) => !c.data.ok).length + "</b><small>неверных ответов</small></div>" +
+        '<div class="cardn"><b>' + aSolved.filter((e) => e.data.hand).length + "</b><small>решено с ответом от руки (распознаваний: " + by("alg_hand").filter((e) => e.data.ok).length + ")</small></div></div>";
       const topics = Object.keys(ALG).filter((t) => aSolved.some((e) => e.data.topic === t) || aChecks.some((e) => e.data.topic === t) || aHints.some((e) => e.data.topic === t));
       h += "<div class='scroll'><table><tr><th>Тема</th><th class='num'>Решено</th><th class='num'>Сам</th><th class='num'>С подсказкой</th><th class='num'>С решением</th><th>Освоение</th></tr>" + topics.map((t) => {
         const sv = aSolved.filter((e) => e.data.topic === t), sf = sv.filter((e) => !e.data.hint && !e.data.solution).length;
@@ -217,11 +218,12 @@ window.addEventListener("DOMContentLoaded", async () => {
         case "geo_skip": return "Перешёл к новой задаче, не решив (" + SOLIDS[d.solid] + ")";
         case "ai_ask": return "Спросил помощника" + (d.voice ? " голосом" : "") + (d.screen ? ", показал экран" : d.files ? ", приложил файлы: " + d.files : "");
         case "ai_answer": return d.ok ? "Помощник ответил за " + dur(d.sec) : "<span class='bad'>Помощник не ответил</span>";
-        case "alg_solved": return "<span class='ok'>Решил уравнение</span> (" + (ALG[d.topic] || d.topic) + ") за " + dur(d.sec) + (d.hint ? ", подсказок: " + d.hint : ", без подсказок") + (d.solution ? ", после просмотра решения" : "");
+        case "alg_solved": return "<span class='ok'>Решил уравнение</span> (" + (ALG[d.topic] || d.topic) + ") за " + dur(d.sec) + (d.hand ? ", ответ от руки" : "") + (d.hint ? ", подсказок: " + d.hint : ", без подсказок") + (d.solution ? ", после просмотра решения" : "");
         case "alg_check": return "Уравнение (" + (ALG[d.topic] || d.topic) + "): " + (d.ok ? "<span class='ok'>верно</span>" : "<span class='bad'>неверный ответ</span>");
         case "alg_hint": return "Открыл подсказку " + d.level + " из 3 (" + (ALG[d.topic] || d.topic) + ")";
         case "alg_solution": return "Открыл решение уравнения (" + (ALG[d.topic] || d.topic) + ")";
         case "alg_skip": return "Перешёл к другому уравнению, не решив (" + (ALG[d.topic] || d.topic) + ")";
+        case "alg_hand": return d.ok ? "Распознан ответ, написанный от руки (" + (ALG[d.topic] || d.topic) + ")" : "<span class='bad'>Не удалось распознать запись от руки</span>";
         case "alg_ai": return "Спросил помощника про уравнение (" + (ALG[d.topic] || d.topic) + ")";
         case "lit_run": return "Тест «" + esc(d.title || "Литература") + "»: " + d.correct + " из " + d.total + (d.correct === d.total ? " — <span class='ok'>всё верно</span>" : "");
         default: return esc(e.type);

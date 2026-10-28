@@ -42,6 +42,13 @@
   .preview.err { color: #a05a00; }
   .keys { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 0; }
   .keys button { min-width: 40px; padding: 6px 10px; border: 1px solid #c9cfdb; border-radius: 6px; background: #f6f8fc; font: 15px Georgia, serif; cursor: pointer; }
+  .hand { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 10px 0 0; font-size: 0.88rem; color: #666; }
+  .hand button { padding: 7px 12px; border: 1px solid #7e57c2; border-radius: 8px; background: #f5f0ff; color: #4a2a8a; font: 600 14px system-ui, sans-serif; cursor: pointer; }
+  .hand button.on { background: #7e57c2; color: #fff; }
+  .sketch { margin: 8px 0 0; }
+  .sketch[hidden] { display: none; }
+  .sk-bar button.rec { border-color: #7e57c2; background: #7e57c2; color: #fff; font-weight: 600; }
+  .sk-bar button.skai { border-color: #0b57d0; color: #0b57d0; font-weight: 600; }
   .fmt { font-size: 0.85rem; color: #666; margin: 6px 0 0; }
   .tools { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 0; }
   .tools button { padding: 8px 12px; border: 1px solid #c9cfdb; border-radius: 8px; background: #fff; font: 14px system-ui, sans-serif; cursor: pointer; }
@@ -89,6 +96,7 @@
     <li>Реши в тетради и впиши ответ. Тренажёр проверит его сам: корни — подстановкой, решения дифференциальных уравнений — подстановкой в уравнение.</li>
     <li>«Подсказка» открывает помощь по ступенькам: 1 — с чего начать, 2 — подробный план с числами, 3 — объяснение с нуля с примером. Последний шаг — полное решение.</li>
     <li>«Спросить помощника» откроет чат с этой задачей: напиши, что именно непонятно.</li>
+    <li>Можно писать от руки: нажми «✍ Писать от руки» — появится тетрадный лист. Пиши пером графического планшета (учитывается нажим, ладонь не мешает), пальцем или мышью. «Распознать ответ» перенесёт написанный ответ в поле — проверь его и нажми «Проверить». «Показать помощнику» отправит рисунок с решением в чат.</li>
     <li>Корни пиши через точку с запятой: <code>2; -3</code>. Дроби — <code>1/2</code> или <code>0.5</code>. Если корней нет — нажми «нет корней».</li>
     <li>Функции пиши так: <code>C*e^(3x)</code>, <code>C1*e^x + C2*e^(2x)</code>, <code>x^3 + C</code>, <code>sin(2x)</code>. Под полем видно, как тренажёр понял запись.</li>
   </ul>
@@ -101,6 +109,7 @@
 <div class="topics"></div>
 <div class="task" id="task" aria-live="polite"></div>
 
+<script src="../../assets/sketch.js"></script>
 <script src="tasks.js"></script>
 <script>
 (function () {
@@ -174,6 +183,8 @@
       '<form class="answer"><label>' + (ode ? "y =" : "x =") + '</label><input autocomplete="off" autocapitalize="off" spellcheck="false" inputmode="text" placeholder="' + (ode ? "например, C*e^(2x)" : "например, 2; -3") + '"><button class="check" type="submit">Проверить</button></form>' +
       '<div class="preview"></div>' +
       '<div class="keys"></div>' +
+      '<div class="hand"><button type="button" data-act="hand" aria-pressed="false">✍ Писать от руки</button><span>пером графического планшета, пальцем или мышью</span></div>' +
+      '<div class="sketch" hidden></div>' +
       '<div class="tools">' +
         '<button type="button" class="hintbtn" data-act="hint"><span class="q">?</span><span class="t">Подсказка</span></button>' +
         '<button type="button" data-act="sol">Показать решение</button>' +
@@ -218,9 +229,88 @@
     box.querySelector('[data-act="sol"]').onclick = showSolution;
     box.querySelector('[data-act="next"]').onclick = () => { leaveTask(); newTask(); };
     box.querySelector('[data-act="ai"]').onclick = askAssistant;
+    setupHand(input, showPreview);
     aiButton();
     drawHints();
     if (matchMedia("(pointer: fine)").matches) input.focus({ preventScroll: true });
+  }
+
+  const HKEY = "uchportal-hand";
+  let sketch = null;
+  function setupHand(input, showPreview) {
+    const btn = box.querySelector('[data-act="hand"]'), host = box.querySelector(".sketch");
+    sketch = null;
+    const canRecognize = () => !!(window.PORTAL_API && window.Portal && Portal.session() && Portal.session().token);
+    function build() {
+      sketch = Sketch(host, { placeholder: "Пиши здесь решение и ответ — пером планшета, пальцем или мышью." + (canRecognize() ? " Потом нажми «Распознать ответ»." : "") });
+      const bar = host.querySelector(".sk-bar"), fsb = bar.querySelector('[data-act="fs"]');
+      if (canRecognize()) {
+        const rec = document.createElement("button");
+        rec.type = "button";
+        rec.className = "rec";
+        rec.textContent = "Распознать ответ";
+        rec.title = "Перенести написанный от руки ответ в поле ответа";
+        rec.onclick = () => recognize(rec);
+        bar.insertBefore(rec, fsb);
+      }
+      const ai = document.createElement("button");
+      ai.type = "button";
+      ai.className = "skai";
+      ai.textContent = "Показать помощнику";
+      ai.title = "Отправить рисунок помощнику: он посмотрит решение и подскажет, где ошибка";
+      ai.hidden = !window.PortalAssistant;
+      ai.onclick = () => {
+        const img = sketch.toImage(1600);
+        if (!img) { setMsg("Сначала напиши решение на листе.", "bad"); return; }
+        sketch.exitFs();
+        askAssistant("Вот моё решение на рисунке. Посмотри, где ошибка: ", [Object.assign({ name: "Моё решение" }, img)]);
+      };
+      bar.insertBefore(ai, fsb);
+      document.addEventListener("portal-assistant-ready", () => { ai.hidden = !window.PortalAssistant; });
+    }
+    async function recognize(rec) {
+      const img = sketch.toImage(1400);
+      if (!img) { setMsg("Сначала напиши ответ на листе.", "bad"); return; }
+      const label = rec.textContent;
+      rec.disabled = true;
+      rec.textContent = "Распознаю…";
+      try {
+        const r = await fetch(window.PORTAL_API, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ action: "recognize", token: Portal.session().token, image: img.data, kind: task.kind }) }).then((x) => x.json());
+        if (!r.ok) throw new Error(r.error === "auth" ? "Сессия устарела — выйди и войди снова." : r.error || "Не получилось распознать.");
+        sketch.exitFs();
+        if (!r.text || r.text === "?") {
+          setMsg("Не получилось разобрать запись. Напиши ответ крупнее и отдельной строкой — или введи его с клавиатуры.", "bad");
+          track("alg_hand", { topic: task.topic, group: task.group, ok: false });
+          return;
+        }
+        input.value = r.text;
+        st.handText = r.text;
+        showPreview();
+        const pv = E.preview(task, r.text);
+        setMsg("Я прочитал: <b>" + (pv || r.text.replace(/</g, "&lt;")) + "</b>. Если всё верно — нажми «Проверить». Если я ошибся — исправь в поле с клавиатуры.", "info");
+        track("alg_hand", { topic: task.topic, group: task.group, ok: true });
+        input.focus({ preventScroll: true });
+        box.querySelector(".answer").scrollIntoView({ block: "nearest", behavior: "smooth" });
+      } catch (e) {
+        sketch.exitFs();
+        setMsg(e.message || "Ошибка связи.", "bad");
+      } finally {
+        rec.disabled = false;
+        rec.textContent = label;
+      }
+    }
+    function toggle(on) {
+      host.hidden = !on;
+      btn.classList.toggle("on", on);
+      btn.setAttribute("aria-pressed", on ? "true" : "false");
+      btn.textContent = on ? "✍ Убрать лист" : "✍ Писать от руки";
+      if (on && !sketch) build();
+      if (on) sketch.resize();
+      else if (sketch) sketch.exitFs();
+      try { localStorage.setItem(HKEY, on ? "1" : ""); } catch (e) { /* storage full */ }
+    }
+    btn.onclick = () => toggle(host.hidden);
+    if (localStorage.getItem(HKEY)) toggle(true);
   }
 
   function setMsg(text, kind) {
@@ -233,12 +323,13 @@
     if (!value.trim()) { setMsg("Сначала впиши ответ.", "bad"); return; }
     const r = E.check(task, value);
     st.last = value;
+    const hand = !!st.handText && value.trim() === st.handText.trim();
     st.lastMsg = r.ok ? "" : plain(r.msg);
     if (r.parse) { setMsg(r.msg, "bad"); return; }
     st.tries++;
     if (!r.ok) {
       st.wrong++;
-      track("alg_check", { topic: task.topic, group: task.group, ok: false, hint: st.hint });
+      track("alg_check", { topic: task.topic, group: task.group, ok: false, hint: st.hint, hand });
       setMsg(r.msg + (st.hint < LEVELS.length ? " Нужна помощь — нажми «Подсказка»." : ""), "bad");
       return;
     }
@@ -247,8 +338,8 @@
     const sec = Math.round((Date.now() - st.t0) / 1000);
     const self = !st.hint && !st.sol;
     if (first) {
-      track("alg_check", { topic: task.topic, group: task.group, ok: true, hint: st.hint });
-      track("alg_solved", { topic: task.topic, group: task.group, sec, hint: st.hint, solution: st.sol, wrong: st.wrong });
+      track("alg_check", { topic: task.topic, group: task.group, ok: true, hint: st.hint, hand });
+      track("alg_solved", { topic: task.topic, group: task.group, sec, hint: st.hint, solution: st.sol, wrong: st.wrong, hand });
       const stats = read(), s = stats[task.topic] || { solved: 0, self: 0 };
       s.solved++;
       if (self) s.self = (s.self || 0) + 1;
@@ -328,16 +419,16 @@
   }
   document.addEventListener("portal-assistant-ready", aiButton);
 
-  function askAssistant() {
+  function askAssistant(extra, files) {
     if (!window.PortalAssistant) return;
     const tp = E.TOPICS.find((t) => t.id === topic);
     let ctx = "[Тренажёр уравнений, тема «" + tp.title + "». " + task.ask + ": " + plain(task.eq) + ".";
     if (st.hint) ctx += " Открыто подсказок: " + st.hint + " из " + LEVELS.length + ".";
     if (st.sol) ctx += " Решение уже показано.";
     if (st.last) ctx += " Мой последний ответ: " + st.last + (st.lastMsg ? " — тренажёр ответил: «" + (st.lastMsg.length > 160 ? st.lastMsg.slice(0, 157) + "…" : st.lastMsg) + "»" : " — верно") + ".";
-    ctx += "]\nМне непонятно: ";
-    track("alg_ai", { topic: task.topic, group: task.group, hint: st.hint });
-    PortalAssistant.ask(ctx);
+    ctx += "]\n" + (typeof extra === "string" ? extra : "Мне непонятно: ");
+    track("alg_ai", { topic: task.topic, group: task.group, hint: st.hint, drawing: !!files });
+    PortalAssistant.ask(ctx, { files });
   }
 
   document.querySelectorAll(".groups button").forEach((b) => {

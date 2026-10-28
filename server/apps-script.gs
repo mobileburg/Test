@@ -85,6 +85,11 @@ function doPost(e) {
     return json_(ask_(body));
   }
 
+  if (body.action === "recognize") {
+    if (!checkToken_(body.token)) return json_({ ok: false, error: "auth" });
+    return json_(recognize_(body));
+  }
+
   return json_({ ok: false, error: "unknown action" });
 }
 
@@ -161,6 +166,37 @@ function ask_(body) {
   return { ok: false, error: res.code === 400 && (files.parts.length || keep.parts.length) ? "Не получилось прочитать вложение. Попробуй другой файл или сделай скриншот." : "Помощник сейчас недоступен, попробуй через минуту." };
 }
 
+// Распознавание рукописного ответа из тренажёра: модель только переписывает написанное, не решая задачу.
+const RECOGNIZE_PER_DAY = 300;
+const RECOGNIZE = [
+  "Ты распознаёшь рукописную запись школьника на картинке: это ответ к задаче по математике, иногда вместе с ходом решения.",
+  "Перепиши ИТОГОВЫЙ ответ ровно так, как он написан. Не решай задачу, не проверяй и не исправляй ошибки — даже если ответ явно неверный, перепиши его как есть.",
+  "Если на картинке несколько строк решения, бери последнюю строку с ответом (обычно после слова «Ответ», после «x =» или «y =», либо обведённую).",
+  "Верни одну строку без пояснений, кавычек и markdown.",
+].join("\n");
+const RECOGNIZE_KIND = {
+  roots: "Формат: только числа-корни через точку с запятой, например «2; -3», дроби через /, например «1/2», десятичные через точку. Без «x =». Если написано, что корней нет (или ∅), верни «нет корней».",
+  ode: "Формат: только правая часть y(x) без «y =», в записи для калькулятора: умножение *, степень ^ со скобками, экспонента e^(...), константы C, C1, C2, функции sin(), cos(), ln(), sqrt(). Примеры: «C*e^(3x)», «C1*e^x + C2*e^(-2x)», «x^3/3 + 2x + C», «e^(-x)*(C1*cos(2x) + C2*sin(2x))».",
+};
+
+function recognize_(body) {
+  const props = PropertiesService.getScriptProperties();
+  const key = props.getProperty("GEMINI_KEY");
+  if (!key) return { ok: false, error: "Распознавание ещё не подключено." };
+  const data = String(body.image || "");
+  if (!data || data.length > 6000000 || !/^[A-Za-z0-9+/=]+$/.test(data)) return { ok: false, error: "Не получилось прочитать рисунок." };
+  const kind = RECOGNIZE_KIND[body.kind] ? body.kind : "roots";
+  const dayKey = "rec:" + Utilities.formatDate(new Date(), "Asia/Yekaterinburg", "yyyy-MM-dd");
+  const used = Number(props.getProperty(dayKey) || 0);
+  if (used >= RECOGNIZE_PER_DAY) return { ok: false, error: "На сегодня лимит распознаваний исчерпан. Введи ответ с клавиатуры." };
+  props.setProperty(dayKey, String(used + 1));
+  const res = gemini_(key, [{ role: "user", parts: [{ text: RECOGNIZE_KIND[kind] }, { inlineData: { mimeType: "image/png", data } }] }], RECOGNIZE,
+    { temperature: 0, maxOutputTokens: 400, thinkingConfig: { thinkingLevel: "low" } });
+  if (!res.text) return { ok: false, error: "Распознавание сейчас недоступно, попробуй через минуту." };
+  const text = res.text.split("\n").map((l) => l.trim()).filter(Boolean).pop().replace(/^[`"«]+|[`"»]+$/g, "").replace(/^\s*(ответ\s*:?\s*)?([xyху]\s*(\(x\))?\s*=\s*)?/i, "").slice(0, 300);
+  return { ok: true, text };
+}
+
 const MAX_FILES = 6;
 const MAX_FILES_CHARS = 14000000;
 const FILE_TYPES = /^(image\/(png|jpeg|webp|heic|heif)|application\/pdf|text\/plain)$/;
@@ -203,11 +239,11 @@ function history_(chatId) {
   return out;
 }
 
-function gemini_(key, contents) {
+function gemini_(key, contents, system, config) {
   const payload = JSON.stringify({
-    systemInstruction: { parts: [{ text: SYSTEM }] },
+    systemInstruction: { parts: [{ text: system || SYSTEM }] },
     contents,
-    generationConfig: { maxOutputTokens: 2048, thinkingConfig: { thinkingLevel: "low" } },
+    generationConfig: config || { maxOutputTokens: 2048, thinkingConfig: { thinkingLevel: "low" } },
   });
   let error = "", lastCode = 0;
   for (let attempt = 0; attempt < MODELS.length * 2; attempt++) {
