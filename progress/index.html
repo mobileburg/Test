@@ -179,6 +179,27 @@ window.addEventListener("DOMContentLoaded", async () => {
         }).join("") + "</table></div>";
     }
 
+    const shinelRuns = by("lit_run").filter((e) => e.data.work === "shinel");
+    h += "<h2>Литература: «Шинель»</h2>";
+    if (!shinelRuns.length) h += '<p class="empty">Пока не проходил тест по пересказу.</p>';
+    else {
+      const best = Math.max(...shinelRuns.map((e) => e.data.correct || 0));
+      const totalQ = shinelRuns[shinelRuns.length - 1].data.total || 8;
+      const sum = shinelRuns.reduce((s, e) => s + (e.data.correct || 0), 0);
+      const avg = Math.round(10 * sum / shinelRuns.length) / 10;
+      const last = shinelRuns[shinelRuns.length - 1];
+      h += '<div class="cards">' +
+        '<div class="cardn"><b>' + shinelRuns.length + "</b><small>попыток теста</small></div>" +
+        '<div class="cardn"><b>' + best + " из " + totalQ + "</b><small>лучший результат</small></div>" +
+        '<div class="cardn"><b>' + avg + "</b><small>в среднем верных ответов</small></div>" +
+        '<div class="cardn"><b>' + last.data.correct + " из " + (last.data.total || totalQ) + "</b><small>последний раз, " + dt(last.ts) + "</small></div></div>";
+      h += "<div class='scroll'><table><tr><th>Когда</th><th class='num'>Верных</th><th class='num'>Из</th><th>Точность</th><th class='num'>Время</th></tr>" +
+        shinelRuns.slice(-10).reverse().map((e) => {
+          const p = e.data.total ? Math.round(100 * e.data.correct / e.data.total) : 0;
+          return "<tr><td>" + dt(e.ts) + "</td><td class='num'>" + e.data.correct + "</td><td class='num'>" + e.data.total + "</td><td><div class='bar'><i style='width:" + p + "%;background:" + (p >= 80 ? "#2e7d32" : p >= 50 ? "#f0a040" : "#b3261e") + "'></i></div> " + p + "%</td><td class='num'>" + dur(e.data.sec) + "</td></tr>";
+        }).join("") + "</table></div>";
+    }
+
     const label = (e) => {
       const d = e.data || {};
       switch (e.type) {
