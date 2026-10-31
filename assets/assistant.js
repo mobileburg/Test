@@ -61,6 +61,10 @@
   .ai-panel.drop::after { content: "Отпусти файл, чтобы приложить"; position: absolute; inset: 0; display: grid; place-items: center; background: rgba(11,87,208,.12); border: 3px dashed #0b57d0; border-radius: inherit; font: 600 17px system-ui, sans-serif; color: #0b57d0; pointer-events: none; }
   .ai-form { border-top: 0; }
   .ai-msg .katex { font-size: 1.12em; }
+  .ai-fr { display: inline-flex; flex-direction: column; vertical-align: middle; text-align: center; margin: 0 2px; font-size: .92em; line-height: 1.15; }
+  .ai-fr > span:first-child { border-bottom: 1px solid currentColor; padding: 0 2px; }
+  .ai-sq { border-top: 1px solid currentColor; padding: 0 1px; }
+  .ai-dm { text-align: center; margin: 6px 0; }
   .ai-msg .katex-display { margin: 6px 0; overflow-x: auto; overflow-y: hidden; padding: 2px 0; }
   @media (max-width: 600px) { .ai-panel { inset: 0; width: auto; height: auto; border-radius: 0; border: 0; } .ai-fab span { display: none; } }`;
   const style = document.createElement("style");
@@ -259,7 +263,7 @@
   panel.addEventListener("drop", (e) => { e.preventDefault(); dragDepth = 0; panel.classList.remove("drop"); addFiles([...e.dataTransfer.files]); });
 
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-  const KATEX = "https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/";
+  const KATEX = (window.Portal.base || "/") + "assets/katex/";
   const MATH_RE = /\$\$([\s\S]+?)\$\$|\\\[([\s\S]+?)\\\]|\\\(([\s\S]+?)\\\)|\$([^$\n]+?)\$/g;
   function loadKatex() {
     const l = document.createElement("link");
@@ -271,8 +275,47 @@
     sc.onload = () => log.querySelectorAll(".ai-msg.a[data-tex]").forEach((d) => { d.innerHTML = rich(d._text); });
     document.head.appendChild(sc);
   }
+  const brace = (s, i) => {
+    if (s[i] !== "{") return [s[i] || "", i + 1];
+    let depth = 0;
+    for (let j = i; j < s.length; j++) {
+      if (s[j] === "{") depth++;
+      else if (s[j] === "}" && --depth === 0) return [s.slice(i + 1, j), j + 1];
+    }
+    return [s.slice(i + 1), s.length];
+  };
+  const SYMBOLS = { cdot: "·", times: "×", div: ":", pm: "±", le: "≤", leq: "≤", ge: "≥", geq: "≥", ne: "≠", neq: "≠", approx: "≈", implies: "⇒", Rightarrow: "⇒", to: "→", rightarrow: "→", infty: "∞", pi: "π", alpha: "α", beta: "β", lambda: "λ", varphi: "φ", Delta: "Δ", in: "∈", emptyset: "∅", varnothing: "∅", quad: " ", qquad: "  " };
+  function texLite(s, upright) {
+    let out = "", i = 0;
+    while (i < s.length) {
+      const c = s[i];
+      if (c === "\\") {
+        const m = s.slice(i + 1).match(/^([a-zA-Z]+|.)/);
+        const name = m ? m[1] : "";
+        i += 1 + name.length;
+        if (name === "frac" || name === "dfrac" || name === "tfrac") {
+          const [a, j] = brace(s, i); const [b, k] = brace(s, j); i = k;
+          out += '<span class="ai-fr"><span>' + texLite(a) + "</span><span>" + texLite(b) + "</span></span>";
+        } else if (name === "sqrt") {
+          const [a, j] = brace(s, i); i = j;
+          out += "√<span class=\"ai-sq\">" + texLite(a) + "</span>";
+        } else if (name === "mathrm" || name === "text" || name === "mathbf" || name === "operatorname") {
+          const [a, j] = brace(s, i); i = j; out += texLite(a, true);
+        } else if (name === "left" || name === "right" || name === "," || name === ";" || name === "!") {
+          out += name === "," || name === ";" ? " " : "";
+        } else if (SYMBOLS[name]) out += SYMBOLS[name];
+        else if (/^[a-zA-Z]+$/.test(name)) out += name;
+        else out += esc(name);
+      } else if (c === "^" || c === "_") {
+        const [a, j] = brace(s, i + 1); i = j;
+        out += (c === "^" ? "<sup>" : "<sub>") + texLite(a, upright) + (c === "^" ? "</sup>" : "</sub>");
+      } else if (c === "{" || c === "}") i++;
+      else { out += !upright && /[a-zA-Z]/.test(c) ? "<i>" + c + "</i>" : esc(c); i++; }
+    }
+    return out;
+  }
   function tex(src, display) {
-    if (!window.katex) return esc(display ? "$$" + src + "$$" : "$" + src + "$");
+    if (!window.katex) return display ? '<div class="ai-dm">' + texLite(src) + "</div>" : texLite(src);
     if (!display) src = src.replace(/\\frac(?![a-z])/g, "\\dfrac");
     try { return katex.renderToString(src.trim(), { displayMode: display, throwOnError: false, strict: "ignore" }); } catch (e) { return esc(src); }
   }

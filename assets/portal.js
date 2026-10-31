@@ -141,7 +141,7 @@
   function loadAssistant() {
     if (!session() || !window.PORTAL_ASSISTANT) return;
     const s = document.createElement("script");
-    s.src = BASE + "assets/assistant.js";
+    s.src = BASE + "assets/assistant.js?v=3";
     s.defer = true;
     document.body.appendChild(s);
   }
