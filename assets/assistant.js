@@ -60,6 +60,8 @@
   .ai-msg.note { align-self: center; max-width: 95%; background: #fff7e0; color: #6b4e00; font-size: 14px; }
   .ai-panel.drop::after { content: "Отпусти файл, чтобы приложить"; position: absolute; inset: 0; display: grid; place-items: center; background: rgba(11,87,208,.12); border: 3px dashed #0b57d0; border-radius: inherit; font: 600 17px system-ui, sans-serif; color: #0b57d0; pointer-events: none; }
   .ai-form { border-top: 0; }
+  .ai-msg .katex { font-size: 1.12em; }
+  .ai-msg .katex-display { margin: 6px 0; overflow-x: auto; overflow-y: hidden; padding: 2px 0; }
   @media (max-width: 600px) { .ai-panel { inset: 0; width: auto; height: auto; border-radius: 0; border: 0; } .ai-fab span { display: none; } }`;
   const style = document.createElement("style");
   style.textContent = css;
@@ -257,7 +259,31 @@
   panel.addEventListener("drop", (e) => { e.preventDefault(); dragDepth = 0; panel.classList.remove("drop"); addFiles([...e.dataTransfer.files]); });
 
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const KATEX = "https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/";
+  const MATH_RE = /\$\$([\s\S]+?)\$\$|\\\[([\s\S]+?)\\\]|\\\(([\s\S]+?)\\\)|\$([^$\n]+?)\$/g;
+  function loadKatex() {
+    const l = document.createElement("link");
+    l.rel = "stylesheet";
+    l.href = KATEX + "katex.min.css";
+    document.head.appendChild(l);
+    const sc = document.createElement("script");
+    sc.src = KATEX + "katex.min.js";
+    sc.onload = () => log.querySelectorAll(".ai-msg.a[data-tex]").forEach((d) => { d.innerHTML = rich(d._text); });
+    document.head.appendChild(sc);
+  }
+  function tex(src, display) {
+    if (!window.katex) return esc(display ? "$$" + src + "$$" : "$" + src + "$");
+    if (!display) src = src.replace(/\\frac(?![a-z])/g, "\\dfrac");
+    try { return katex.renderToString(src.trim(), { displayMode: display, throwOnError: false, strict: "ignore" }); } catch (e) { return esc(src); }
+  }
   function rich(text) {
+    const math = [];
+    text = String(text).replace(MATH_RE, (all, dd, br, pa, d) => {
+      const display = !!(dd || br);
+      math.push(tex(dd || br || pa || d, display));
+      const mark = display ? "\u0001" : "\u0000";
+      return mark + (math.length - 1) + mark;
+    });
     const lines = esc(text).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/`([^`]+)`/g, "$1").split("\n");
     let out = "", inList = false;
     lines.forEach((l) => {
@@ -267,13 +293,15 @@
       out += l + "\n";
     });
     if (inList) out += "</ul>";
-    return out.replace(/\n+$/, "");
+    return out.replace(/\n+$/, "").replace(/\n*\u0001(\d+)\u0001\n*/g, (all, i) => math[i]).replace(/\u0000(\d+)\u0000/g, (all, i) => math[i]);
   }
 
   function bubble(m) {
     const d = document.createElement("div");
     d.className = "ai-msg " + m.role;
     d.innerHTML = m.role === "q" ? esc(m.text) : rich(m.text);
+    if (m.role === "a" && !window.katex && MATH_RE.test(m.text)) { d.dataset.tex = "1"; d._text = m.text; }
+    MATH_RE.lastIndex = 0;
     if (m.att && m.att.length) {
       const box = document.createElement("div");
       box.className = "att";
@@ -438,5 +466,6 @@
       input.scrollTop = input.scrollHeight;
     },
   };
+  loadKatex();
   document.dispatchEvent(new Event("portal-assistant-ready"));
 })();

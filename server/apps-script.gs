@@ -102,7 +102,7 @@ const SYSTEM = [
   "Ты — виртуальный помощник учебного сайта «Учебный центр» (https://mobileburg.github.io/Test/). С тобой говорит школьник Дима.",
   "Вопросы приходят текстом или голосом; голос уже переведён в текст, поэтому бывают ошибки распознавания — угадывай смысл.",
   "Отвечай всегда по-русски, дружелюбно, на «ты». Коротко: 3–8 предложений или короткий список; подробнее — только если Дима просит.",
-  "Ответ читают в небольшом окне чата, поэтому не используй таблицы, код, LaTeX и знаки $. Формулы пиши простым текстом: C2H4, x^2, CH2=CH2.",
+  "Ответ читают в небольшом окне чата, поэтому не используй таблицы и код. Чат показывает формулы LaTeX как в учебнике: любую математическую запись — дроби, степени, корни, логарифмы, производные, уравнения, даже короткую вроде x^2 — пиши в LaTeX между знаками $, например $\\left(\\frac{1}{3}\\right)^x = 27$, $\\sqrt{x+1}$, $\\log_2 8 = 3$, $y' = 2x$. Дроби — только через \\frac, никогда не словами («одна третья») и не через косую черту. Важную итоговую формулу можно вынести отдельной строкой между $$ … $$. Химические формулы пиши так: $\\mathrm{C_2H_4}$, $\\mathrm{CH_2{=}CH_2}$. Знак $ используй только для формул.",
   "Объясняй как хороший репетитор: сначала суть, потом пример. Не решай домашнее задание целиком сразу — дай подсказку и предложи следующий шаг; полное решение показывай, если Дима прямо просит.",
   "Если не уверен в факте — так и скажи, не выдумывай. Если вопрос не про учёбу, ответь коротко и вежливо и предложи вернуться к занятиям. Не обсуждай опасные и взрослые темы.",
   "Разделы сайта (советуй при случае): Химия → «Алкены» (himiya/alkeny/): строение, номенклатура, реакции. " +
@@ -193,7 +193,7 @@ function recognize_(body) {
   const res = gemini_(key, [{ role: "user", parts: [{ text: RECOGNIZE_KIND[kind] }, { inlineData: { mimeType: "image/png", data } }] }], RECOGNIZE,
     { temperature: 0, maxOutputTokens: 400, thinkingConfig: { thinkingLevel: "low" } });
   if (!res.text) return { ok: false, error: "Распознавание сейчас недоступно, попробуй через минуту." };
-  const text = res.text.split("\n").map((l) => l.trim()).filter(Boolean).pop().replace(/^[`"«]+|[`"»]+$/g, "").replace(/^\s*(ответ\s*:?\s*)?([xyху]\s*(\(x\))?\s*=\s*)?/i, "").slice(0, 300);
+  const text = res.text.replace(/\$+/g, "").split("\n").map((l) => l.trim()).filter(Boolean).pop().replace(/^[`"«]+|[`"»]+$/g, "").replace(/^\s*(ответ\s*:?\s*)?([xyху]\s*(\(x\))?\s*=\s*)?/i, "").slice(0, 300);
   return { ok: true, text };
 }
 
@@ -261,7 +261,7 @@ function gemini_(key, contents, system, config) {
     try { j = JSON.parse(res.getContentText()); } catch (err) { j = {}; }
     const c = (j.candidates || [])[0];
     const text = c && c.content && (c.content.parts || []).filter((p) => !p.thought).map((p) => p.text || "").join("").trim();
-    if (code === 200 && text) return { text: text.replace(/\$+/g, "") };
+    if (code === 200 && text) return { text };
     error = model + ": " + code + " " + ((j.error && j.error.message) || (c && c.finishReason) || "empty").slice(0, 200);
     if (code === 400 || code === 401 || code === 403) break;
     if (attempt >= MODELS.length - 1) Utilities.sleep(1500);
