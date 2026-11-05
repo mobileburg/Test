@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Мини-ТЗ электрику — этап 1: щит, чулан, баня</title>
+<meta name="description" content="Хотелки хозяина сада: 220 В, 7 кВт. Этап 1 — новый щит в прихожей, чулан и баня. Номиналы групповых автоматов не заданы.">
+<style>
+  :root {
+    --navy: #1e3a5f;
+    --teal: #1f6b5a;
+    --ink: #1c2430;
+    --muted: #4a5564;
+    --line: #d5dbe3;
+    --pale: #eef3f7;
+    --cream: #f6f1e7;
+    --warn: #fff4e0;
+    --warn-line: #d08a20;
+    --ok: #1f6b5a;
+    --bg: #f4f6f8;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", sans-serif;
+    color: var(--ink);
+    background: var(--bg);
+  }
+  header.top {
+    background: var(--navy);
+    color: #fff;
+    padding: 14px 20px;
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 20px;
+    align-items: center;
+    justify-content: space-between;
+  }
+  header.top b { font-size: 0.95rem; }
+  header.top span.meta { opacity: .85; font-size: .85rem; }
+  nav.toc {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  nav.toc a {
+    color: #fff;
+    text-decoration: none;
+    font-size: .82rem;
+    background: rgba(255,255,255,.12);
+    padding: 4px 9px;
+    border-radius: 999px;
+  }
+  nav.toc a:hover { background: rgba(255,255,255,.22); }
+  main { max-width: 880px; margin: 0 auto; padding: 20px 16px 64px; }
+  .hero {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 18px;
+  }
+  .kicker { color: var(--teal); font-size: .8rem; letter-spacing: .08em; text-transform: uppercase; margin: 0 0 6px; }
+  h1 { margin: 0 0 8px; color: var(--navy); font-size: 1.7rem; line-height: 1.25; }
+  h2 { color: var(--navy); font-size: 1.25rem; margin: 28px 0 10px; }
+  h3 { color: var(--teal); font-size: 1.05rem; margin: 18px 0 8px; }
+  p { margin: 0 0 10px; }
+  .muted { color: var(--muted); }
+  .banner {
+    background: var(--warn);
+    border: 1px solid var(--warn-line);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin: 12px 0;
+  }
+  .banner.pale { background: var(--pale); border-color: var(--line); }
+  .progress-box {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin: 14px 0 18px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 16px;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .bar { flex: 1; min-width: 160px; height: 10px; background: #e8ecf2; border-radius: 999px; overflow: hidden; }
+  .bar i { display: block; height: 100%; width: 0; background: var(--teal); }
+  button {
+    font: inherit;
+    cursor: pointer;
+    border: 1px solid var(--line);
+    background: #fff;
+    border-radius: 8px;
+    padding: 6px 12px;
+  }
+  button:hover { background: var(--pale); }
+  figure {
+    margin: 14px 0;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  figure img { display: block; width: 100%; height: auto; }
+  figcaption { padding: 8px 12px 12px; font-size: .85rem; color: var(--muted); }
+  table { width: 100%; border-collapse: collapse; font-size: .92rem; background: #fff; border-radius: 8px; overflow: hidden; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { background: var(--navy); color: #fff; font-weight: 600; }
+  tr:nth-child(even) td { background: var(--pale); }
+  .wrap { overflow-x: auto; margin: 10px 0 14px; border: 1px solid var(--line); border-radius: 8px; }
+  ul.plain { margin: 0 0 12px; padding-left: 1.2em; }
+  .check {
+    list-style: none;
+    margin: 0 0 16px;
+    padding: 0;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+  }
+  .check li {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--line);
+  }
+  .check li:last-child { border-bottom: 0; }
+  .check input { margin-top: 4px; width: 18px; height: 18px; flex-shrink: 0; }
+  .check li.done span { text-decoration: line-through; color: var(--muted); }
+  .stage {
+    display: inline-block;
+    font-size: .75rem;
+    background: var(--cream);
+    color: #6a4a10;
+    border-radius: 999px;
+    padding: 2px 8px;
+    margin-left: 6px;
+  }
+  footer {
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 0 16px 40px;
+    color: var(--muted);
+    font-size: .85rem;
+  }
+  @media print {
+    header.top { position: static; }
+    nav.toc, .progress-box button { display: none; }
+    body { background: #fff; }
+  }
+</style>
+</head>
+<body>
+<header class="top">
+  <div>
+    <b>Сад · мини-ТЗ для электрика</b>
+    <span class="meta"> · этап 1 подробно · 220 В · 1 фаза · 7 кВт</span>
+  </div>
+  <nav class="toc">
+    <a href="#fakty">Факты</a>
+    <a href="#vvod">Ввод</a>
+    <a href="#shchit">Щит</a>
+    <a href="#chulan">Чулан</a>
+    <a href="#banya">Баня</a>
+    <a href="#prioritet">7 кВт</a>
+    <a href="#etap2">Этапы 2+</a>
+    <a href="#vyezd">Выезд</a>
+  </nav>
+</header>
+
+<main>
+  <section class="hero">
+    <p class="kicker">Хотелки хозяина · не проект</p>
+    <h1>Этап 1: новый щит, чулан и баня</h1>
+    <p class="muted">Одна фаза 220 В. По договору 7 кВт. Это не смета и не однолинейка — список желаний и фактов. Номиналы автоматов групп <b>не заданы</b>.</p>
+    <figure>
+      <img src="assets/oblozhka-etap1-shchit-chulan-banya.jpg" alt="Обложка этапа 1: щит в прихожей, чулан, баня">
+      <figcaption>Рис. 1. Этап 1: щит в прихожей → чулан → баня. Если подписи на рисунке кривые — верьте тексту.</figcaption>
+    </figure>
+    <div class="banner">
+      <b>Главное ограничение.</b> Новые нагрузки только в бане по сумме примерно <b>9,1 кВт</b>. Это больше договорных <b>7 кВт</b>. Всё сразу не включить. Нужен приоритет нагрузки. Номиналы автоматов групп в этом документе <b>не заданы</b> — их выбирает электрик на месте.
+    </div>
+  </section>
+
+  <div class="progress-box">
+    <div>
+      <b>Чеклисты на этом устройстве</b>
+      <div class="muted" id="progress-label">0 из 0</div>
+    </div>
+    <div class="bar" aria-hidden="true"><i id="progress-bar"></i></div>
+    <button type="button" id="reset">Сбросить галочки</button>
+  </div>
+
+  <h2 id="fakty">1. Что это за документ</h2>
+  <p>Это хотелки хозяина сада: что есть сейчас и что нужно сделать в первую очередь. Нормы и марки кабеля сверх уже сказанного — на усмотрение электрика.</p>
+  <h3>Что уже согласовано</h3>
+  <ul class="plain">
+    <li>Сеть: <b>220 В, одна фаза</b>. По договору <b>7 кВт</b>.</li>
+    <li>Этап 1 подробно: <b>новый щиток + чулан + баня</b>.</li>
+    <li>Дальше коротко: комната домика; прихожая / камеры / улица.</li>
+    <li>Новый щит ставить в <b>прихожей</b>, не оставлять фанерный щит в комнате.</li>
+    <li>PE (земля) <b>частично уже есть</b> — надо проверить и дотянуть, где дырки.</li>
+    <li>Автоматы групп <b>не придумывать</b> в этом тексте. Есть только факт: сейчас стоит EKF C40 2P на вводе щита.</li>
+  </ul>
+
+  <h2 id="vvod">2. Ввод: столб, кабель, домик</h2>
+  <p>Счётчик висит <b>на столбе через дорогу</b>. Кабель идёт так: столб → <b>над входной дверью домика</b> → <b>чердак</b> → вниз к щиту. Новый щит должен оказаться в прихожей; трасса сверху (чердак → вниз) сохраняется по смыслу.</p>
+  <figure>
+    <img src="assets/shema-vvod-stolb-cherdak-shchit.jpg" alt="Схема ввода: столб со счётчиком, над дверью, чердак, щит">
+    <figcaption>Рис. 2. Путь ввода: столб со счётчиком, через дорогу, вход над дверью, чердак, вниз в новый щит прихожей; старый щит в комнате убираем.</figcaption>
+  </figure>
+  <div class="wrap">
+    <table>
+      <thead><tr><th>Что</th><th>Как есть / как надо</th></tr></thead>
+      <tbody>
+        <tr><td>Напряжение</td><td>220 В, одна фаза (не три фазы)</td></tr>
+        <tr><td>Мощность по договору</td><td>7 кВт</td></tr>
+        <tr><td>Счётчик</td><td>На столбе, через дорогу от участка</td></tr>
+        <tr><td>Кабель до домика</td><td>Столб → над входной дверью → чердак → вниз к щиту</td></tr>
+        <tr><td>Куда ставить новый щит</td><td>Прихожая</td></tr>
+        <tr><td>Куда не оставлять старый</td><td>Комната, фанерный щит</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2 id="shchit">3. Сейчас: фанерный щит, замена</h2>
+  <p>В комнате стоит фанерный щит: автомат <b>EKF C40 двухполюсный</b> (фаза + ноль в одном корпусе — это один автомат, не «два автомата»). Рядом клеммник, шина нуля, розетка/переходник, выключатели. PE есть не везде. Этот щит <b>заменить новым</b> и повесить его в прихожей.</p>
+  <figure>
+    <img src="assets/sadovyy-shchit-c40-razbor.jpg" alt="Разбор текущего фанерного щита EKF C40 2P">
+    <figcaption>Рис. 3. Разбор текущего щита: сверху вход 220 В от счётчика на столбе, один EKF C40 2P, снизу выход в дом. Номиналы новых групповых автоматов с этой картинки не копировать — это старый щит.</figcaption>
+  </figure>
+  <h3>Что просим по новому щиту (без номиналов групп)</h3>
+  <ul class="check" data-group="shchit"></ul>
+
+  <h2 id="chulan">4. Этап 1 — чулан</h2>
+  <p>Чулан питается от нового щита в прихожей. Сечения и автоматы чулана не назначаем заранее. Насос и вода — влажное/ответственное. Выключатель света именно в прихожей — это удобство, не забыть.</p>
+  <div class="wrap">
+    <table>
+      <thead><tr><th>Точка</th><th>Комментарий</th></tr></thead>
+      <tbody>
+        <tr><td>Свет LED</td><td>Выключатель — в прихожей, не в чулане</td></tr>
+        <tr><td>×3 вода / автоматика</td><td>Три точки под автоматику воды (как решит электрик: розетки или выводы)</td></tr>
+        <tr><td>Насос</td><td>Отдельная точка под насос</td></tr>
+        <tr><td>Резерв бойлера</td><td>Точка про запас, бойлер могут поставить позже</td></tr>
+        <tr><td>×2 универсал</td><td>Две обычные универсальные розетки</td></tr>
+        <tr><td>Ballu 500 Вт</td><td>Обогреватель 0,5 кВт — точка в чулане</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <h3>Чеклист чулана</h3>
+  <ul class="check" data-group="chulan"></ul>
+
+  <h2 id="banya">5. Этап 1 — баня</h2>
+  <p>Баня <b>6 × 2,4 м</b>. Три отделения подряд: <b>комната отдыха → моечная → парная</b>. Вход с <b>длинной</b> стороны (в комнату отдыха). Питание: <b>кабель в земле 10–15 м, с PE</b>, от домика/нового щита.</p>
+  <figure>
+    <img src="assets/plan-banya-3-otdeleniya.jpg" alt="План бани: комната отдыха, моечная, парная">
+    <figcaption>Рис. 4. План бани. Слева комната отдыха (все новые точки), центр моечная, справа парная. Вход снизу с длинной стороны. Кабель в земле с PE. Таблица ниже — источник правды.</figcaption>
+  </figure>
+  <h3>Новые точки — только комната отдыха</h3>
+  <div class="wrap">
+    <table>
+      <thead><tr><th>Что</th><th>Ориентир по мощности</th><th>Заметка</th></tr></thead>
+      <tbody>
+        <tr><td>Конвектор Wi-Fi</td><td>2,5 кВт</td><td>Новая точка</td></tr>
+        <tr><td>Ballu BIH-APL-0.6-M</td><td>0,6 кВт</td><td>ИК, модель названа</td></tr>
+        <tr><td>Чайник</td><td>~2 кВт</td><td>Розетка</td></tr>
+        <tr><td>Самовар</td><td>~1 кВт</td><td>Розетка</td></tr>
+        <tr><td>Проточник</td><td>~3 кВт</td><td>Новая точка</td></tr>
+        <tr><td>Штатный свет + розетка</td><td>как есть</td><td>Отдельная линия 1,5 мм² — не смешивать с новыми мощными</td></tr>
+        <tr><td>Моечная</td><td>—</td><td>Без новых точек</td></tr>
+        <tr><td>Парная</td><td>—</td><td>Без новых точек</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Сумма новых ориентиров: 2,5 + 0,6 + 2 + 1 + 3 = <b>~9,1 кВт</b>. Плюс штатный свет/розетка. Плюс дом и чулан. Договор — 7 кВт.</p>
+  <h3>Чеклист бани</h3>
+  <ul class="check" data-group="banya"></ul>
+
+  <h2 id="prioritet">6. Приоритет нагрузки</h2>
+  <div class="banner">
+    <b>~9,1 кВт новых приборов бани &gt; 7 кВт по договору.</b>
+    Если включить конвектор, проточник и чайник вместе — сети не хватит, выбьет ввод или сядет напряжение.
+    Нужно правило «что с чем нельзя» и, если электрик предложит, простое ручное или автоматическое ограничение.
+    Конкретную схему приоритета не навязываем — нужна рабочая и понятная.
+  </div>
+  <h3>Черновой смысл приоритета (обсудить на месте)</h3>
+  <ul class="plain">
+    <li>Тяжёлые: конвектор 2,5 кВт и проточник ~3 кВт — лучше не вместе, если ещё что-то греется в доме.</li>
+    <li>Средние: чайник ~2 и самовар ~1 — коротко по времени, но в сумме с конвектором уже тесно.</li>
+    <li>Лёгкие: Ballu 0,6 кВт и свет — почти всегда можно.</li>
+    <li>Чулан: Ballu 500 Вт и насос обычно слабее бани, но насос не должен садиться в момент пика, если от него вода.</li>
+    <li>Цифры — ориентиры хозяина, не паспортные замеры. Электрик может уточнить по шильдикам.</li>
+  </ul>
+  <ul class="check" data-group="prioritet"></ul>
+
+  <h2 id="etap2">7. Этапы 2 и дальше <span class="stage">коротко</span></h2>
+  <p>Это не этап 1. В новом щите просто оставить место и понять трассы, чтобы потом не долбить дважды. Детальных списков точек по комнате, камерам и улице нет — это следующие заходы.</p>
+  <div class="wrap">
+    <table>
+      <thead><tr><th>Позже</th><th>Коротко</th></tr></thead>
+      <tbody>
+        <tr><td>Комната домика</td><td>Нормальный свет и розетки вместо того, что кормилось от фанерного щита и тройников</td></tr>
+        <tr><td>Прихожая</td><td>Свет, розетки у входа; здесь же новый щит — сразу продумать аккуратно</td></tr>
+        <tr><td>Камеры</td><td>Питание и, если нужно, слаботочка. Место в щите / отдельный блок</td></tr>
+        <tr><td>Улица</td><td>Фонари, розетка снаружи — по факту, когда дойдут руки</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <ul class="check" data-group="etap2"></ul>
+
+  <h2 id="vyezd">8. Что сделать электрику на выезде</h2>
+  <ul class="check" data-group="vyezd"></ul>
+  <div class="banner pale">
+    Ещё раз: в документе нарочно нет ампер групповых автоматов, кроме факта «сейчас стоит C40 2P на старом щите». Любые амперы «на глаз» из чата — не использовать.
+  </div>
+  <p class="muted">Картинки — подсказка глазу, текст — источник правды. Галочки хранятся в браузере этого устройства (localStorage), на сервер не уходят.</p>
+</main>
+<footer>
+  Мини-ТЗ этапа 1 · 220 В · 7 кВт · без нормативных ссылок. PDF рядом: <a href="TZ-elektrik-etap1.pdf">TZ-elektrik-etap1.pdf</a>
+</footer>
+
+<script>
+(function () {
+  var KEY = "tz-elektrik-etap1-checks-v1";
+  var ITEMS = {
+    shchit: [
+      "Нормальный щит в прихожей вместо фанеры в комнате",
+      "Ввод с учётом фактов: 220 В, 7 кВт, кабель сверху с чердака",
+      "Шины N и PE отдельно, землю дотянуть там, где её нет",
+      "Места под группы этапа 1: чулан, баня, и запас под этапы 2+ (комната, прихожая, камеры, улица)",
+      "Сколько модулей и какие автоматы/УЗО на группы — решает электрик после осмотра. Здесь цифры не пишем"
+    ],
+    chulan: [
+      "Свет LED, выключатель в прихожей",
+      "Три точки вода / автоматика",
+      "Отдельная точка насоса",
+      "Резерв бойлера",
+      "Две универсальные розетки",
+      "Точка Ballu 500 Вт"
+    ],
+    banya: [
+      "Кабель в земле 10–15 м с PE от домика/нового щита",
+      "Новые точки только в комнате отдыха",
+      "Конвектор Wi-Fi 2,5 кВт",
+      "Ballu BIH-APL-0.6-M 0,6 кВт",
+      "Розетка чайника ~2 кВт",
+      "Розетка самовара ~1 кВт",
+      "Проточник ~3 кВт",
+      "Штатный свет + розетка оставить на своей линии 1,5 мм², не смешивать с мощными",
+      "Моечная и парная — без новых точек"
+    ],
+    prioritet: [
+      "Честно посчитать, что влезет в 7 кВт",
+      "Предложить правило «что с чем нельзя» (конвектор 2,5 и проточник ~3 лучше не вместе)",
+      "Не копировать амперы со старого C40 на новые группы"
+    ],
+    etap2: [
+      "Оставить место в щите под комнату, прихожую, камеры, улицу",
+      "Этапы 2+ сейчас не делать, если хозяин не попросил"
+    ],
+    vyezd: [
+      "Посмотреть столб, кабель над дверью, чердак, спуск, фанерный щит, чулан, трассу к бане",
+      "Сказать, жив ли кабель ввода и что делать с землёй (PE частично есть)",
+      "Предложить щит в прихожей: размер, куда вешать, как перекинуть линии",
+      "Развести этап 1: чулан и баню по спискам выше",
+      "Предложить приоритет нагрузки под 7 кВт. Номиналы групп — решение после осмотра"
+    ]
+  };
+
+  function load() {
+    try { return JSON.parse(localStorage.getItem(KEY) || "{}"); } catch (e) { return {}; }
+  }
+  function save(state) {
+    localStorage.setItem(KEY, JSON.stringify(state));
+  }
+
+  var state = load();
+
+  Object.keys(ITEMS).forEach(function (group) {
+    var ul = document.querySelector('.check[data-group="' + group + '"]');
+    if (!ul) return;
+    ITEMS[group].forEach(function (text, i) {
+      var id = group + "-" + i;
+      var li = document.createElement("li");
+      var cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.id = id;
+      cb.checked = !!state[id];
+      if (cb.checked) li.classList.add("done");
+      var span = document.createElement("span");
+      span.textContent = text;
+      cb.addEventListener("change", function () {
+        state[id] = cb.checked;
+        li.classList.toggle("done", cb.checked);
+        save(state);
+        renderProgress();
+      });
+      li.appendChild(cb);
+      li.appendChild(span);
+      ul.appendChild(li);
+    });
+  });
+
+  function renderProgress() {
+    var total = 0, done = 0;
+    Object.keys(ITEMS).forEach(function (group) {
+      ITEMS[group].forEach(function (_, i) {
+        total++;
+        if (state[group + "-" + i]) done++;
+      });
+    });
+    document.getElementById("progress-label").textContent = done + " из " + total + " пунктов";
+    document.getElementById("progress-bar").style.width = (total ? (100 * done / total) : 0) + "%";
+  }
+
+  document.getElementById("reset").addEventListener("click", function () {
+    if (!confirm("Сбросить все галочки на этом устройстве?")) return;
+    state = {};
+    save(state);
+    document.querySelectorAll(".check input").forEach(function (cb) {
+      cb.checked = false;
+      cb.parentElement.classList.remove("done");
+    });
+    renderProgress();
+  });
+
+  renderProgress();
+})();
+</script>
+</body>
+</html>
