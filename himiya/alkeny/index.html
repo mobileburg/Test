@@ -45,6 +45,10 @@
   #game h2 { margin-bottom: 8px; }
   .game-lead { color: #444; margin: 0 0 18px; }
   .game-pick { display: grid; gap: 12px; margin: 0 0 18px; }
+  .about { margin: -6px 0 18px; padding: 10px 14px; border: 1px solid #cfe0f7; border-left: 4px solid #3b7dd8; background: #f4f8fe; font: 0.93rem/1.5 system-ui, sans-serif; color: #2a3140; }
+  .about summary { cursor: pointer; font-weight: 700; color: #2c64b8; }
+  .about p { margin: 6px 0 0; }
+  .about b { color: #1a1a1a; }
   .game-pick-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
   .game-pick-row span.label { min-width: 92px; color: #555; font-size: 0.92rem; }
   .chip { border: 1px solid #ccc; background: #fff; color: #1a1a1a; padding: 7px 12px; font: 600 0.92rem system-ui, sans-serif; cursor: pointer; }
@@ -139,6 +143,7 @@
     <div class="game-pick-row" id="mol-pick"><span class="label">Молекула</span></div>
     <div class="game-pick-row" id="rx-pick"><span class="label">Реакция</span></div>
   </div>
+  <details class="about" id="about" open><summary>Справка: что это за реакция и чем она отличается</summary><p id="about-rx"></p><p id="about-mol"></p></details>
   <div class="game-board" id="board">
     <div class="boom-layer" id="boom-layer"></div>
     <div class="result-formula" id="result-formula"></div>
@@ -195,6 +200,22 @@
     "butene2|hydration": { name: "бутанол-2", formula: "CH₃–CH₂–CH(OH)–CH₃" }
   };
   const TRAY = ["H", "H", "Br", "Br", "OH", "OH"];
+  const ABOUT_RX = {
+    hydrogenation: "<b>Гидрирование</b> — присоединение водорода H₂ по двойной связи; нужен катализатор (Ni, Pt) и нагревание. Получается <b>алкан</b> — насыщенный углеводород, новых элементов в молекуле не появляется. Реагент симметричный (H–H): к обоим атомам углерода присоединяется одно и то же, поэтому правило Марковникова здесь не нужно.",
+    bromination: "<b>Бромирование</b> — присоединение брома Br₂, идёт без катализатора. Атомы брома садятся на <b>оба</b> углерода двойной связи — получается 1,2-дибромпроизводное. Бурая бромная вода при этом обесцвечивается — это качественная реакция на двойную связь. Как и H₂, реагент симметричный, поэтому порядок присоединения не важен.",
+    hydrobromination: "<b>Гидробромирование</b> — присоединение бромоводорода HBr. В отличие от H₂ и Br₂, реагент <b>несимметричный</b>: к одному углероду идёт H, к другому — Br. Получается моно­бромалкан. Если алкен несимметричный, действует <b>правило Марковникова</b>: водород присоединяется к тому углероду при двойной связи, у которого больше атомов H.",
+    hydration: "<b>Гидратация</b> — присоединение воды H–OH, нужен кислотный катализатор (H⁺, например H₂SO₄). Получается <b>спирт</b>. Как и HBr, реагент несимметричный и подчиняется правилу Марковникова: H — к углероду с большим числом водородов, группа OH — к другому. Поэтому из пропена получается пропанол-2, а не пропанол-1.",
+  };
+  const ABOUT_MOL = {
+    ethylene: "<b>Этилен</b> CH₂=CH₂ — простейший алкен и <b>симметричный</b>: оба углерода двойной связи одинаковые (по 2 H). Поэтому с любым реагентом получается один продукт, и правило Марковникова роли не играет.",
+    propene: "<b>Пропен</b> CH₂=CH–CH₃ — <b>несимметричный</b>: у первого углерода 2 атома H, у второго — 1. С HBr и водой H идёт на первый углерод (CH₂=), а Br или OH — на второй. С H₂ и Br₂ разницы нет.",
+    butene1: "<b>Бутен-1</b> CH₂=CH–CH₂–CH₃ — двойная связь у края цепи, поэтому он <b>несимметричный</b>, как пропен: H — на первый углерод, Br или OH — на второй. Получаются 2-бромбутан и бутанол-2.",
+    butene2: "<b>Бутен-2</b> CH₃–CH=CH–CH₃ — двойная связь в середине, молекула <b>симметричная</b>: у обоих углеродов по одному H. Бутен-1 и бутен-2 — изомеры (отличаются положением двойной связи), но с HBr и водой дают одни и те же вещества: 2-бромбутан и бутанол-2.",
+  };
+  function renderAbout() {
+    $("about-rx").innerHTML = ABOUT_RX[state.rx] || "";
+    $("about-mol").innerHTML = ABOUT_MOL[state.mol] || "";
+  }
 
   function isCorrect(molId, rxId, slotA, slotB) {
     if (!slotA || !slotB) return false;
@@ -275,6 +296,7 @@
     };
     fill($("mol-pick"), MOLECULES, state.mol, "mol");
     fill($("rx-pick"), REACTIONS, state.rx, "rx");
+    renderAbout();
   }
 
   function carbonPoints(n, originX, originY, step) {
