@@ -1,0 +1,85 @@
+/* Общий вид тренажёров раздела «Алгебра». */
+.ui, .groups, .topics, .task, .howto { font-family: system-ui, sans-serif; }
+.howto { font-size: 0.93rem; color: #444; background: #f6f8fc; border: 1px solid #dde3ee; border-radius: 8px; padding: 10px 14px; margin: 0 0 18px; }
+.howto summary { cursor: pointer; font-weight: 600; color: #0b57d0; }
+.howto ul { margin: 8px 0 2px; padding-left: 20px; }
+.groups { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 12px; }
+.groups button { padding: 10px 16px; border: 1px solid #c9cfdb; border-radius: 22px; background: #fff; font: 600 15px system-ui, sans-serif; cursor: pointer; }
+.groups button.on { background: #0b57d0; border-color: #0b57d0; color: #fff; }
+.topics { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; margin: 0 0 18px; }
+.topics button { position: relative; text-align: left; padding: 10px 12px; border: 1px solid #dde3ee; border-radius: 10px; background: #fafbfd; cursor: pointer; font: 14px/1.3 system-ui, sans-serif; color: #222; }
+.topics button b { display: block; font-size: 15px; margin-bottom: 3px; }
+.topics button small { color: #666; font-family: Georgia, serif; font-size: 14px; }
+.topics button.on { border-color: #0b57d0; background: #eef3fd; box-shadow: 0 0 0 2px #0b57d0 inset; }
+.topics button.has { padding-right: 58px; }
+.topics .badge { position: absolute; top: 8px; right: 8px; font-size: 12px; padding: 2px 7px; border-radius: 10px; background: #e6f4ea; color: #137333; }
+.topics .badge.done { background: #137333; color: #fff; }
+.task { border: 1px solid #dde3ee; border-radius: 12px; padding: 16px 18px 18px; background: #fff; box-shadow: 0 2px 12px rgba(20,40,80,.05); }
+.task .top { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; color: #666; font-size: 0.9rem; }
+.task .ask { margin: 10px 0 4px; font-size: 1rem; color: #333; }
+.task .big { font-family: Georgia, "Times New Roman", serif; font-size: 1.7rem; margin: 4px 0 14px; overflow-x: auto; padding: 4px 0; white-space: nowrap; }
+.fr { display: inline-flex; flex-direction: column; vertical-align: middle; text-align: center; font-size: 0.85em; line-height: 1.15; margin: 0 2px; }
+.fr > span:first-child { border-bottom: 1.5px solid currentColor; padding: 0 4px 1px; }
+.fr > span:last-child { padding: 1px 4px 0; }
+.eq { font-family: Georgia, "Times New Roman", serif; white-space: nowrap; font-size: 1.05em; }
+sup { font-size: 0.7em; }
+.answer { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.answer label { font: 1.3rem Georgia, serif; }
+.answer input { flex: 1 1 260px; min-width: 0; padding: 10px 12px; font: 1.15rem Georgia, serif; border: 1px solid #b9c2d3; border-radius: 8px; }
+.answer input:focus { outline: 2px solid #0b57d0; border-color: #0b57d0; }
+.answer button.check { padding: 11px 18px; border: 0; border-radius: 8px; background: #2e7d32; color: #fff; font: 600 15px system-ui, sans-serif; cursor: pointer; }
+.preview { min-height: 1.4em; margin: 6px 0 0; font-size: 0.92rem; color: #555; }
+.preview .eq { color: #0b57d0; }
+.preview.err { color: #a05a00; }
+.keys { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 0; }
+.keys button { min-width: 40px; padding: 6px 10px; border: 1px solid #c9cfdb; border-radius: 6px; background: #f6f8fc; font: 15px Georgia, serif; cursor: pointer; }
+.hand { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 10px 0 0; font-size: 0.88rem; color: #666; }
+.hand button { padding: 7px 12px; border: 1px solid #7e57c2; border-radius: 8px; background: #f5f0ff; color: #4a2a8a; font: 600 14px system-ui, sans-serif; cursor: pointer; }
+.hand button.on { background: #7e57c2; color: #fff; }
+.sketch { margin: 8px 0 0; }
+.sketch[hidden] { display: none; }
+.sk-bar button.rec { border-color: #7e57c2; background: #7e57c2; color: #fff; font-weight: 600; }
+.sk-bar button.skai { border-color: #0b57d0; color: #0b57d0; font-weight: 600; }
+.fmt { font-size: 0.85rem; color: #666; margin: 6px 0 0; }
+.tools { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 0; }
+.tools button { padding: 8px 12px; border: 1px solid #c9cfdb; border-radius: 8px; background: #fff; font: 14px system-ui, sans-serif; cursor: pointer; }
+.tools button.hintbtn { border-color: #e0a800; background: #fff8e1; color: #7a5900; font-weight: 600; }
+.tools button.hintbtn .q { display: inline-flex; width: 20px; height: 20px; margin-right: 5px; align-items: center; justify-content: center; border-radius: 50%; background: #ffc107; color: #fff; font-weight: 800; }
+.tools button.ai { border-color: #0b57d0; color: #0b57d0; font-weight: 600; }
+.tools button.next { background: #0b57d0; border-color: #0b57d0; color: #fff; font-weight: 600; }
+.tools button:disabled { opacity: .45; cursor: default; }
+.msg { margin: 12px 0 0; padding: 10px 12px; border-radius: 8px; font-size: 0.95rem; }
+.msg:empty { display: none; }
+.msg.ok { background: #eef8ef; color: #1f5e22; border: 1px solid #b7d8b9; }
+.msg.bad { background: #fff3f3; color: #8a1f1f; border: 1px solid #e0b4b4; }
+.msg.info { background: #f3f5fa; color: #333; }
+.hints { margin: 12px 0 0; display: flex; flex-direction: column; gap: 8px; }
+.hint { display: flex; gap: 12px; padding: 12px; border-radius: 8px; background: #fff8e1; border: 1px solid #f2c94c; font-size: 0.95rem; line-height: 1.5; }
+.hint .qicon { flex: none; width: 34px; height: 34px; display: grid; place-items: center; border-radius: 50%; background: #ffc107; color: #fff; font-weight: 800; font-size: 18px; box-shadow: 0 0 0 4px #ffe8a3; }
+.hint .lvl { display: block; font-size: 0.8rem; font-weight: 700; letter-spacing: .02em; color: #7a5900; text-transform: uppercase; margin-bottom: 3px; }
+.hint ol, .hint ul, .solution ol { margin: 6px 0; padding-left: 22px; }
+.hint li, .solution li { margin: 3px 0; }
+.hint p { margin: 8px 0 0; }
+.hint.l3 { background: #fffdf3; }
+.hintmore { align-self: flex-start; padding: 6px 12px; border: 1px solid #e0a800; border-radius: 8px; background: #fff; color: #7a5900; font: 600 14px system-ui, sans-serif; cursor: pointer; }
+.solution { margin: 12px 0 0; padding: 12px 14px; border-radius: 8px; background: #f5fbf5; border: 1px solid #b7d8b9; font-size: 0.96rem; line-height: 1.5; }
+.solution h4 { margin: 0 0 4px; font-size: 0.95rem; }
+.solution p { margin: 6px 0 0; }
+.typed { font-size: 0.85rem; color: #555; }
+.typed code { background: #fff; border: 1px solid #dde3ee; border-radius: 4px; padding: 1px 5px; }
+@media (max-width: 600px) {
+  .task { padding: 12px; }
+  .task .big { font-size: 1.35rem; }
+  .topics { grid-template-columns: repeat(2, 1fr); }
+  .topics button small { display: none; }
+}
+.choices { display: flex; flex-wrap: wrap; gap: 10px; margin: 2px 0 0; }
+.choices button { min-width: 72px; padding: 11px 20px; border: 1px solid #b9c2d3; border-radius: 10px; background: #fff; font: 1.15rem Georgia, "Times New Roman", serif; cursor: pointer; }
+.choices button:hover { border-color: #0b57d0; background: #f3f7fe; }
+.choices button.ok { background: #2e7d32; border-color: #2e7d32; color: #fff; }
+.choices button.bad { background: #fff3f3; border-color: #e0b4b4; color: #8a1f1f; text-decoration: line-through; }
+.task .big .q { display: inline-block; min-width: 1.4em; margin: 0 .3em; padding: 0 .2em; border-bottom: 2px dashed #9aa6b8; color: #9aa6b8; text-align: center; }
+.about { margin: 0 0 14px; padding: 10px 14px; border: 1px solid #cfe0f7; border-left: 4px solid #0b57d0; border-radius: 8px; background: #f4f8fe; font: 0.95rem/1.5 system-ui, sans-serif; color: #2a3140; }
+.about[hidden] { display: none; }
+.about summary { cursor: pointer; font-weight: 600; color: #0b57d0; }
+.about p { margin: 6px 0 0; }
