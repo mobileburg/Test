@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Уравнения с модулем</title>
+<link rel="stylesheet" href="../../assets/site.css">
+<script src="../../assets/portal-config.js"></script>
+<script src="../../assets/portal.js" defer></script>
+<link rel="stylesheet" href="../trainer.css">
+</head>
+<body>
+<p class="crumbs"><a href="../../index.html">Главная</a> / <a href="../index.html">Алгебра</a> / Уравнения с модулем</p>
+<h1>Уравнения с модулем</h1>
+<p class="lead">От простого |2x − 3| = 5 до двух модулей и модуля в модуле. Решай сам, а если застрял — открывай подсказки: каждая следующая объясняет подробнее предыдущей.</p>
+
+<details class="howto">
+  <summary>Как пользоваться</summary>
+  <ul>
+    <li>Выбери тему — появится уравнение. Каждый раз оно новое. Над ним — короткая справка: чем этот тип отличается от других.</li>
+    <li>Реши в тетради и впиши все корни. Тренажёр проверит их подстановкой и скажет, если какой-то корень лишний или потерян.</li>
+    <li>«Подсказка» открывает помощь по ступенькам: 1 — с чего начать, 2 — подробный план с числами, 3 — объяснение с нуля с примером. Последний шаг — полное решение.</li>
+    <li>«Спросить помощника» откроет чат с этим уравнением: напиши, что именно непонятно.</li>
+    <li>Можно писать от руки: «✍ Писать от руки» — пером графического планшета, пальцем или мышью. «Распознать ответ» перенесёт ответ в поле.</li>
+    <li>Корни пиши через точку с запятой: <code>-2; 3</code>. Дроби — <code>5/2</code> или <code>2.5</code>. Если корней нет — нажми «нет корней».</li>
+  </ul>
+</details>
+
+<div class="groups" role="tablist">
+  <button type="button" data-group="base" class="on">Основные</button>
+  <button type="button" data-group="hard">Посложнее</button>
+</div>
+<div class="topics"></div>
+<div class="task" id="task" aria-live="polite"></div>
+
+<script src="../../assets/sketch.js"></script>
+<script src="../uravneniya/tasks.js"></script>
+<script src="tasks.js"></script>
+<script src="../trainer.js"></script>
+<script>
+AlgTrainer({ tasks: window.ModTasks, storeKey: "uchportal-mod", ev: "mod", name: "Тренажёр «Уравнения с модулем»" });
+</script>
+</body>
+</html>

@@ -49,6 +49,7 @@ window.addEventListener("DOMContentLoaded", async () => {
   const PF = { val: "Значение функции", mono: "Возрастает или убывает", cmp: "Сравнение степеней", range: "Множество значений", point: "График через точку",
     eqbase: "Уравнения: одно основание", eqfac: "Уравнения: вынесение множителя", eqsub: "Уравнения: замена t = aˣ", eqhom: "Уравнения: однородные",
     in1: "Неравенства: простейшие", in2: "Неравенства: вынесение множителя", in3: "Неравенства: замена t = aˣ" };
+  const MOD = { abs1: "Модуль равен числу", abs2: "Модуль равен выражению", abs3: "Модуль равен модулю", abs4: "Два модуля, метод интервалов", abs5: "Квадратное с |x|", abs6: "Модуль в модуле" };
   const ALG_MASTER = 3;
   const section = (page) => SECTIONS[(page || "/").split("/").filter(Boolean)[0] || "/"] || page;
   const pad = (n) => String(n).padStart(2, "0");
@@ -164,6 +165,7 @@ window.addEventListener("DOMContentLoaded", async () => {
     }
     h += trainerBlock("alg", "Алгебра: тренажёр уравнений", ALG, [["eq", "обычных"], ["ode", "дифференциальных"]], ["уравнений", "уравнение"], "Пока не решал уравнения в тренажёре.");
     h += trainerBlock("pf", "Алгебра: показательная функция (10 класс)", PF, [["fn", "свойства функции"], ["eq", "уравнения"], ["ineq", "неравенства"]], ["заданий", "задание"], "Пока не решал задания по показательной функции.");
+    h += trainerBlock("mod", "Алгебра: уравнения с модулем", MOD, [["base", "основные"], ["hard", "посложнее"]], ["уравнений", "уравнение"], "Пока не решал уравнения с модулем.");
 
     const litRuns = by("lit_run").filter((e) => !e.data.work || e.data.work === "vechera");
     h += "<h2>Литература: «Вечера на хуторе близ Диканьки»</h2>";
@@ -238,6 +240,13 @@ window.addEventListener("DOMContentLoaded", async () => {
         case "pf_skip": return "Показательная функция: перешёл к другому заданию, не решив (" + (PF[d.topic] || d.topic) + ")";
         case "pf_hand": return d.ok ? "Показательная функция: распознан ответ от руки (" + (PF[d.topic] || d.topic) + ")" : "<span class='bad'>Не удалось распознать запись от руки</span>";
         case "pf_ai": return "Спросил помощника про задание по показательной функции (" + (PF[d.topic] || d.topic) + ")";
+        case "mod_solved": return "<span class='ok'>Модуль: решил уравнение</span> (" + (MOD[d.topic] || d.topic) + ") за " + dur(d.sec) + (d.hand ? ", ответ от руки" : "") + (d.hint ? ", подсказок: " + d.hint : ", без подсказок") + (d.solution ? ", после просмотра решения" : "");
+        case "mod_check": return "Уравнение с модулем (" + (MOD[d.topic] || d.topic) + "): " + (d.ok ? "<span class='ok'>верно</span>" : "<span class='bad'>неверный ответ</span>");
+        case "mod_hint": return "Модуль: подсказка " + d.level + " из 3 (" + (MOD[d.topic] || d.topic) + ")";
+        case "mod_solution": return "Модуль: открыл решение (" + (MOD[d.topic] || d.topic) + ")";
+        case "mod_skip": return "Модуль: перешёл к другому уравнению, не решив (" + (MOD[d.topic] || d.topic) + ")";
+        case "mod_hand": return d.ok ? "Модуль: распознан ответ от руки (" + (MOD[d.topic] || d.topic) + ")" : "<span class='bad'>Не удалось распознать запись от руки</span>";
+        case "mod_ai": return "Спросил помощника про уравнение с модулем (" + (MOD[d.topic] || d.topic) + ")";
         case "lit_run": return "Тест «" + esc(d.title || "Литература") + "»: " + d.correct + " из " + d.total + (d.correct === d.total ? " — <span class='ok'>всё верно</span>" : "");
         default: return esc(e.type);
       }
@@ -250,7 +259,7 @@ window.addEventListener("DOMContentLoaded", async () => {
         '<div class="cardn"><b>' + new Set(asks.map((a) => dayKey(a.ts))).size + "</b><small>дней с вопросами</small></div></div>"
       : '<p class="empty">Пока не задавал вопросов.</p>');
 
-    const jr = events.filter((e) => showAll || !["time", "ru_answer", "ai_answer", "alg_check", "pf_check"].includes(e.type)).slice(-80).reverse();
+    const jr = events.filter((e) => showAll || !["time", "ru_answer", "ai_answer", "alg_check", "pf_check", "mod_check"].includes(e.type)).slice(-80).reverse();
     h += "<h2>Журнал</h2><div class='btns'><label><input type='checkbox' id='all'" + (showAll ? " checked" : "") + "> показывать все события (каждый ответ и время на странице)</label></div>" +
       (jr.length ? "<div class='scroll'><table><tr><th>Дата и время</th><th>Раздел</th><th>Событие</th></tr>" + jr.map((e) => "<tr><td style='white-space:nowrap'>" + dt(e.ts) + "</td><td>" + esc(section(e.page)) + "</td><td>" + label(e) + "</td></tr>").join("") + "</table></div>" : '<p class="empty">Событий пока нет.</p>');
 
