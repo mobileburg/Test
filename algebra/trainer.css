@@ -83,3 +83,8 @@ sup { font-size: 0.7em; }
 .about[hidden] { display: none; }
 .about summary { cursor: pointer; font-weight: 600; color: #0b57d0; }
 .about p { margin: 6px 0 0; }
+.trainers { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 14px; padding: 6px; border: 1px solid #dde3ee; border-radius: 12px; background: #f6f8fc; font-family: system-ui, sans-serif; }
+.trainers a, .trainers span { padding: 8px 14px; border-radius: 9px; font-size: 14px; font-weight: 600; text-decoration: none; }
+.trainers a { color: #0b57d0; }
+.trainers a:hover { background: #e8effc; }
+.trainers span.on { background: #fff; color: #1f2430; box-shadow: 0 1px 3px rgba(20,40,80,.15); }
