@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "bitrix-summary": {
+      "command": "node",
+      "args": ["bitrix-cursor-bridge/src/index.js"],
+      "env": {
+        "BITRIX24_WEBHOOK_URL": "https://YOUR_PORTAL.bitrix24.ru/rest/1/xxxxxxxx/",
+        "BITRIX_TOPICS_MAP": ".cursor/topics-map.json"
+      }
+    }
+  }
+}

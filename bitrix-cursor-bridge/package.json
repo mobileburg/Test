@@ -1,0 +1,27 @@
+{
+  "name": "bitrix-cursor-bridge",
+  "version": "0.1.0",
+  "description": "Минимальный MCP: summary из Cursor в задачу Bitrix24",
+  "type": "module",
+  "main": "src/index.js",
+  "bin": {
+    "bitrix-summary-mcp": "./src/index.js"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "smoke": "node scripts/smoke-rest.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "keywords": [
+    "bitrix24",
+    "mcp",
+    "cursor"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.1",
+    "zod": "^3.25.0"
+  }
+}
