@@ -1,0 +1,8 @@
+{
+  "_comment": "Скопируйте в topics-map.json (рядом или в .cursor/topics-map.json). Ключ — короткая тема чата, значение — ID задачи Bitrix24 или объект.",
+  "cursor-bitrix-sync": {
+    "taskId": 12345,
+    "title": "Связка Cursor ↔ Bitrix24"
+  },
+  "алгебра-тренажёры": 12346
+}
